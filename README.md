@@ -1,6 +1,10 @@
 # clfl
 
-macOS 메뉴바 앱 - Claude Code 데스크톱 앱의 **사용량 한도를 관리하고 조직 간 전환**한다.
+macOS 메뉴바 앱 - **터미널 Claude Code** 의 사용량 한도를 관리하고 조직 간 전환한다.
+
+> **데스크톱 앱은 대상이 아니다.** 앱이 자식 프로세스 환경에 `ANTHROPIC_BASE_URL` 을
+> 직접 꽂고, 그 이름을 관리 대상 변수로 잠가 두었다. 실측으로 확인했다.
+> [08 문서 7-4절](docs/design/08-verification.md)
 
 [claulay](https://pages.oss.navercorp.com/chanyeong-cho/claulay/index.html)(Node/TypeScript CLI)의
 프록시 코어를 Swift로 포팅하고, CLI가 담당하던 부분을 네이티브 메뉴바 UI로 대체한다.
@@ -28,12 +32,8 @@ macOS 메뉴바 앱 - Claude Code 데스크톱 앱의 **사용량 한도를 관�
 
 ## 왜 별도 앱인가
 
-claulay는 `claude`를 **자식 프로세스로 spawn하면서 환경변수를 주입**한다. 그런데 Claude Code
-데스크톱 GUI 앱은 사용자가 Dock/Finder에서 직접 띄우므로 부모 셸이 없고, macOS GUI 앱은
-`~/.zshrc`를 상속하지 않는다(launchd에서 상속). 주입할 지점 자체가 없다.
-
-대신 `~/.claude/settings.json`의 `env` 블록을 쓴다. 공식 문서 기준으로 이 값은
-**파일이 변경되면 반영**된다:
+claulay는 `claude`를 **자식 프로세스로 spawn하면서 환경변수를 주입**한다. 앱을 상시
+실행으로 두면 그 지점이 없으므로 `~/.claude/settings.json`의 `env` 블록을 쓴다.
 
 ```json
 {
@@ -42,6 +42,23 @@ claulay는 `claude`를 **자식 프로세스로 spawn하면서 환경변수를 �
 ```
 
 앱이 상시 실행되며 고정 포트에 로컬 프록시를 띄우고, 위 한 줄을 관리한다.
+
+### 어디에 통하는가
+
+| 표면 | 리디렉션 | 근거 |
+|---|---|---|
+| 터미널 `claude` | **된다** | 실측. 프록시로 요청이 온다 |
+| 데스크톱 앱 | 안 된다 | 앱이 자식 환경에 직접 꽂고 그 이름을 잠가 두었다 |
+| Agent View 백그라운드 워커 | 안 된다 | `ANTHROPIC_BASE_URL` 을 무시하고 직접 호출 |
+
+데스크톱 앱을 못 돌리는 것은 설정 문제가 아니라 앱의 정책이다. 자식 프로세스
+환경에 `ANTHROPIC_BASE_URL=https://api.anthropic.com` 을 직접 넣고, 사용자가
+그 이름으로 환경변수를 넣으려 하면 관리 대상이라며 거부한다. 앱은 자격증명도
+직접 쥐고 갱신까지 한다.
+
+그래서 이 도구의 대상은 **터미널에서 쓰는 `claude`** 다. 조직 여러 개를 오가는
+자동 전환, 모델별 한도 관측, 진행 중인 요청 구제는 거기서 전부 성립한다.
+메뉴바는 그 세션들의 사용량을 보여주고 조직 순서를 관리한다.
 
 ### 알려진 대가
 

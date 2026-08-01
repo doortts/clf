@@ -155,6 +155,16 @@ AsyncHTTPClient 의 `AsyncSequence` 를 쓴다. 릴레이 루프에서 클라이
 **이 절이 claulay 대비 가장 큰 신규 설계 부담이다.** claulay 는 invocation 마다 프록시가
 뜨고 죽었으므로 "프록시가 없는 상태" 자체가 정상이었다. clfl 은 아니다.
 
+### 정정: 이 방법은 터미널 CLI 에만 통한다
+
+처음에는 데스크톱 앱도 이 방법으로 돌릴 수 있다고 적었다. **틀렸다.** 8단계에서
+실측으로 확인했다. 데스크톱 앱은 자식 프로세스 환경에 `ANTHROPIC_BASE_URL` 을
+직접 꽂고, 그 이름을 관리 대상 변수로 잠가 두었다. 프로세스 환경에 이미 있는
+값을 `settings.json` 이 이길 수 없다.
+
+이 절의 나머지 내용은 **터미널 `claude`** 를 대상으로 그대로 유효하다.
+근거와 관측은 [08 검증](08-verification.md) 7-4절.
+
 ### 문제
 
 `~/.claude/settings.json` 의 `env.ANTHROPIC_BASE_URL` 이 우리 포트를 가리키는데 앱이

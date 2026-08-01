@@ -76,7 +76,7 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 | 6e | 응답 분류 | `clflctl classify` | 네 경로가 갈린다 | 됨 |
 | 6f | SSE 경계 | `clflctl sse-peek` | 주석 프레임을 건너뛴다 | 됨 |
 | 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 통과 |
-| 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **Claude Code 데스크톱 앱으로 대화 성공** | 도구는 됨 |
+| 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **터미널 `claude` 로 대화 성공** | 통과 |
 | 9 | 스왑 | `clflctl serve` + `runtime simulate` | 스왑 발생, 트레일에 기록 | 아직 |
 | 10 | 컨트롤 플레인 | `clflctl watch` | 스왑이 실시간으로 흐른다 | 아직 |
 | 11 | 앱 | Xcode | 메뉴바에 같은 값이 뜬다 | 아직 |
@@ -534,6 +534,42 @@ opus 로 probe 를 돌리니 429 `rate_limit_error` 가 왔는데 조직은 5시
 [07 자격증명](07-oauth-credentials.md) 이 적어둔 대로다. setup-token 은
 `user:inference` 뿐이라 모델별 주간 한도를 영영 못 읽는다. 그 세 번째 줄을
 보여주려면 `claude auth login` 캡처 경로가 필요하다.
+
+---
+
+## 7-6. 8단계 통과 기록
+
+터미널 `claude` 를 프록시로 통과시켰다.
+
+```
+22:12:42  HEAD  /api/hello  naver_team_40  세션없음  200  0B  첫바이트 303ms
+```
+
+CLI 는 붙기 전에 `HEAD /api/hello` 로 연결을 확인한다. 프록시가 이 요청도
+그대로 통과시켜야 하고, 실제로 통과한다.
+
+이어서 실제 대화가 성립했고 사용량이 기록됐다.
+
+```json
+{"account":"naver_team_40","model":"claude-haiku-4-5-20251001",
+ "input_tokens":10,"output_tokens":103,
+ "cache_creation_input_tokens":36470,"cache_read_input_tokens":0}
+```
+
+캐시 두 필드가 남는다. 스왑이 유발한 캐시 재생성 비용을 실측할 근거가 이것이다.
+첫 요청이라 `cache_creation` 만 있고 `cache_read` 는 0 이다.
+
+### 세션 id 가 오지 않는다
+
+`claude -p` 원샷 모드는 `X-Claude-Session-Id` 를 보내지 않았다. 대화형 세션에서도
+그런지는 확인하지 않았다.
+
+이것이 사실이면 [02 도메인 모델](02-domain-model.md) 3절의 **선제 강등이 원샷
+모드에서 영영 안 걸린다.** 대화 시작을 판정할 수 없기 때문이다. 판정 불가일 때
+선제 전환을 하지 않는 쪽이 안전하다는 설계는 그대로 유효하지만, 원샷 호출이
+많은 사용 패턴에서는 선제 전환이 사실상 꺼진 것과 같다.
+
+반응형 경로(429 를 맞고 넘어가기)는 세션 id 와 무관하게 동작한다.
 
 ---
 
