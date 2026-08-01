@@ -57,17 +57,27 @@ struct AccountRuntime: Codable, Sendable {
     var rateLimit: RateLimitSnapshot?
 }
 
-struct RateLimitSnapshot: Codable, Sendable {
-    /// 헤더가 주는 것은 사용률이다. 잔여는 1 - used 로 표시 직전에 뒤집는다(7절).
-    /// 선택 로직도 잔여를 쓰므로 편의 프로퍼티를 둔다.
-    var fiveHourUsedRatio: Double?      // 0.0 ~ 1.0
-    var fiveHourResetAt: Date?
-    var sevenDayUsedRatio: Double?
-    var sevenDayResetAt: Date?
-    var observedAt: Date
+struct Window: Codable, Sendable {
+    var usedRatio: Double               // 0.0 ~ 1.0. 서버가 주는 것은 사용률이다
+    var resetsAt: Date?
+    var remaining: Double { 1 - usedRatio }
+}
 
-    var fiveHourRemaining: Double? { fiveHourUsedRatio.map { 1 - $0 } }
-    var sevenDayRemaining: Double? { sevenDayUsedRatio.map { 1 - $0 } }
+struct RateLimitSnapshot: Codable, Sendable {
+    var fiveHour: Window?
+    var sevenDayAll: Window?            // 전체 모델 주간
+
+    /// 모델별 주간 창. **Usage API 의 `limits[]` 에서만 온다. 응답 헤더에는 없다.**
+    /// Claude Code 가 보여주는 "Weekly, Fable" 행이 이것이다.
+    var modelWeekly: [ModelID: Window] = [:]
+
+    var observedAt: Date
+    var source: Source
+
+    enum Source: String, Codable, Sendable {
+        case headers        // 응답 헤더 편승. 5시간과 전체 주간만
+        case usageAPI       // 모델별 주간까지. user:profile 스코프 필요
+    }
 }
 ```
 
@@ -199,7 +209,10 @@ quota 가 차기 전에 미리 전환하되, **제외가 아니라 2단계 정�
 쓴다(사용률 기준으로 보면 최댓값과 같다).
 
 ```swift
-/// 두 창 중 더 빡빡한 쪽의 잔여 비율. 없으면 nil.
+/// 이 요청을 묶는 창의 잔여 비율. 없으면 nil.
+///
+/// 세 창을 본다. 5시간, 전체 주간, 그리고 **요청한 모델의 주간**.
+/// 마지막 것은 Usage API 가 있을 때만 채워지며, 없으면 두 창으로 자연스럽게 줄어든다.
 ///
 /// resetsAt 이 지난 창의 읽기는 버린다. 그 창은 이미 리셋됐으므로 스냅샷이 말하는
 /// 소비는 존재하지 않는다. 아직 안 지난 창이면 소비는 늘기만 하므로 묵은 값도
@@ -209,7 +222,7 @@ quota 가 차기 전에 미리 전환하되, **제외가 아니라 2단계 정�
 ///   활성 계정 판단  -> true.  만료를 모르는 묵은 낮은 값이 강등을 유발하면 안 된다
 ///   후보 계정 판단  -> false. 묵은 낮은 값은 그 후보를 뒤로 밀 뿐이라 안전하다
 func bindingHeadroom(
-    _ s: RateLimitSnapshot?, now: Date, requireKnownReset: Bool
+    _ s: RateLimitSnapshot?, for model: ModelID, now: Date, requireKnownReset: Bool
 ) -> Double? {
     guard let s else { return nil }
     func usable(_ remaining: Double?, _ resetsAt: Date?) -> Double? {
@@ -217,13 +230,37 @@ func bindingHeadroom(
         guard let resetsAt else { return requireKnownReset ? nil : remaining }
         return resetsAt < now ? nil : remaining
     }
-    return [usable(s.fiveHourRemaining,  s.fiveHourResetAt),
-            usable(s.sevenDayRemaining,  s.sevenDayResetAt)].compactMap { $0 }.min()
+    return [usable(s.fiveHour?.remaining,          s.fiveHour?.resetsAt),
+            usable(s.sevenDayAll?.remaining,        s.sevenDayAll?.resetsAt),
+            usable(s.modelWeekly[model]?.remaining, s.modelWeekly[model]?.resetsAt)]
+        .compactMap { $0 }.min()
 }
 ```
 
 **이걸 빠뜨리면 7일이 먼저 바닥나는 경우를 통째로 놓친다.** [시안](ui-spec.html)의
 전환 직후 예시가 정확히 그 경우다. 5시간 53%, 7일 0%.
+
+#### 모델별 주간 창이 세 번째 축이다
+
+Claude Code 자체 화면이 세 줄을 보여준다.
+
+```
+5-hour limit          Resets in 3 hr 7 min    9%
+Weekly, all models    Resets Fri 6:00 AM      6%
+Weekly, Fable                                 0%
+```
+
+세 번째 줄은 **응답 헤더에 없다.** 헤더는 `anthropic-ratelimit-unified-5h` 와 `-7d` 뿐이고,
+모델별 주간은 Usage API 응답의 `limits[]` 배열(`kind == "weekly_scoped"`)이 유일한 출처다.
+
+그래서 이 값을 얻으려면 `user:profile` 스코프가 있는 토큰이 필요하다
+([05 문서](05-account-registration.md)). 없으면 `modelWeekly` 가 비고 두 창으로
+줄어든다. **기능이 사라지는 것이 아니라 해상도가 낮아진다.**
+
+| 토큰 | 보이는 창 | 모델별 한도 대응 |
+|---|---|---|
+| 전체 스코프 | 5시간, 전체 주간, **모델별 주간** | 벽에 닿기 전에 옮긴다 |
+| 추론 전용 | 5시간, 전체 주간 | 429 를 맞고 나서 그 모델만 쿨다운 |
 
 #### 2단계 정렬과 hysteresis
 

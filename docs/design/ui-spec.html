@@ -582,6 +582,7 @@ footer a { color: var(--muted); }
           <tr><td>모델별 쿨다운</td><td>대화 실행 UI</td></tr>
           <tr><td>선제 전환과 반응형 전환</td><td>세션 통계, 활동량 대시보드</td></tr>
           <tr><td>전환 이력</td><td>Claude Code 자체 설정 관리</td></tr>
+          <tr><td>프록시가 끈 기능 되살리기</td><td>손댈 노브 늘리기</td></tr>
         </tbody>
       </table>
     </div>
@@ -1044,12 +1045,19 @@ footer a { color: var(--muted); }
           <span class="track"><span class="fill ok" style="width:88%"></span></span>
           <span class="g-val">88%</span>
         </div>
+        <p class="gauge-note">3시간 7분 후 초기화</p>
         <div class="gauge">
-          <span class="g-lbl">7일</span>
+          <span class="g-lbl">주간</span>
           <span class="track"><span class="fill ok" style="width:69%"></span></span>
           <span class="g-val">69%</span>
         </div>
-        <p class="gauge-note">5시간 한도는 오후 2시 15분에 초기화됩니다</p>
+        <p class="gauge-note">금요일 오전 6:00 초기화</p>
+        <div class="gauge">
+          <span class="g-lbl">Fable</span>
+          <span class="track"><span class="fill warn" style="width:8%"></span></span>
+          <span class="g-val">8%</span>
+        </div>
+        <p class="gauge-note">모델별 주간. 이 모델만 곧 막힙니다</p>
       </div>
 
       <div class="pop-sec">
@@ -1393,48 +1401,13 @@ footer a { color: var(--muted); }
       </div>
       <div class="wbody">
         <div class="field">
-          <label for="pre">미리 넘어가기</label>
+          <label>미리 넘어가기</label>
           <div class="ctl">
-            <div class="row">
-              <span class="switch on"></span>
-              <span>5시간 잔여가</span>
-              <div class="slider" style="max-width:130px"><span class="done" style="width:15%"></span><span class="knob" style="left:15%"></span></div>
-              <span class="input mono" style="padding:2px 7px">15%</span>
-              <span>아래로 내려가면</span>
-            </div>
+            <div class="row"><span class="switch on"></span><span>한도에 걸리기 전에 여유 있는 조직으로 옮기기</span></div>
             <div class="hint">
-              한도에 걸리기 전에 여유 있는 계정으로 먼저 옮깁니다. 대화를 새로 시작할 때만
-              적용되며, 대화 도중에는 넘어가지 않습니다. 도중에 옮기면 프롬프트 캐시가
+              5시간, 주간, 모델별 주간 중 가장 빡빡한 창을 봅니다. 대화를 새로 시작할 때만
+              적용되며 대화 도중에는 넘어가지 않습니다. 도중에 옮기면 프롬프트 캐시가
               통째로 날아가 오히려 손해입니다.
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="grace">잠깐 붐빌 때</label>
-          <div class="ctl">
-            <div class="row">
-              <span>최대</span>
-              <input class="input mono" id="grace" value="15" style="width:52px" readonly>
-              <span>초까지 기다렸다 다시 시도</span>
-            </div>
-            <div class="hint">
-              서버가 일시적으로 붐벼서 모든 계정이 동시에 잠깐 막히는 경우가 있습니다.
-              바로 실패시키지 않고 가장 먼저 풀리는 계정을 기다립니다.
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="cap">큰 요청 한도</label>
-          <div class="ctl">
-            <div class="row">
-              <input class="input mono" id="cap" value="8" style="width:52px" readonly>
-              <span>MB</span>
-            </div>
-            <div class="hint">
-              이보다 큰 요청은 다시 보낼 사본을 들고 있을 수 없어 전환이 불가능합니다.
-              스크린샷을 여러 장 붙이면 넘길 수 있습니다.
             </div>
           </div>
         </div>
@@ -1444,12 +1417,21 @@ footer a { color: var(--muted); }
           <div class="ctl">
             <div class="row"><span class="switch on"></span><span>알리고 계속 진행</span></div>
             <div class="hint">
-              team 계정이 모두 막히면 enterprise 계정으로 넘어갑니다. 지금까지의 대화가
-              그 계정 서버로 전송되므로 넘어가 있는 동안 배너로 알립니다.
+              team 조직이 모두 막히면 enterprise 조직으로 넘어갑니다. 지금까지의 대화가
+              그 조직 서버로 전송되므로 넘어가 있는 동안 배너로 알립니다.
             </div>
           </div>
         </div>
-      </div>
+
+        <div class="field">
+          <label></label>
+          <div class="ctl">
+            <div class="hint">
+              임계값, 대기 시간, 요청 크기 한도는 설정으로 내놓지 않습니다. 우리가 정할 수
+              있는 것은 우리가 정합니다. 손댈 것이 적은 편이 잘 동작하는 것에 가깝습니다.
+            </div>
+          </div>
+        </div>
     </div>
     <p class="caption">전환 탭</p>
   </div>
@@ -1493,10 +1475,11 @@ footer a { color: var(--muted); }
         <div class="field">
           <label>도구 검색</label>
           <div class="ctl">
-            <div class="row"><span class="switch on"></span><span>MCP 도구 검색 켜두기</span></div>
+            <div class="row"><span class="switch on"></span><span>MCP 도구 검색 되살리기</span><span class="pill ok">기본 켬</span></div>
             <div class="hint">
-              프록시를 거치면 Claude Code 가 MCP 도구 검색을 끕니다. 이 설정으로 다시 켭니다.
-              참고로 원격 제어 기능은 프록시 경유 시 사용할 수 없습니다.
+              프록시를 거치면 Claude Code 가 MCP 도구 검색을 스스로 끕니다. clfl 은 응답을
+              바이트 그대로 전달하므로 문제가 없어 <b>처음부터 다시 켜둡니다.</b>
+              문제 해결이 필요할 때만 끄세요. 원격 제어는 되살릴 방법이 없습니다.
             </div>
           </div>
         </div>
