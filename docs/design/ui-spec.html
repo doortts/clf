@@ -191,6 +191,23 @@ code {
   font-family: var(--mono); font-size: 8px; line-height: 1.16;
   font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
+
+/* 막대 모드. 사용 중인 조직의 세 창을 막대와 숫자로 */
+.mb-metric { display: inline-flex; align-items: center; gap: 4px; }
+.mb-metric + .mb-metric { margin-left: 9px; }
+.mb-bar {
+  width: 24px; height: 4px; border-radius: 2px; display: block;
+  background: rgba(255,255,255,.22); overflow: hidden; flex: none;
+}
+.mb-bar i { display: block; height: 100%; border-radius: 2px; min-width: 2px; }
+.mb-bar i.ok   { background: #5fdc86; }
+.mb-bar i.warn { background: #ffd60a; }
+.mb-bar i.bad  { background: #ff8a7d; }
+.mb-pct {
+  font-family: var(--mono); font-size: 10px; font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.mb-code + .mb-metric { margin-left: 7px; }
 .mb-num .ok   { color: #5fdc86; }
 .mb-num .warn { color: #ffd60a; }
 .mb-num .bad  { color: #ff8a7d; }
@@ -291,6 +308,18 @@ code {
 .btn:hover { background: var(--surface-2); }
 .btn.pri { background: var(--accent); border-color: transparent; color: #fff; font-weight: 500; }
 .btn.pri:hover { filter: brightness(1.06); }
+
+/* NSRadioButton. 지름 14pt */
+.radios { display: flex; flex-direction: column; gap: 8px; }
+.radio { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; }
+.radio i {
+  width: 14px; height: 14px; border-radius: 50%; flex: none; margin-top: 2px;
+  border: .5px solid var(--sep); background: var(--surface);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.04);
+}
+.radio.on i { background: var(--accent); border-color: transparent; box-shadow: inset 0 0 0 3.5px var(--surface); }
+.radio .rl { display: flex; flex-direction: column; gap: 2px; }
+.radio .rh { display: flex; align-items: center; gap: 6px; }
 
 /* NSSwitch. 38 x 22, 노브 18 */
 .sw { width: 38px; height: 22px; border-radius: 11px; background: var(--sep); position: relative; flex: none; }
@@ -453,6 +482,8 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
   .field > label { text-align: left; padding-top: 0; }
   .lrow { grid-template-columns: 16px 26px 1fr 34px 22px; }
   .lrow .hide { display: none; }
+  /* 시스템 트레이는 현실감용 장식이다. 좁아지면 우리 항목에 자리를 내준다 */
+  .mb-sys { display: none; }
   .fact { border-right: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -707,44 +738,32 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 <section id="menubar"><div class="wrap">
   <div class="col">
     <h2>메뉴바</h2>
-    <p class="sub">항상 보이는 것은 두 가지다. <strong>지금 어느 조직을 쓰는가</strong>와
-      <strong>얼마나 남았는가</strong>. 나머지는 눌러서 본다.</p>
+    <p class="sub">기본은 <strong>사용 중인 조직의 세 창을 막대로</strong> 보여주는 것이다.
+      메뉴바 폭이 아까우면 좁은 모드로 바꿀 수 있다.</p>
   </div>
 
   <div class="canvas">
     <figure class="spec w">
       <div class="mb">
-        <span class="mb-item sel">
-          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-org"><span class="mb-code">T1</span><span class="mb-num"><span class="ok">56%</span><span class="warn">9%</span></span></span>
-          <span class="mb-org prev"><span class="mb-code">T2</span><span class="mb-num"><span class="ok">88%</span><span class="ok">69%</span></span></span>
-        </span>
+        <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">EN</span><span class="mb-metric" title="5시간 잔여"><span class="mb-bar"><i class="ok" style="width:88%"></i></span><span class="mb-pct">88%</span></span><span class="mb-metric" title="주간 잔여"><span class="mb-bar"><i class="ok" style="width:69%"></i></span><span class="mb-pct">69%</span></span><span class="mb-metric" title="Fable 주간 잔여"><span class="mb-bar"><i class="warn" style="width:8%"></i></span><span class="mb-pct">8%</span></span></span>
         <span class="grow"></span>
-        <span class="mb-sys">
-          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1.5 6a9 9 0 0 1 13 0M4 8.5a5.5 5.5 0 0 1 8 0"/><circle cx="8" cy="11.5" r=".9"/></svg>
-          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="5" width="11" height="6" rx="1.8"/><path d="M14 7.5v1"/></svg>
-          <span>목 9:41</span>
-        </span>
+        <span class="mb-sys"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1.5 6a9 9 0 0 1 13 0M4 8.5a5.5 5.5 0 0 1 8 0"/><circle cx="8" cy="11.5" r=".9"/></svg><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="5" width="11" height="6" rx="1.8"/><path d="M14 7.5v1"/></svg><span>목 9:41</span></span>
       </div>
       <figcaption>
-        <div class="name">정상. 위가 5시간, 아래가 주간 잔여</div>
-        <div class="dims">막대 24pt / 항목 20pt / 코드 12pt SF Mono / 숫자 8pt</div>
+        <div class="name">막대 3개. 기본값</div>
+        <div class="dims">사용 중인 조직만 / 왼쪽부터 5시간, 주간, 모델별 주간 / 막대 24x4pt, 숫자 10pt</div>
       </figcaption>
     </figure>
 
     <figure class="spec w">
       <div class="mb">
-        <span class="mb-item sel">
-          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-org"><span class="mb-code">EN</span><span class="mb-num"><span class="ok">88%</span><span class="ok">69%</span></span></span>
-          <span class="mb-org prev"><span class="mb-code">T1</span><span class="mb-num"><span class="ok">53%</span><span class="bad">0%</span></span></span>
-        </span>
+        <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">T1</span><span class="mb-metric" title="5시간 잔여"><span class="mb-bar"><i class="ok" style="width:53%"></i></span><span class="mb-pct">53%</span></span><span class="mb-metric" title="주간 잔여"><span class="mb-bar"><i class="ok" style="width:41%"></i></span><span class="mb-pct">41%</span></span><span class="mb-metric" title="Fable 주간 잔여"><span class="mb-bar"><i class="bad" style="width:0%"></i></span><span class="mb-pct">0%</span></span></span>
         <span class="grow"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
       <figcaption>
-        <div class="name">전환 직후. 떠나온 조직의 주간이 0% 라 넘어왔다</div>
-        <div class="dims">직전 조직 불투명도 0.5 / 분리선 없이 여백 8pt 로만 가른다</div>
+        <div class="name">모델별 주간이 바닥난 상태</div>
+        <div class="dims">0% 도 막대가 2pt 는 남는다. 빈 자리와 소진을 구별해야 한다</div>
       </figcaption>
     </figure>
 
@@ -759,8 +778,20 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
       <figcaption>
-        <div class="name">기본색 구간. 떠나온 조직은 인증 실패라 숫자를 뺀다</div>
-        <div class="dims">15 이상 50 미만은 색을 입히지 않는다 / 인증 실패 불투명도 0.3</div>
+        <div class="name">숫자만 모드. 사용 중 + 직전 조직</div>
+        <div class="dims">막대를 빼고 폭을 줄인다 / 위가 5시간, 아래가 주간 / 인증 실패는 숫자를 뺀다</div>
+      </figcaption>
+    </figure>
+
+    <figure class="spec w">
+      <div class="mb">
+        <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">EN</span></span>
+        <span class="grow"></span>
+        <span class="mb-sys"><span>목 9:41</span></span>
+      </div>
+      <figcaption>
+        <div class="name">코드만 모드. 가장 좁다</div>
+        <div class="dims">메뉴 항목이 많아 자리가 없을 때 / 자세한 값은 눌러서 본다</div>
       </figcaption>
     </figure>
 
@@ -778,7 +809,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
       <figcaption>
-        <div class="name">일시 중지 / 쓸 수 있는 조직 없음</div>
+        <div class="name">모드와 무관한 상태. 일시 중지 / 쓸 수 있는 조직 없음</div>
         <div class="dims">systemRed 만 색을 쓰고 나머지는 불투명도로 낮춘다</div>
       </figcaption>
     </figure>
@@ -887,14 +918,27 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       </tbody>
     </table></div>
 
-    <h3>옆자리는 직전에 쓰던 조직이다</h3>
-    <p>전환 직후 이 자리에 잡히는 것은 <strong>방금 한도에 걸려 떠나온 조직</strong>이다.
-      드문 경우를 위한 장식이 아니라, 전환 뒤 가장 궁금한 것 하나를 담는 자리다.
-      원래 조직으로 언제 돌아갈 수 있는가.</p>
+    <h3>표시 모드는 하나만 고른다</h3>
+    <p>폭과 정보량은 맞바꿀 수밖에 없다. 그래서 노브를 여러 개 두지 않고
+      <strong>미리 맞춰둔 셋 중 하나</strong>를 고르게 한다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>모드</th><th>보이는 것</th><th>대략 폭</th></tr></thead>
+      <tbody>
+        <tr><td><strong>막대 3개</strong> (기본)</td><td>사용 중인 조직의 5시간, 주간, 모델별 주간</td><td>215pt</td></tr>
+        <tr><td>숫자만</td><td>사용 중 조직과 직전 조직의 숫자</td><td>90pt</td></tr>
+        <tr><td>코드만</td><td>사용 중 조직의 코드</td><td>45pt</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:16px">막대 모드에서 직전 조직을 함께 보여주지 않는 이유는 폭이다. 대신 전환이 일어나면
+      코드가 바뀌는 것으로 드러나고, 떠나온 조직의 상태는 눌러서 본다.</p>
+    <p>숫자만 모드에서는 옆자리가 <strong>방금 한도에 걸려 떠나온 조직</strong>이다.
+      전환 뒤 가장 궁금한 것 하나를 담는 자리다. 원래 조직으로 언제 돌아갈 수 있는가.</p>
 
-    <h3>색은 줄마다 따로 붙는다</h3>
+    <h3>색은 창마다 따로 붙는다</h3>
     <p>숫자는 <strong>남은 양</strong>이다. 메뉴바를 흘깃 보는 목적이 "아직 돌려도 되나" 를
       확인하는 것이므로 남은 쪽이 곧바로 답이 되는 숫자다. 클수록 좋다.</p>
+    <p>막대 모드에서는 <strong>막대가 색을 지고 숫자는 기본색으로 둔다.</strong> 둘 다
+      물들이면 노이즈가 된다. 세 창은 서로 독립적으로 바닥나므로 색도 따로 붙는다.</p>
     <div class="tw"><table>
       <thead><tr><th>남은 양</th><th>색</th><th>뜻</th></tr></thead>
       <tbody>
@@ -912,7 +956,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 <section id="settings"><div class="wrap">
   <div class="col">
     <h2>설정 창</h2>
-    <p class="sub">조직 등록과 순서, 전환 정책, 연결 상태, 자가 점검. 탭 넷으로 끝난다.</p>
+    <p class="sub">조직 등록과 순서, 전환 정책, 메뉴바 표시, 연결 상태, 자가 점검.</p>
   </div>
 
   <div class="canvas">
@@ -922,6 +966,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
         <div class="tabs">
           <span class="tab on"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="5.4" r="2.4"/><path d="M3.2 13c0-2.3 2.1-3.6 4.8-3.6s4.8 1.3 4.8 3.6"/></svg>조직</span>
           <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>전환</span>
+          <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="1.5" y="4" width="13" height="8" rx="1.6"/><path d="M4 8h2.5M8.5 8H11"/></svg>표시</span>
           <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M6.6 9.4 4.6 11.4a2.6 2.6 0 1 1-3.7-3.7l2-2"/><path d="M9.4 6.6l2-2a2.6 2.6 0 1 1 3.7 3.7l-2 2"/><path d="M6 10 10 6"/></svg>연결</span>
           <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/><path d="m6 8 1.4 1.4L10.4 6.5"/></svg>점검</span>
         </div>
@@ -1039,7 +1084,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       <div class="win">
         <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
         <div class="tabs">
-          <span class="tab">조직</span><span class="tab on">전환</span><span class="tab">연결</span><span class="tab">점검</span>
+          <span class="tab">조직</span><span class="tab on">전환</span><span class="tab">표시</span><span class="tab">연결</span><span class="tab">점검</span>
         </div>
         <div class="wbody">
           <div class="field">
@@ -1079,7 +1124,54 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       <div class="win">
         <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
         <div class="tabs">
-          <span class="tab">조직</span><span class="tab">전환</span><span class="tab on">연결</span><span class="tab">점검</span>
+          <span class="tab">조직</span><span class="tab">전환</span><span class="tab on">표시</span><span class="tab">연결</span><span class="tab">점검</span>
+        </div>
+        <div class="wbody">
+          <div class="field">
+            <label>메뉴바</label>
+            <div class="ctl">
+              <div class="radios">
+                <span class="radio on"><i></i><span class="rl">
+                  <span class="rh"><span>막대 3개</span>
+                    <span class="mb" style="width:auto;height:18px;padding:0 6px;gap:0;box-shadow:none;border-radius:4px">
+                      <span class="mb-metric"><span class="mb-bar"><i class="ok" style="width:88%"></i></span></span>
+                      <span class="mb-metric"><span class="mb-bar"><i class="ok" style="width:69%"></i></span></span>
+                      <span class="mb-metric"><span class="mb-bar"><i class="warn" style="width:8%"></i></span></span>
+                    </span>
+                  </span>
+                  <span class="help">사용 중인 조직의 5시간, 주간, 모델별 주간</span>
+                </span></span>
+                <span class="radio"><i></i><span class="rl">
+                  <span class="rh"><span>숫자만</span></span>
+                  <span class="help">사용 중 조직과 직전 조직의 숫자. 폭이 절반</span>
+                </span></span>
+                <span class="radio"><i></i><span class="rl">
+                  <span class="rh"><span>코드만</span></span>
+                  <span class="help">조직 코드 하나. 자세한 값은 눌러서 봅니다</span>
+                </span></span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label></label>
+            <div class="ctl">
+              <div class="help">셋 다 사용 중인 조직을 먼저 보여줍니다. 다른 점은 폭과
+                정보량의 맞바꿈뿐이라 노브를 여러 개 두지 않고 미리 맞춰둔 셋 중에서 고릅니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>
+        <div class="name">표시 탭</div>
+        <div class="dims">라디오 14pt / 선택 시 accent 채움에 안쪽 3.5pt 흰 테두리</div>
+      </figcaption>
+    </figure>
+
+    <figure class="spec">
+      <div class="win">
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="tabs">
+          <span class="tab">조직</span><span class="tab">전환</span><span class="tab">표시</span><span class="tab on">연결</span><span class="tab">점검</span>
         </div>
         <div class="wbody">
           <div class="field">
@@ -1124,7 +1216,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       <div class="win">
         <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
         <div class="tabs">
-          <span class="tab">조직</span><span class="tab">전환</span><span class="tab">연결</span><span class="tab on">점검</span>
+          <span class="tab">조직</span><span class="tab">전환</span><span class="tab">표시</span><span class="tab">연결</span><span class="tab on">점검</span>
         </div>
         <div class="wbody">
           <div class="checks">
