@@ -8,10 +8,16 @@ enum Metrics {
     static let rowHeight: CGFloat = 28
     static let barHeight: CGFloat = 6
 
-    /// 메뉴바 블록 52x9pt, 세 줄.
-    static let blockWidth: CGFloat = 52
-    static let blockHeight: CGFloat = 9
-    static let dotColumns = 18
+    /// 메뉴바 블록. 칸 2pt, 간격 1pt, 17칸이면 폭 50pt 로 시안의 52pt 에 가깝고
+    /// 모든 좌표가 정수라 2배 화면에서 픽셀에 딱 맞는다.
+    static let barCell = CGSize(width: 2, height: 2)
+    static let barGap: CGFloat = 1
+    static let barColumns = 17
+
+    /// 팝오버 막대는 6pt. 칸 4x6, 간격 2pt, 29칸이면 폭 172pt.
+    static let popoverCell = CGSize(width: 4, height: 6)
+    static let popoverGap: CGFloat = 2
+    static let popoverColumns = 29
 }
 
 extension UsageBand {
@@ -50,36 +56,41 @@ extension Color {
     }
 }
 
-/// 잔여를 점으로 그린 한 줄.
+/// 잔여를 칸으로 그린 한 줄.
 ///
-/// **채운 점을 빈 점보다 굵게 그린다.** 색보다 무게 차이가 먼저 읽힌다.
+/// **칸 크기와 간격을 정수 포인트로 고정한다.** 폭을 먼저 정하고 칸 수로
+/// 나누면 칸이 2.89pt 같은 값이 되어 픽셀 격자에 안 맞고, 그러면 안티에일리어싱에
+/// 번져서 또렷한 사각형이 아니라 뭉개진 점처럼 보인다.
+///
+/// 채운 칸을 빈 칸보다 굵게 그린다. 색보다 무게 차이가 먼저 읽힌다.
 struct DotRow: View {
     let limit: UsageLimit?
-    var columns = Metrics.dotColumns
-    var width = Metrics.blockWidth
+    /// 칸 하나의 크기. 정수라야 또렷하다.
+    var cell = CGSize(width: 2, height: 2)
+    var gap: CGFloat = 1
+    var columns = 17
     var dark = true
 
+    /// 빈 칸은 높이만 줄인다. 폭까지 줄이면 격자가 흔들려 보인다.
+    private var emptyHeight: CGFloat { max(1, (cell.height / 2).rounded()) }
+
     private var filled: Int {
-        guard let limit else { return 0 }
-        // 1% 라도 남았으면 점 하나는 켠다. 0 으로 그리면 소진과 구별이 안 된다
-        let exact = Double(columns) * Double(limit.percentRemaining) / 100
-        return limit.percentRemaining > 0 ? max(1, Int(exact.rounded())) : 0
+        guard let limit, limit.percentRemaining > 0 else { return 0 }
+        // 1% 라도 남았으면 한 칸은 켠다. 0 으로 그리면 소진과 구별이 안 된다
+        return max(1, Int((Double(columns) * Double(limit.percentRemaining) / 100).rounded()))
     }
 
     var body: some View {
-        Canvas { ctx, size in
-            let pitch: CGFloat = size.width / CGFloat(columns)
-            let on = limit?.band.dotColor(dark: dark) ?? .secondary
-            let off = Color.primary.opacity(dark ? 0.22 : 0.16)
-            for i in 0..<columns {
-                let big = i < filled
-                let d: CGFloat = big ? size.height : size.height * 0.62
-                let rect = CGRect(x: pitch * CGFloat(i) + (pitch - d) / 2,
-                                  y: (size.height - d) / 2, width: d, height: d)
-                ctx.fill(Path(ellipseIn: rect), with: .color(big ? on : off))
+        let on = limit?.band.dotColor(dark: dark) ?? Color.secondary
+        let off = Color.primary.opacity(dark ? 0.22 : 0.16)
+        HStack(spacing: gap) {
+            ForEach(0..<columns, id: \.self) { i in
+                Rectangle()
+                    .fill(i < filled ? on : off)
+                    .frame(width: cell.width, height: i < filled ? cell.height : emptyHeight)
             }
         }
-        .frame(width: width, height: max(2, width / CGFloat(columns) * 0.9))
+        .frame(height: cell.height)
     }
 }
 
@@ -91,9 +102,10 @@ struct DotBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             ForEach(LimitKind.allCases, id: \.self) { kind in
-                DotRow(limit: limits[kind], dark: dark)
+                DotRow(limit: limits[kind], cell: Metrics.barCell, gap: Metrics.barGap,
+                       columns: Metrics.barColumns, dark: dark)
             }
         }
-        .frame(width: Metrics.blockWidth)
+        .fixedSize()
     }
 }

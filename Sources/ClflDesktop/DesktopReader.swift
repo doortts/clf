@@ -7,8 +7,10 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
     public let isActive: Bool
     public let plan: String?
     public let limits: [LimitKind: UsageLimit]
-    /// 못 읽었으면 이유. 값이 있으면 limits 는 비어 있다.
+    /// 못 읽었으면 이유. `isStale` 이면 값이 있으면서 이유도 있다.
     public let error: String?
+    /// 이번에 못 읽어서 지난번 값을 그대로 보여주는 중이다.
+    public let isStale: Bool
 
     public var id: String { uuid }
 
@@ -18,13 +20,15 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
     }
 
     public init(uuid: String, name: String, isActive: Bool, plan: String?,
-                limits: [LimitKind: UsageLimit], error: String? = nil) {
+                limits: [LimitKind: UsageLimit], error: String? = nil,
+                isStale: Bool = false) {
         self.uuid = uuid
         self.name = name
         self.isActive = isActive
         self.plan = plan
         self.limits = limits
         self.error = error
+        self.isStale = isStale
     }
 }
 
@@ -37,15 +41,18 @@ public struct DesktopSnapshot: Sendable, Equatable {
     public let unreadableByUUID: [String: String]
     /// 서버가 429 로 막았다. 실패와 다르다. 더 물어보면 안 된다는 뜻이다.
     public let throttled: Bool
+    /// 이번에 알아낸 조직 이름. 다음 읽기가 캐시로 쓴다.
+    public let names: [String: String]
     public let readAt: Date
 
     public init(orgs: [OrgUsage], unreadable: [String],
                 unreadableByUUID: [String: String] = [:],
-                throttled: Bool = false, readAt: Date) {
+                throttled: Bool = false, names: [String: String] = [:], readAt: Date) {
         self.orgs = orgs
         self.unreadable = unreadable
         self.unreadableByUUID = unreadableByUUID
         self.throttled = throttled
+        self.names = names
         self.readAt = readAt
     }
 
@@ -86,12 +93,17 @@ public struct DesktopReader: Sendable {
         FileManager.default.fileExists(atPath: support.appendingPathComponent("config.json").path)
     }
 
-    public func read(now: Date = Date()) async throws -> DesktopSnapshot {
+    /// `names` 를 주면 조직 목록을 다시 묻지 않는다. 이름은 안 바뀌는데
+    /// 매번 물으면 읽기당 요청이 하나씩 더 나간다.
+    public func read(now: Date = Date(),
+                     names cached: [String: String] = [:]) async throws -> DesktopSnapshot {
         let key = try safeStorageKeyFromKeychain()
         let tokens = try parseTokenCache(
             try decryptConfigValue(key: key, keys: ["oauth:tokenCacheV2", "oauth:tokenCache"]))
         let current = try? activeOrg(key: key)
-        let names = (try? await session.orgNames(sessionKey: sessionKey(key: key))) ?? [:]
+        let names = cached.isEmpty
+            ? ((try? await session.orgNames(sessionKey: sessionKey(key: key))) ?? [:])
+            : cached
 
         var orgs: [OrgUsage] = []
         var throttled = false
@@ -122,6 +134,7 @@ public struct DesktopReader: Sendable {
                                unreadable: missing.values.sorted(),
                                unreadableByUUID: missing,
                                throttled: throttled,
+                               names: names,
                                readAt: now)
     }
 

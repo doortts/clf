@@ -37,7 +37,7 @@ struct OrgCard: View {
                 }
             }
 
-            if let error = org.error {
+            if org.limits.isEmpty, let error = org.error {
                 Text(error).font(.system(size: 11)).foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 7) {
@@ -45,9 +45,17 @@ struct OrgCard: View {
                         row(kind, org.limits[kind])
                     }
                 }
+                // 값은 옛것이고 사유는 새것이다. 값만 보여주면 사용자가
+                // 옛 값을 지금 값으로 믿는다
+                if org.isStale, let error = org.error {
+                    Text("갱신 못 함. \(error)")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.vertical, 10)
+        // 낡은 값임을 눈으로도 알린다
+        .opacity(org.isStale ? 0.62 : 1)
     }
 
     private func badge(_ text: String, tint: Color) -> some View {
@@ -64,7 +72,8 @@ struct OrgCard: View {
                 Text(kind.label)
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .frame(width: 56, alignment: .leading)
-                DotRow(limit: limit, columns: 34, width: 180)
+                DotRow(limit: limit, cell: Metrics.popoverCell, gap: Metrics.popoverGap,
+                       columns: Metrics.popoverColumns)
                 Spacer(minLength: 0)
                 Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
                     .font(.system(size: 11, weight: .semibold).monospacedDigit())
@@ -181,6 +190,11 @@ struct PopoverView: View {
             if let failure = model.failure {
                 Text(failure)
                     .font(.system(size: 10)).foregroundStyle(.red)
+                    .padding(.bottom, 6)
+            }
+            if let wait = model.waitText {
+                Text("요청이 몰려 쉬는 중. \(wait) 다시 읽는다")
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
                     .padding(.bottom, 6)
             }
 

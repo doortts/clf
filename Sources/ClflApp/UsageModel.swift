@@ -15,6 +15,8 @@ final class UsageModel: ObservableObject {
     @Published private(set) var failure: String?
     @Published private(set) var readAt: Date?
     @Published private(set) var refreshing = false
+    /// 지금 눌러도 안 읽는 이유. 눌러도 아무 일이 없으면 고장 난 것으로 보인다.
+    @Published private(set) var waitText: String?
     @Published private(set) var prefs = DesktopPreferences()
     /// 시스템이 쥔 값이라 우리 설정 파일에 없다. 열 때마다 물어본다.
     @Published private(set) var loginItem = LoginItemState.off
@@ -22,6 +24,9 @@ final class UsageModel: ObservableObject {
     private let reader: DesktopReader
     private let file: DesktopPreferencesFile?
     private var pacer = RefreshPacer()
+    private var gate = ReadGate()
+    /// 조직 이름은 안 바뀐다. 매번 물으면 읽기당 요청이 하나씩 더 는다.
+    private var cachedNames: [String: String] = [:]
     private var loop: Task<Void, Never>?
     private var appearanceWatch: (any NSObjectProtocol)?
     /// 설정 화면이 보는 목록. 사용량을 못 읽는 조직도 들어간다.
@@ -40,7 +45,7 @@ final class UsageModel: ObservableObject {
         guard loop == nil else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refresh()
+                await self?.refresh(scheduled: true)
                 guard let interval = self?.pacer.currentInterval else { return }
                 do { try await Task.sleep(for: interval) } catch { return }
             }
@@ -72,23 +77,37 @@ final class UsageModel: ObservableObject {
         barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
     }
 
-    /// 팝오버를 열 때와 새로고침 단추를 누를 때. 주기와 무관하게 한 번 더 읽는다.
-    func refresh() async {
+    /// 팝오버를 열 때, 새로고침을 누를 때, 그리고 주기 루프가 부를 때.
+    ///
+    /// **읽기 하나에 요청이 조직 수만큼 나간다.** 팝오버를 여닫을 때마다
+    /// 읽으면 몇 번 만에 429 가 온다. 그래서 문을 하나 둔다.
+    func refresh(scheduled: Bool = false) async {
         guard !refreshing else { return }
+        let now = Date()
+        guard gate.allows(at: now, scheduled: scheduled) else {
+            // 정숙 구간이면 아무 말도 안 한다. 429 일 때만 사유가 뜬다
+            waitText = gate.complaint(at: now)
+            return
+        }
         refreshing = true
         defer { refreshing = false }
         do {
-            let snapshot = try await reader.read()
+            let snapshot = try await reader.read(names: cachedNames)
             pacer.observe(snapshot)
-            known = snapshot.knownOrgs
+            gate.record(at: now, throttled: snapshot.throttled)
+            waitText = gate.complaint(at: now)
+
+            // 못 읽은 조직에는 지난번 값을 물려준다. 한 번 실패했다고 화면을
+            // 비우면 사용자가 알고 있던 것까지 잃는다
+            known = mergeKeepingLastGood(fresh: snapshot.knownOrgs, previous: known)
+            if !snapshot.names.isEmpty { cachedNames = snapshot.names }
             orgs = prefs.apply(to: known)
             barOrgs = prefs.barOrgs(from: known)
             barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
-            readAt = snapshot.readAt
+            if !snapshot.throttled { readAt = snapshot.readAt }
             failure = nil
         } catch {
-            // 이전에 읽은 값은 그대로 둔다. 한 번 실패했다고 화면을 비우면
-            // 사용자가 아는 것까지 잃는다
+            gate.record(at: now, throttled: false)
             failure = "\(error)"
         }
     }
