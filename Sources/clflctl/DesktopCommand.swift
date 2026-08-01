@@ -12,7 +12,7 @@ struct Desktop: AsyncParsableCommand {
 
     struct Usage: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "5시간, 주간 전체, 주간 모델별 잔여를 조직마다 보여준다")
+            abstract: "5시간, 주간 전체, 주간 Fable 잔여를 조직마다 보여준다")
 
         @Flag(help: "활성 조직만") var active = false
         @Flag(help: "표 대신 JSON") var json = false

@@ -17,24 +17,32 @@ struct BarOrgView: View {
             Text(code).font(.system(size: 12, weight: .semibold))
 
             if detail.showsNumbers {
-                VStack(alignment: .trailing, spacing: -1) {
-                    number(.session)
-                    number(.weeklyAll)
+                // 세 창인데 숫자는 두 줄이 한계다. 어느 창인지 라벨로 못박는다.
+                // 셋째 줄은 자리가 없어 게이지만 남는다
+                VStack(alignment: .leading, spacing: -1) {
+                    number(.session, "5h")
+                    number(.weeklyAll, "1w")
                 }
             }
             if detail.showsDots {
-                DotBlock(limits: org.limits, dark: dark)
+                SegmentBlock(limits: org.limits, dark: dark)
             }
         }
         .fixedSize()
     }
 
-    /// 걸린 창의 숫자만 색이 바뀐다. 나머지는 그대로 둔다.
-    private func number(_ kind: LimitKind) -> some View {
+    /// 걸린 창의 숫자만 색이 바뀐다. 라벨은 그대로 둔다.
+    private func number(_ kind: LimitKind, _ tag: String) -> some View {
         let limit = org.limits[kind]
-        return Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
-            .font(.system(size: 8, weight: .medium).monospacedDigit())
-            .foregroundStyle(limit?.band.fillColor ?? .secondary)
+        return HStack(spacing: 3) {
+            Text(tag)
+                .font(.system(size: 8, weight: .medium))
+                .foregroundStyle(.tertiary)
+            Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
+                .font(.system(size: 8, weight: .medium).monospacedDigit())
+                .foregroundStyle(limit?.band.fillColor ?? .secondary)
+                .frame(width: 22, alignment: .trailing)
+        }
     }
 }
 

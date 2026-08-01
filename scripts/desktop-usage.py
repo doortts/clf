@@ -38,7 +38,7 @@ HOST = ".claude.ai"
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 
 # 앱이 보여주는 세 줄. 이 순서로 그린다.
-ROWS = [("session", "5시간"), ("weekly_all", "주간 전체"), ("weekly_scoped", "주간 모델별")]
+ROWS = [("session", "5시간"), ("weekly_all", "주간 전체"), ("weekly_scoped", "주간 Fable")]
 
 
 def safe_storage_key() -> bytes:

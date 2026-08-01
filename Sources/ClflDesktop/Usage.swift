@@ -17,7 +17,7 @@ public enum LimitKind: String, Sendable, CaseIterable {
         switch self {
         case .session:      return "5시간"
         case .weeklyAll:    return "주간 전체"
-        case .weeklyScoped: return "주간 모델별"
+        case .weeklyScoped: return "주간 Fable"
         }
     }
 }

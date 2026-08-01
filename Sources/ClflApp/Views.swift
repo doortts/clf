@@ -67,20 +67,17 @@ struct OrgCard: View {
     }
 
     private func row(_ kind: LimitKind, _ limit: UsageLimit?) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 7) {
                 Text(kind.label)
                     .font(.system(size: 11)).foregroundStyle(.secondary)
-                    .frame(width: 56, alignment: .leading)
-                RetroBar(limit: limit)
-                Spacer(minLength: 0)
-                Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
-                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(limit?.band.fillColor ?? .secondary)
+                    .frame(width: 58, alignment: .leading)
+                PercentPill(limit: limit)
+                CapsuleGauge(limit: limit)
             }
             Text(BarText.until(limit?.resetsAt))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
-                .padding(.leading, 64)
+                .padding(.leading, 65)
         }
     }
 }
@@ -177,10 +174,12 @@ struct PopoverView: View {
                 }
                 .disabled(model.refreshing)
                 .accessibilityLabel("지금 새로고침")
-                Button { NSApplication.shared.terminate(nil) } label: {
-                    Image(systemName: "power")
+                Button {
+                    withAnimation(.easeOut(duration: 0.12)) { showingSettings.toggle() }
+                } label: {
+                    Image(systemName: showingSettings ? "gearshape.fill" : "gearshape")
                 }
-                .accessibilityLabel("clfl 종료")
+                .accessibilityLabel(showingSettings ? "설정 닫기" : "설정 열기")
             }
             .buttonStyle(.borderless)
             .font(.system(size: 12))
@@ -216,16 +215,17 @@ struct PopoverView: View {
             }
 
             HStack(spacing: 10) {
-                Button(showingSettings ? "닫기" : "설정") {
-                    withAnimation(.easeOut(duration: 0.12)) { showingSettings.toggle() }
-                }
-                .accessibilityLabel(showingSettings ? "설정 닫기" : "설정 열기")
-                Spacer()
                 Text(model.readAt.map { stamp($0) } ?? "-")
                     .font(.system(size: 9)).foregroundStyle(.tertiary)
+                Spacer()
+                Button { NSApplication.shared.terminate(nil) } label: {
+                    Label("종료", systemImage: "power")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.red)
+                }
+                .accessibilityLabel("clfl 종료")
             }
             .buttonStyle(.borderless)
-            .font(.system(size: 10))
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
