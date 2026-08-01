@@ -9,10 +9,17 @@ enum Metrics {
     static let barHeight: CGFloat = 6
 
     /// 메뉴바 게이지. 사각형 5개에 사각형마다 세로선 4개, 선 하나가 5% 다.
-    /// 사각형 5x3pt, 사이 1.5pt, 선 0.5pt 에 간격 1pt. 전체 폭 31pt.
-    static let segSquare = CGSize(width: 5, height: 3)
-    static let segSquareGap: CGFloat = 1.5
-    static let segLineWidth: CGFloat = 0.5
+    ///
+    /// **선끼리는 붙이고 사각형끼리만 뗀다.** 선 사이에 틈을 두면 실제 크기에서
+    /// 사각형이 안 보이고 잔금만 보인다. 선 1pt 넷이 붙어 4pt 사각형이 되고,
+    /// 사각형 사이만 1pt 띄운다. 전체 폭 24pt.
+    ///
+    /// 처음에는 사각형 5pt 에 선 0.5pt, 간격 1pt 였다. 안쪽 여백이 0.75pt
+    /// = 1.5px 라 선이 반 픽셀에 걸쳐 뭉개졌고, 사각형 사이만 벌어져 보였다.
+    static let segSquare = CGSize(width: 4, height: 3)
+    static let segSquareGap: CGFloat = 1
+    static let segLineWidth: CGFloat = 1
+    /// 선 사이에 틈이 없다. 값이 어디서 끊겼는지는 채운 폭으로 드러난다.
     static let segLinePitch: CGFloat = 1
     static let segSquares = 5
     static let segLinesPerSquare = 4
