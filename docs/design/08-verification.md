@@ -404,6 +404,84 @@ clflctl settings uninstall
 
 ---
 
+## 7-4. 8단계가 잡아낸 것: 데스크톱 앱은 리디렉션할 수 없다
+
+**설계의 전제 하나가 틀렸다.** [01 아키텍처](01-architecture.md) 4절은
+`~/.claude/settings.json` 의 `env.ANTHROPIC_BASE_URL` 로 Claude Code 를 우리
+프록시로 돌린다고 적었다. 터미널 CLI 에서는 맞고, **데스크톱 앱에서는 틀렸다.**
+
+### 관측
+
+프록시를 51710 에 띄우고 주입한 뒤 데스크톱 앱을 재시작했는데 요청이 하나도
+오지 않았다. 앱이 띄운 claude-code 자식 프로세스의 환경을 직접 보니 이랬다.
+
+```
+CLAUDE_CODE_ENTRYPOINT=claude-desktop
+ANTHROPIC_BASE_URL=https://api.anthropic.com
+CLAUDE_CODE_OAUTH_TOKEN=...
+CLAUDE_CODE_SUBSCRIPTION_TYPE=team
+CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH=1
+```
+
+앱이 자식 환경에 자기 값을 직접 꽂는다. 프로세스 환경에 이미 있는 값을
+`settings.json` 의 `env` 가 이기지 못한다.
+
+우연이 아니라 의도다. 앱 번들 안에 관리 대상 변수 목록이 있고 그 안에
+`ANTHROPIC_BASE_URL` 이 들어 있다.
+
+```
+["PATH","CLAUDE_CODE_ENTRYPOINT","CLAUDE_CODE_OAUTH_TOKEN","ANTHROPIC_API_KEY",
+ "ANTHROPIC_AUTH_TOKEN","ANTHROPIC_CUSTOM_HEADERS","ANTHROPIC_BASE_URL", ...]
+```
+
+사용자가 앱에서 환경변수를 넣으려 하면 이 목록에 걸려 거부된다.
+`"ANTHROPIC_BASE_URL" is managed by Claude Desktop and cannot be overridden.`
+
+앱은 자격증명도 직접 쥔다. `CLAUDE_CODE_OAUTH_TOKEN` 을 자식에게 넘기고
+`CLAUDE_CODE_SDK_HAS_HOST_AUTH_REFRESH=1` 로 갱신까지 호스트가 한다. 조직
+전환을 우리가 하려면 호스트와 싸워야 한다는 뜻이다.
+
+### 터미널 CLI 는 된다
+
+같은 방식으로 확인했다. 임시 설정 디렉토리에 `env.ANTHROPIC_BASE_URL` 만 넣고
+부모 환경의 값을 지운 뒤 `claude -p` 를 돌리니 우리 리스너로 연결이 왔다.
+
+```
+HEAD /api/hello HTTP/1.1
+Host: 127.0.0.1:51513
+User-Agent: Bun/1.4.0
+```
+
+부수적으로 알게 된 것: CLI 는 붙기 전에 `HEAD /api/hello` 로 연결을 확인한다.
+프록시가 이 요청도 통과시켜야 한다.
+
+### 무엇이 남았나
+
+| 표면 | 리디렉션 | 근거 |
+|---|---|---|
+| 터미널 `claude` | 된다 | 관측함 |
+| 데스크톱 앱 | 안 된다 | 관리 대상 변수. 앱이 자식 환경에 직접 꽂는다 |
+| Agent View 백그라운드 워커 | 안 된다 | 1차 범위 제외. 01 아키텍처 4절 |
+
+터미널 CLI 만으로도 이 도구는 성립한다. 조직 여러 개를 오가는 자동 전환,
+모델별 한도 관측, 스왑은 전부 그대로 쓸모가 있다. 다만 **메뉴바 앱이
+데스크톱 앱의 사용량을 관리한다는 그림은 성립하지 않는다.**
+
+### 아직 시도하지 않은 것
+
+앱이 **자기 프로세스 환경**에 있는 `ANTHROPIC_BASE_URL` 을 자식에게 물려주는지는
+확인하지 않았다. 확인하려면 `launchctl setenv` 로 심고 앱을 재시작해야 한다.
+
+```bash
+launchctl setenv ANTHROPIC_BASE_URL http://127.0.0.1:51710
+```
+
+관리 대상 목록은 앱의 사용자 입력 UI 를 막는 것이라 부모 환경 전달과는 다른
+경로일 수 있다. 다만 자식이 받은 값이 정확히 기본값이었다는 점에서 앱이 스스로
+정하는 쪽에 무게가 실린다.
+
+---
+
 ## 8. 열린 질문
 
 ### tier 1 안에서 무엇을 먼저 쓸 것인가
