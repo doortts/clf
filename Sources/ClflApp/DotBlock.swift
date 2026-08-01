@@ -24,7 +24,8 @@ enum Metrics {
     static let segSquares = 5
     static let segLinesPerSquare = 4
     /// 줄 사이. 붙여 두면 세 줄이 한 덩어리로 보인다.
-    static let segRowGap: CGFloat = 2
+    /// 1.5pt = 3px. 2배 화면에서 정수 픽셀이다.
+    static let segRowGap: CGFloat = 1.5
 
     /// 팝오버 막대. 디더 격자 2pt, 네 줄이면 높이 8pt.
     ///
