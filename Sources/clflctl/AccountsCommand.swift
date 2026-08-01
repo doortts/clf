@@ -52,12 +52,17 @@ struct Accounts: AsyncParsableCommand {
             guard let plan = Plan(rawValue: plan) else {
                 throw CheckFailed(description: "plan 은 team 또는 enterprise 다")
             }
-            let raw = String(decoding: FileHandle.standardInput.readDataToEndOfFile(),
-                             as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            // 오염된 값을 저장하면 업스트림이 401 을 내고 사용자는 토큰이
-            // 틀렸다고 생각한다. 여기서 막는 편이 훨씬 싸다
+            // claude setup-token 은 파이프로 넘겨도 ANSI 제어 문자를 뿜는다.
+            // 사용자가 grep 파이프라인을 만들 것이 아니라 도구가 뽑아낸다
+            let stdin = String(decoding: FileHandle.standardInput.readDataToEndOfFile(),
+                               as: UTF8.self)
+            let raw: String
             do {
-                try validateTokenText(raw)
+                let extracted = try extractToken(from: stdin)
+                raw = extracted.text
+                if extracted.wasCleaned {
+                    print("  정리    제어 문자와 장식을 걷어내고 토큰을 뽑았다")
+                }
             } catch let error as TokenHygieneError {
                 throw CheckFailed(description: error.description)
             }
@@ -67,9 +72,8 @@ struct Accounts: AsyncParsableCommand {
             let kind: CredentialKind
             let fingerprintSource: String
             if raw.hasPrefix("{") {
-                guard let parsed = OAuthCredential(claudeAiOauthJSON: Data(raw.utf8)) else {
-                    throw CheckFailed(description: "claudeAiOauth 블록을 읽지 못했다")
-                }
+                // 추출 단계에서 이미 완전한 블록임을 확인했다
+                let parsed = OAuthCredential(claudeAiOauthJSON: Data(raw.utf8))!
                 credential = .oauth(json: Data(raw.utf8))
                 kind = .oauth
                 fingerprintSource = parsed.accessToken
