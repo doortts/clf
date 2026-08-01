@@ -8,24 +8,20 @@ enum Metrics {
     static let rowHeight: CGFloat = 28
     static let barHeight: CGFloat = 6
 
-    /// 메뉴바 게이지. 사각형 5개에 사각형마다 세로선 4개, 선 하나가 5% 다.
+    /// 메뉴바 게이지. 스무 칸이라 한 칸이 5% 다.
     ///
-    /// **선끼리는 붙이고 사각형끼리만 뗀다.** 선 사이에 틈을 두면 실제 크기에서
-    /// 사각형이 안 보이고 잔금만 보인다. 선 1pt 넷이 붙어 4pt 사각형이 되고,
-    /// 사각형 사이만 1pt 띄운다. 전체 폭 24pt.
+    /// 칸 1pt = 2px, 안쪽 높이 2.5pt = 5px, 테두리 0.5pt = 1px, 줄 사이 1pt = 2px.
+    /// 2배 화면에서 전부 정수 픽셀이다.
     ///
-    /// 처음에는 사각형 5pt 에 선 0.5pt, 간격 1pt 였다. 안쪽 여백이 0.75pt
-    /// = 1.5px 라 선이 반 픽셀에 걸쳐 뭉개졌고, 사각형 사이만 벌어져 보였다.
-    static let segSquare = CGSize(width: 4, height: 3)
-    static let segSquareGap: CGFloat = 1
-    static let segLineWidth: CGFloat = 1
-    /// 선 사이에 틈이 없다. 값이 어디서 끊겼는지는 채운 폭으로 드러난다.
-    static let segLinePitch: CGFloat = 1
-    static let segSquares = 5
-    static let segLinesPerSquare = 4
-    /// 줄 사이. 붙여 두면 세 줄이 한 덩어리로 보인다.
-    /// 1.5pt = 3px. 2배 화면에서 정수 픽셀이다.
-    static let segRowGap: CGFloat = 1.5
+    /// 테두리는 줄마다 따로 긋고 등급색으로 칠한다. 그래서 **여기까지가 100%**
+    /// 라는 것이 눈에 보인다. 안쪽은 이어진 막대다. 테두리가 끝을 알려주므로
+    /// 칸을 갈라 그릴 이유가 없다.
+    static let segSteps = 20
+    static let segStepWidth: CGFloat = 1
+    static let segRowHeight: CGFloat = 2.5
+    static let segBorder: CGFloat = 0.5
+    /// 줄 사이. 테두리를 각자 그으므로 그 사이를 띄운다.
+    static let segRowGap: CGFloat = 1
 
     /// 팝오버 막대. 디더 격자 2pt, 네 줄이면 높이 8pt.
     ///
@@ -80,16 +76,16 @@ extension Color {
 
 /// 눈금 게이지 한 줄.
 ///
-/// 사각형 다섯에 사각형마다 세로선 넷. 스무 칸이므로 **선 하나가 5%** 다.
-/// 5% 단위로 **올림**한다. 89% 는 18칸, 83% 는 17칸, 99% 는 스무 칸 전부다.
+/// 스무 칸이므로 **한 칸이 5%** 다. 5% 단위로 **올림**한다. 87% 는 18칸,
+/// 83% 는 17칸, 99% 는 스무 칸 전부다.
 ///
-/// 실제 크기에서는 선 넷이 붙어 사각형 하나로 읽힌다. 그게 의도다. 확대하면
-/// 눈금이 갈려 값이 어디서 끊겼는지 보인다.
+/// 테두리를 등급색으로 두르고 안쪽을 그만큼 채운다. 테두리가 100% 의 끝을
+/// 알려주므로 안쪽은 이어진 막대로 두고 칸을 갈라 그리지 않는다.
 struct SegmentGauge: View {
     let limit: UsageLimit?
     var dark = true
 
-    static var totalSteps: Int { Metrics.segSquares * Metrics.segLinesPerSquare }
+    static var totalSteps: Int { Metrics.segSteps }
     /// 한 칸이 몇 퍼센트인가. 스무 칸이면 5% 다.
     static var stepPercent: Double { 100 / Double(totalSteps) }
 
@@ -99,32 +95,33 @@ struct SegmentGauge: View {
     }
 
     static var width: CGFloat {
-        CGFloat(Metrics.segSquares) * Metrics.segSquare.width
-            + CGFloat(Metrics.segSquares - 1) * Metrics.segSquareGap
+        CGFloat(Metrics.segSteps) * Metrics.segStepWidth + Metrics.segBorder * 2
     }
+    static var height: CGFloat { Metrics.segRowHeight + Metrics.segBorder * 2 }
 
     var body: some View {
-        let on = limit?.band.dotColor(dark: dark) ?? Color.secondary
+        let tint = limit?.band.dotColor(dark: dark) ?? Color.secondary
         let off = Color.primary.opacity(dark ? 0.22 : 0.16)
         let lit = Self.steps(for: limit?.percentRemaining ?? 0)
-        // 선 넷과 사이 셋을 사각형 안에 가운데로. (5 - (4*0.5 + 3*0.5)) / 2 = 0.75
-        let inset = (Metrics.segSquare.width
-            - (CGFloat(Metrics.segLinesPerSquare) * Metrics.segLineWidth
-               + CGFloat(Metrics.segLinesPerSquare - 1)
-                 * (Metrics.segLinePitch - Metrics.segLineWidth))) / 2
-        Canvas { ctx, _ in
-            for square in 0..<Metrics.segSquares {
-                let x0 = CGFloat(square) * (Metrics.segSquare.width + Metrics.segSquareGap) + inset
-                for line in 0..<Metrics.segLinesPerSquare {
-                    let index = square * Metrics.segLinesPerSquare + line
-                    let x = x0 + CGFloat(line) * Metrics.segLinePitch
-                    ctx.fill(Path(CGRect(x: x, y: 0, width: Metrics.segLineWidth,
-                                         height: Metrics.segSquare.height)),
-                             with: .color(index < lit ? on : off))
-                }
+        Canvas { ctx, size in
+            let b = Metrics.segBorder
+            ctx.stroke(Path(CGRect(origin: .zero, size: size).insetBy(dx: b / 2, dy: b / 2)),
+                       with: .color(tint), lineWidth: b)
+
+            let inner = CGRect(x: b, y: b, width: size.width - b * 2, height: size.height - b * 2)
+            let filled = inner.width * CGFloat(lit) / CGFloat(Self.totalSteps)
+            if filled > 0 {
+                ctx.fill(Path(CGRect(x: inner.minX, y: inner.minY,
+                                     width: filled, height: inner.height)),
+                         with: .color(tint))
+            }
+            if filled < inner.width {
+                ctx.fill(Path(CGRect(x: inner.minX + filled, y: inner.minY,
+                                     width: inner.width - filled, height: inner.height)),
+                         with: .color(off))
             }
         }
-        .frame(width: Self.width, height: Metrics.segSquare.height)
+        .frame(width: Self.width, height: Self.height)
     }
 }
 
