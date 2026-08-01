@@ -107,7 +107,12 @@ public struct KeychainCredentialStore: CredentialStoring {
             throw StoreError.credentialMissing(id)
         }
         guard let credential = StoredCredential(wireFormat: raw) else {
-            throw StoreError.keychainFailed(reason: "\(id) 항목의 형식을 알 수 없다")
+            throw StoreError.keychainFailed(reason: """
+            \(id) 의 Keychain 항목을 읽을 수 없다. 등록할 때 값이 오염됐을 수 있다.
+            지우고 다시 넣는다:
+              clflctl accounts remove \(id)
+              clflctl accounts add \(id) --plan team
+            """)
         }
         return credential
     }

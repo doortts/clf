@@ -54,8 +54,12 @@ struct Accounts: AsyncParsableCommand {
             }
             let raw = String(decoding: FileHandle.standardInput.readDataToEndOfFile(),
                              as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !raw.isEmpty else {
-                throw CheckFailed(description: "stdin 이 비었다. 토큰을 파이프로 넣는다")
+            // 오염된 값을 저장하면 업스트림이 401 을 내고 사용자는 토큰이
+            // 틀렸다고 생각한다. 여기서 막는 편이 훨씬 싸다
+            do {
+                try validateTokenText(raw)
+            } catch let error as TokenHygieneError {
+                throw CheckFailed(description: error.description)
             }
 
             // 앞이 { 면 auth login 캡처, 아니면 setup-token 문자열이다

@@ -51,6 +51,28 @@ enum SecurityCLI {
         }
         var text = String(decoding: result.stdout, as: UTF8.self)
         if text.hasSuffix("\n") { text.removeLast() }
-        return text
+        return decodeSecurityOutput(text)
     }
+}
+
+/// `security` 는 값에 출력 불가 바이트가 하나라도 있으면 원문 대신 소문자
+/// 16진수를 낸다. 그것을 그대로 파싱하면 형식을 알 수 없다며 죽는다.
+///
+/// 우리 형식은 `L:` 이나 `O:` 로 시작하고 Claude CLI 슬롯은 `{` 로 시작한다.
+/// 셋 다 소문자 16진수 집합 밖이라 hex 출력과 겹칠 수 없다. 그래서 판정이 결정적이다.
+func decodeSecurityOutput(_ text: String) -> String {
+    guard !text.isEmpty, text.count % 2 == 0,
+          text.allSatisfy({ $0.isHexDigit && !$0.isUppercase })
+    else { return text }
+
+    var bytes: [UInt8] = []
+    bytes.reserveCapacity(text.count / 2)
+    var index = text.startIndex
+    while index < text.endIndex {
+        let next = text.index(index, offsetBy: 2)
+        guard let byte = UInt8(text[index..<next], radix: 16) else { return text }
+        bytes.append(byte)
+        index = next
+    }
+    return String(decoding: bytes, as: UTF8.self)
 }
