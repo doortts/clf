@@ -40,10 +40,10 @@ struct BarOrgView: View {
         // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
         return HStack(spacing: 2.5) {
             Text(tag)
-                .font(.system(size: 8, weight: .medium))
+                .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.tertiary)
             Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
-                .font(.system(size: 8, weight: .medium).monospacedDigit())
+                .font(.system(size: 9, weight: .medium).monospacedDigit())
                 .foregroundStyle(limit?.band.fillColor ?? .secondary)
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
