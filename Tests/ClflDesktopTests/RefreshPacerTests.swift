@@ -103,10 +103,14 @@ final class RefreshPacerTests: XCTestCase {
 /// 메뉴바 막대에 무엇을 그릴지.
 final class BarContentTests: XCTestCase {
 
+    static func some(_ used: Int) -> [LimitKind: UsageLimit] {
+        [.session: UsageLimit(percentUsed: used, resetsAt: nil, severity: "normal")]
+    }
+
     let orgs = [
-        OrgUsage(uuid: "t40", name: "TEAM_40", isActive: true, plan: "team", limits: [:]),
-        OrgUsage(uuid: "t52", name: "TEAM_52", isActive: false, plan: "team", limits: [:]),
-        OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: "enterprise", limits: [:]),
+        OrgUsage(uuid: "t40", name: "TEAM_40", isActive: true, plan: "team", limits: some(10)),
+        OrgUsage(uuid: "t52", name: "TEAM_52", isActive: false, plan: "team", limits: some(20)),
+        OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: "enterprise", limits: some(30)),
     ]
 
     /// 조직이 셋이면 막대가 길어진다. 기본은 활성 하나만.
@@ -139,9 +143,46 @@ final class BarContentTests: XCTestCase {
 
     func test_activeOnlyFallsBackWhenNothingIsActive() {
         let idle = orgs.map {
-            OrgUsage(uuid: $0.uuid, name: $0.name, isActive: false, plan: $0.plan, limits: [:])
+            OrgUsage(uuid: $0.uuid, name: $0.name, isActive: false, plan: $0.plan,
+                     limits: $0.limits)
         }
         XCTAssertEqual(DesktopPreferences().barOrgs(from: idle).count, 1)
+    }
+
+    /// 사용량을 모르는 조직은 막대에 안 올린다. `?` 와 빈 게이지는 자리만
+    /// 먹고 알려주는 것이 없다.
+    func test_unreadableOrgsStayOffTheBar() {
+        var prefs = DesktopPreferences()
+        prefs.barContent = .allVisible
+        let mixed = orgs.dropLast() + [
+            OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: nil, limits: [:],
+                     error: "앱에서 이 조직을 한 번 열면 사용량이 읽힌다")]
+        XCTAssertEqual(prefs.barOrgs(from: Array(mixed)).map(\.uuid), ["t40", "t52"])
+    }
+
+    /// 팝오버와 설정에는 그대로 남는다. 거기서는 왜 못 읽는지까지 말할 수 있다.
+    func test_unreadableOrgsStillShowInThePopover() {
+        let mixed = orgs.dropLast() + [
+            OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: nil, limits: [:])]
+        XCTAssertEqual(DesktopPreferences().apply(to: Array(mixed)).count, 3)
+    }
+
+    /// 낡은 값은 값이다. 429 로 갱신을 못 했다고 막대에서 사라지면 안 된다.
+    func test_staleOrgsKeepTheirSlot() {
+        var prefs = DesktopPreferences()
+        prefs.barContent = .allVisible
+        let stale = [OrgUsage(uuid: "t40", name: "TEAM_40", isActive: true, plan: "team",
+                              limits: Self.some(10), error: "요청이 너무 잦다", isStale: true)]
+        XCTAssertEqual(prefs.barOrgs(from: stale).count, 1)
+    }
+
+    /// 아무것도 못 읽었으면 막대가 빈다. 그때는 앱 이름이 뜬다.
+    func test_barIsEmptyWhenNothingIsKnown() {
+        let blind = orgs.map {
+            OrgUsage(uuid: $0.uuid, name: $0.name, isActive: $0.isActive, plan: nil, limits: [:])
+        }
+        XCTAssertTrue(DesktopPreferences().barOrgs(from: blind).isEmpty)
+        XCTAssertEqual(BarText.label(for: []), BarText.placeholder)
     }
 
     func test_emptyWhenEverythingHidden() {

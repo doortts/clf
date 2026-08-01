@@ -109,8 +109,12 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     /// 막대에 그릴 조직. 팝오버에는 `apply(to:)` 결과를 전부 쓴다.
     ///
     /// 숨긴 조직은 여기에도 안 나온다. 설정이 두 곳에 따로 있으면 헷갈린다.
+    ///
+    /// **사용량을 모르는 조직도 안 올린다.** `?` 와 빈 게이지는 자리만 먹고
+    /// 알려주는 것이 없다. 팝오버와 설정에는 그대로 남는다. 거기서는 왜 못
+    /// 읽는지까지 말할 수 있다.
     public func barOrgs(from orgs: [OrgUsage]) -> [OrgUsage] {
-        let shown = apply(to: orgs)
+        let shown = apply(to: orgs).filter { !$0.limits.isEmpty }
         guard barContent == .activeOnly else { return shown }
         // 활성 조직을 숨겨뒀거나 활성이 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다
         if let active = shown.first(where: \.isActive) { return [active] }

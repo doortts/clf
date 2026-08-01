@@ -41,7 +41,10 @@ struct BarOrgView: View {
             Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
                 .font(.system(size: 8, weight: .medium).monospacedDigit())
                 .foregroundStyle(limit?.band.fillColor ?? .secondary)
-                .frame(width: 22, alignment: .trailing)
+                // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: 26, alignment: .trailing)
         }
     }
 }
