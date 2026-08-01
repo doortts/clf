@@ -202,8 +202,8 @@ code {
 /* 색은 계정이 아니라 줄마다 따로 붙는다. 5시간과 7일은 서로 독립이다.
    숫자는 남은 양이므로 클수록 좋다 */
 .mb-stack .ok   { color: #6fd18a; }   /* 50% 이상 남음 */
-.mb-stack .warn { color: #f0c05a; }   /* 15% 미만 남음 */
-.mb-stack .crit { color: #ff8a7d; }   /* 0% 남음 */
+.mb-stack .warn { color: #f0c05a; }   /* 5% 이상 15% 미만 남음 */
+.mb-stack .crit { color: #ff8a7d; }   /* 5% 미만 남음 */
 /* 15 이상 50 미만은 클래스 없이 기본색 */
 
 /* 직전에 쓰던 계정. 활성 계정보다 확실히 뒤로 물러나야 한다.
@@ -757,12 +757,18 @@ footer a { color: var(--muted); }
         <tbody>
           <tr><td>50% 이상</td><td><span class="pill ok">녹색</span></td><td>여유. 계속 써도 되고 넘어올 곳으로도 좋다</td></tr>
           <tr><td>15% 이상 50% 미만</td><td><span class="pill">기본</span></td><td>정상 범위. 굳이 눈길을 끌지 않는다</td></tr>
-          <tr><td>15% 미만</td><td><span class="pill warn">노랑</span></td><td>곧 넘어가게 된다</td></tr>
-          <tr><td>0%</td><td><span class="pill crit">빨강</span></td><td>이 창은 바닥났다</td></tr>
+          <tr><td>5% 이상 15% 미만</td><td><span class="pill warn">노랑</span></td><td>선제 전환 임계값 아래. 새 대화는 다른 계정으로 간다</td></tr>
+          <tr><td>5% 미만</td><td><span class="pill crit">빨강</span></td><td>사실상 소진. 곧 강제로 넘어간다</td></tr>
         </tbody>
       </table>
     </div>
 
+    <p>
+      경계값은 임의가 아니다. <strong>노랑이 시작되는 15% 는 설정 창의 선제 전환
+      임계값과 같은 값</strong>이라, 노랑은 곧 "이 계정은 새 대화 후보에서 이미 밀려났다"
+      는 뜻이 된다. 빨강 5% 는 대화 도중에 강제로 넘어가기 직전 구간이다. 설정에서
+      임계값을 바꾸면 노랑 경계도 함께 움직인다.
+    </p>
     <p>
       코드와 숫자 사이는 붙인다. 두 줄로 쌓인 형태 자체가 이미 구분이 되므로 공백이 필요없고,
       계정 사이도 선을 긋지 않고 여백만으로 가른다. 메뉴바에서 1픽셀은 비싸다.

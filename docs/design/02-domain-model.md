@@ -516,17 +516,23 @@ T1 56%   T2 88%          <- 실제로는 코드와 숫자가 붙는다
 |---|---|---|
 | 50% 이상 | 녹색 | 여유. 계속 써도 되고 넘어올 곳으로도 좋다 |
 | 15% 이상 50% 미만 | 기본색 | 정상 범위. 굳이 눈길을 끌지 않는다 |
-| 15% 미만 | 노랑 | 곧 넘어가게 된다 |
-| 0% | 빨강 | 이 창은 바닥났다 |
+| 5% 이상 15% 미만 | 노랑 | 선제 전환 임계값 아래. 새 대화는 다른 계정으로 간다 |
+| 5% 미만 | 빨강 | 사실상 소진. 곧 강제로 넘어간다 |
+
+경계값이 임의가 아니다. **노랑이 시작되는 15% 는 선제 전환 임계값과 같은 값**이라,
+노랑은 곧 "이 계정은 새 대화 후보에서 이미 밀려났다" 는 뜻이 된다. 빨강 5% 는 대화
+도중에 강제로 넘어가기 직전 구간이다. 임계값을 설정에서 바꾸면 노랑 경계도 함께
+움직인다.
 
 ```swift
 enum HeadroomBand { case ample, normal, low, empty }
 
 /// remaining 은 0.0 ~ 1.0 의 잔여 비율.
-func band(remaining: Double) -> HeadroomBand {
-    if remaining <= 0    { return .empty }
-    if remaining < 0.15  { return .low }
-    if remaining < 0.50  { return .normal }
+/// lowThreshold 는 선제 전환 임계값과 같은 값을 넘겨받는다 (기본 0.15).
+func band(remaining: Double, lowThreshold: Double = 0.15) -> HeadroomBand {
+    if remaining < 0.05        { return .empty }
+    if remaining < lowThreshold { return .low }
+    if remaining < 0.50        { return .normal }
     return .ample
 }
 ```
