@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clfl 설계 문서 - 동작 원리와 UI 시안</title>
+<title>clfl 설계 문서 - 사용량 한도 관리와 조직 전환</title>
 <style>
 :root {
   --ground:  #eef0f3;
@@ -530,22 +530,25 @@ footer a { color: var(--muted); }
   <div class="wrap">
     <span class="brand">clfl</span>
     <nav class="topnav">
+      <a href="#why">왜 만드나</a>
       <a href="#how">동작 원리</a>
       <a href="#features">기능</a>
+      <a href="#strategy">전환 전략</a>
       <a href="#menubar">메뉴바</a>
       <a href="#settings">설정 창</a>
       <a href="#states">상태 표시</a>
       <a href="#flow">요청 흐름</a>
+      <a href="#docs">설계 문서</a>
     </nav>
   </div>
 </div>
 
 <header class="wrap masthead">
   <p class="eyebrow">설계 문서 / UI 시안</p>
-  <h1>Claude Code 데스크톱 앱을 위한<br>다중 계정 라우터</h1>
+  <h1>Claude Code 데스크톱 앱의<br>사용량 한도를 관리한다</h1>
   <p class="lede">
-    메뉴바에 상주하면서 로컬 프록시를 띄우고, 활성 계정이 한도에 걸리면 같은 턴 안에서
-    다음 계정으로 조용히 넘긴다. 사용자에게는 에러가 보이지 않는다.
+    조직마다 얼마나 남았는지 항상 보여주고, 바닥나기 전에 미리 옮기고, 그래도 걸리면
+    같은 턴 안에서 조용히 넘긴다. 사용자에게는 에러가 보이지 않는다.
   </p>
   <dl class="facts">
     <div class="fact"><dt>형태</dt><dd>메뉴바 앱 (LSUIElement)</dd></div>
@@ -553,13 +556,92 @@ footer a { color: var(--muted); }
     <div class="fact"><dt>연결</dt><dd>settings.json 의 env</dd></div>
     <div class="fact"><dt>토큰 저장</dt><dd>Keychain</dd></div>
     <div class="fact"><dt>대상</dt><dd>macOS 13 이상</dd></div>
+    <div class="fact"><dt>다루는 것</dt><dd>한도와 전환</dd></div>
+    <div class="fact"><dt>안 다루는 것</dt><dd>API 비용 집계</dd></div>
   </dl>
 </header>
 
-<!-- ============ 1. 동작 원리 ============ -->
+<!-- ============ 1. 왜 만드나 ============ -->
+<section id="why"><div class="wrap">
+  <div class="col">
+    <div class="shead"><span class="snum">1</span><h2>왜 만드나</h2></div>
+    <p class="sub">
+      비슷한 앱이 이미 있다. 그래도 만드는 이유가 셋이고, 그 셋이 이 앱의 범위를 정한다.
+    </p>
+
+    <h3>다루는 것과 다루지 않는 것</h3>
+    <p>
+      <strong>한도 관리 한 가지에 집중한다.</strong> 지금 얼마나 남았는지, 어디로 넘어가야
+      하는지, 언제 넘어가야 하는지. 그 밖은 넣지 않는다.
+    </p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>다룬다</th><th>다루지 않는다</th></tr></thead>
+        <tbody>
+          <tr><td>조직별 5시간, 7일 잔여</td><td>API 비용 집계, 오늘 얼마 썼나</td></tr>
+          <tr><td>모델별 쿨다운</td><td>대화 실행 UI</td></tr>
+          <tr><td>선제 전환과 반응형 전환</td><td>세션 통계, 활동량 대시보드</td></tr>
+          <tr><td>전환 이력</td><td>Claude Code 자체 설정 관리</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="diagram">
+      <div class="dbox">
+        <div class="dt">1. 한 이메일 아래 조직이 여럿이다</div>
+        <div class="dd">
+          사내 SSO 로그인 하나에 <code>Naver</code>, <code>NAVER_TEAM_52</code>,
+          <code>NAVER_TEAM_40</code> 이 함께 달려 있다. 한도는 조직마다 따로 찬다.
+        </div>
+        <div class="inner-list">
+          <div class="inner"><b>기존 앱</b> 이메일로 계정을 구분해 둘째 조직부터 거부한다</div>
+          <div class="inner"><b>clfl</b> 신원을 묻지 않는다. 사용자가 이름을 붙이고 토큰을 묶는다</div>
+        </div>
+      </div>
+      <div class="connector"><span class="line"></span></div>
+      <div class="dbox">
+        <div class="dt">2. 한도는 모델마다 따로 찬다</div>
+        <div class="dd">
+          주간 한도가 있는 모델 하나가 소진돼도 같은 조직의 다른 모델은 멀쩡하다.
+          조직 단위로만 전환하면 쓸 수 있는 것을 버리게 된다.
+        </div>
+        <div class="inner-list">
+          <div class="inner"><b>clfl</b> (조직, 모델) 쌍으로 쿨다운을 건다</div>
+        </div>
+      </div>
+      <div class="connector"><span class="line"></span></div>
+      <div class="dbox">
+        <div class="dt">3. 이미 날아간 요청은 되돌릴 수 없다</div>
+        <div class="dd">
+          자격증명만 바꾸는 방식은 다음 호출부터 반영된다. 방금 한도에 걸린 그 요청은
+          그대로 실패한다.
+        </div>
+        <div class="inner-list">
+          <div class="inner"><b>clfl</b> 응답 첫 조각을 열어보고 판정해 같은 턴 안에서 다시 보낸다</div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">프록시 비용을 지불하는 세 가지 근거</p>
+  </div>
+
+  <div class="col">
+    <div class="note">
+      <span class="nt">대가도 분명하다</span>
+      <p>
+        프록시를 거치므로 MCP 도구 검색이 기본 비활성화되고(설정으로 복구 가능),
+        원격 제어는 아예 쓸 수 없다. 이 셋이 필요없는 사용자에게는
+        <strong>프록시 없는 앱이 더 나은 선택이다.</strong> 정직하게 적어둔다.
+      </p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============ 2. 동작 원리 ============ -->
 <section id="how"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">1</span><h2>동작 원리</h2></div>
+    <div class="shead"><span class="snum">2</span><h2>동작 원리</h2></div>
     <p class="sub">
       Claude Code 데스크톱 앱은 Dock 에서 실행되므로 부모 셸의 환경변수를 물려받지 못한다.
       대신 <code>~/.claude/settings.json</code> 의 <code>env</code> 블록에 로컬 주소를 심어
@@ -630,7 +712,7 @@ footer a { color: var(--muted); }
 <!-- ============ 2. 기능 ============ -->
 <section id="features"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">2</span><h2>기능</h2></div>
+    <div class="shead"><span class="snum">3</span><h2>기능</h2></div>
     <p class="sub">터미널에서 하던 여섯 개 명령과 환경변수 설정이 창 하나로 들어온다.</p>
   </div>
 
@@ -666,10 +748,110 @@ footer a { color: var(--muted); }
   </div>
 </div></section>
 
-<!-- ============ 3. 메뉴바 ============ -->
+<!-- ============ 4. 전환 전략 ============ -->
+<section id="strategy"><div class="wrap">
+  <div class="col">
+    <div class="shead"><span class="snum">4</span><h2>전환 전략</h2></div>
+    <p class="sub">
+      트리거가 둘이다. 성격이 다르므로 <strong>가드도 달라야 한다.</strong>
+    </p>
+
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th></th><th>선제 전환</th><th>반응형 전환</th></tr></thead>
+        <tbody>
+          <tr><td>트리거</td><td>잔여가 임계값 아래</td><td>서버가 429 로 거절</td></tr>
+          <tr><td>판단 주체</td><td>우리</td><td>서버</td></tr>
+          <tr><td>적용 시점</td><td>새 대화 시작할 때만</td><td>즉시, 같은 턴 안에서</td></tr>
+          <tr><td>쿨다운</td><td>300초</td><td><strong>걸지 않는다</strong></td></tr>
+          <tr><td>틀렸을 때</td><td>캐시를 헛되이 버린다</td><td>없음. 사실 통보다</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <strong>반응형에 쿨다운을 걸면 안 된다.</strong> 429 는 우리 판단이 아니라 그 조직을
+      지금 쓸 수 없다는 서버의 통보다. 쿨다운 때문에 넘어가지 못하면 요청이 그냥 실패한다.
+      선제 전환은 반대다. 우리 판단이라 틀릴 수 있고, 틀렸을 때 왕복하면 캐시를 반복해서
+      버린다.
+    </p>
+
+    <h3>어느 창이 조직을 묶는가</h3>
+    <p>
+      5시간과 7일 중 <strong>먼저 바닥나는 쪽</strong>이 그 조직을 묶는다. 잔여 기준이므로
+      둘 중 최솟값을 본다. 5시간만 보면 7일이 먼저 차는 경우를 통째로 놓친다.
+    </p>
+  </div>
+
+  <div class="stage">
+    <div class="diagram">
+      <div class="dbox">
+        <div class="dt">EN</div>
+        <div class="dd">5시간 88% 남음 / 7일 69% 남음</div>
+        <div class="inner-list">
+          <div class="inner"><b>묶는 값 69%</b> 여유. tier 0</div>
+        </div>
+      </div>
+      <div class="connector"><span class="line"></span><span class="txt">둘 중 작은 쪽</span><span class="line"></span></div>
+      <div class="dbox stressed">
+        <div class="dt">T1</div>
+        <div class="dd">5시간 53% 남음 / 7일 0% 남음</div>
+        <div class="inner-list">
+          <div class="inner"><b>묶는 값 0%</b> 5시간만 봤으면 여유로 보였다</div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">7일이 먼저 바닥난 경우. 하나만 보면 절반을 놓친다</p>
+  </div>
+
+  <div class="col">
+    <h3>제외가 아니라 강등이다</h3>
+    <p>
+      임계값 아래인 조직을 후보에서 빼지 않고 <strong>뒤로 민다.</strong> 전 조직이 임계값을
+      넘었을 때 쓸 수 있는 곳이 0이 되면 안 되기 때문이다. 강등은 가용성을 절대 줄이지 않는다.
+    </p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>tier</th><th>조건</th><th>동작</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>묶는 잔여 &gt;= 25% (임계값 15% + hysteresis 10%)</td><td>선호. 우선순위 순서대로</td></tr>
+          <tr><td>1</td><td>그 외. 읽기가 없는 조직도 여기</td><td>tier 0 이 비었을 때만</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      hysteresis 가 없으면 임계값 바로 위아래에 있는 두 조직이 대화마다 자리를 바꾼다.
+      전환은 프롬프트 캐시를 버리는 행위라 왕복 자체가 손해다. 한 번 tier 1 로 내려가면
+      25% 를 회복해야 다시 선호된다.
+    </p>
+
+    <h3>묵은 값을 믿지 않는다</h3>
+    <p>
+      잔여량은 응답 헤더에 편승해 갱신되므로, 오래 쓰지 않은 조직의 값은 며칠 묵는다.
+      그 사이 창이 리셋됐으면 <strong>실제로는 비어 있는 조직을 소진된 것으로 보고
+      건너뛴다.</strong>
+    </p>
+    <p>
+      그래서 리셋 시각이 지난 창의 읽기는 버린다. 아직 안 지났으면 소비는 늘기만 하므로
+      묵은 값도 유효한 하한이다. 리셋 시각 자체를 모를 때는 판단 방향에 따라 다르게 다룬다.
+      <strong>지금 쓰는 조직을 내보내는 판단에는 쓰지 않고</strong>, 후보를 뒤로 미는
+      판단에는 쓴다. 전자는 틀리면 멀쩡한 조직을 쫓아내고, 후자는 틀려도 그 후보가 조금
+      늦게 선택될 뿐이다.
+    </p>
+
+    <div class="note">
+      <span class="nt">폴링하지 않는다</span>
+      <p>
+        잔여량은 어차피 응답 헤더로 들어온다. 요청이 흐르면 저절로 갱신되고, 요청이 없으면
+        갱신할 이유도 없다. 별도로 사용량 API 를 두드리면 그 호출 자체가 한도를 먹는다.
+      </p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============ 5. 메뉴바 ============ -->
 <section id="menubar"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">3</span><h2>메뉴바</h2></div>
+    <div class="shead"><span class="snum">5</span><h2>메뉴바</h2></div>
     <p class="sub">
       항상 보이는 것은 두 가지다. <strong>지금 어느 계정을 쓰는가</strong>와
       <strong>얼마나 남았는가</strong>. 나머지는 눌러서 본다.
@@ -936,7 +1118,7 @@ footer a { color: var(--muted); }
 <!-- ============ 4. 설정 창 ============ -->
 <section id="settings"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">4</span><h2>설정 창</h2></div>
+    <div class="shead"><span class="snum">6</span><h2>설정 창</h2></div>
     <p class="sub">
       계정 등록과 순서, 전환 정책, 연결 상태, 자가 점검. 터미널에서 스무 번쯤 하던 일이
       여기 모인다.
@@ -1390,7 +1572,7 @@ footer a { color: var(--muted); }
 <!-- ============ 5. 상태 표시 ============ -->
 <section id="states"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">5</span><h2>상태 표시 규칙</h2></div>
+    <div class="shead"><span class="snum">7</span><h2>상태 표시 규칙</h2></div>
     <p class="sub">
       지금 참인 것은 <strong>조건</strong>이고 지나간 것은 <strong>사건</strong>이다.
       이 구분이 알림 설계 전체를 결정한다.
@@ -1437,7 +1619,7 @@ footer a { color: var(--muted); }
 <!-- ============ 6. 요청 흐름 ============ -->
 <section id="flow"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">6</span><h2>요청 흐름</h2></div>
+    <div class="shead"><span class="snum">8</span><h2>요청 흐름</h2></div>
     <p class="sub">
       요청 하나가 들어와서 나갈 때까지. 가장 중요한 제약은 5단계에 있다.
     </p>
@@ -1501,10 +1683,62 @@ footer a { color: var(--muted); }
   </div>
 </div></section>
 
+<!-- ============ 9. 설계 문서 ============ -->
+<section id="docs"><div class="wrap">
+  <div class="col">
+    <div class="shead"><span class="snum">9</span><h2>설계 문서</h2></div>
+    <p class="sub">
+      이 페이지는 요약이다. 구현에 쓰는 것은 저장소의 마크다운 문서다.
+    </p>
+
+    <h3>설계</h3>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>문서</th><th>담긴 것</th></tr></thead>
+        <tbody>
+          <tr><td><code>01-architecture</code></td><td>시스템 경계, 타겟 분해, 동시성 모델, settings.json 소유권</td></tr>
+          <tr><td><code>02-domain-model</code></td><td>타입, 계정 상태, 선택 알고리즘, 선제 전환 가드, 영속화</td></tr>
+          <tr><td><code>03-request-flow</code></td><td>요청 생애, 시작과 종료 시퀀스, 실패 모드, 진단</td></tr>
+          <tr><td><code>04-implementation</code></td><td>패키지 구성, 의존성 근거, 타겟별 API, 테스트, 배포</td></tr>
+          <tr><td><code>05-account-registration</code></td><td>토큰 발급 실측, 등록 마법사, 검증, 만료</td></tr>
+          <tr><td><code>06-ccswitcher-comparison</code></td><td>자격증명 스왑 방식과의 대조, 반영 결과</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>포팅 규칙</h3>
+    <p>
+      검증된 프록시 코어를 Swift 로 옮기기 위한 명세. 각 문서 끝에 그대로 이식할 테스트
+      케이스 목록이 있다.
+    </p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>문서</th><th>담긴 것</th></tr></thead>
+        <tbody>
+          <tr><td><code>porting/01-headers-and-auth</code></td><td>OAuth 토큰 헤더 규칙, blocklist, URL 조립</td></tr>
+          <tr><td><code>porting/02-response-classification</code></td><td>스왑 트리거 판정, 쿨다운 시각 해석</td></tr>
+          <tr><td><code>porting/03-sse-streaming</code></td><td>첫 프레임 peek, 스트리밍 릴레이, 보존할 불변식</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>먼저 확인할 것</h3>
+    <p>
+      구현 순서에서 첫 관문은 <strong>전환 없이 통과만 시키는 프록시로 데스크톱 앱 대화가
+      되는지</strong>다. 거기서 MCP 도구 검색과 원격 제어 제약이 실제로 어떻게 나타나는지,
+      대화 시작을 판별할 세션 식별자가 오는지가 한꺼번에 드러난다.
+    </p>
+    <p>
+      그 앞 단계까지는 네트워크 없이 만든다. 헤더 변환, 응답 분류, SSE 경계 스캐너, 선택
+      알고리즘, 저장소. 실제 토큰 없이도 절반 이상을 만들고 검증할 수 있다.
+    </p>
+  </div>
+</div></section>
+
 <footer><div class="wrap">
   <p>
-    clfl 설계 문서. 자세한 규칙은 저장소의
-    <code>docs/design/</code> 와 <code>docs/porting/</code> 참고.
+    clfl 설계 문서. 이 페이지는 요약이고 구현에 쓰는 것은
+    <code>docs/design/</code> 와 <code>docs/porting/</code> 의 마크다운이다.
   </p>
 </div></footer>
 
