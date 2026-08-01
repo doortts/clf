@@ -468,6 +468,10 @@ try SMAppService.mainApp.register()      // macOS 13+
 | 7 | UpstreamExecutor + SSEPeek | 실제 api.anthropic.com 에 한 번 붙어본다 |
 | 8 | ProxyServer 단일 계정 통과 (스왑 없음) | **Claude Code 데스크톱 앱으로 대화 성공** |
 
+각 단계를 손으로 실행하는 명령과 통과 기준은
+[08 단계별 실행과 외부 검증](08-verification.md) 4절의 사다리에 있다.
+1번부터 6번까지는 `clflctl` 로 앱 없이 전부 밟을 수 있다.
+
 **8번이 첫 관문이다.** 여기서 [README](../../README.md) 에 적은 MCP tool search 와
 Remote Control 제약이 실제로 어떻게 나타나는지, `X-Claude-Session-Id` 헤더가 오는지
 ([02 도메인 모델](02-domain-model.md) 3절의 검증 항목) 전부 드러난다.

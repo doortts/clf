@@ -160,6 +160,97 @@ final class SelectionTests: XCTestCase {
     }
 }
 
+/// docs/design/08-verification.md 3절
+final class SelectionExplanationTests: XCTestCase {
+
+    let model = "claude-opus-4-5"
+
+    func input(_ priority: [String], accounts: [Account],
+               runtime: [AccountID: AccountRuntime] = [:],
+               tried: Set<AccountID> = [], start: Bool = false) -> SelectionInput {
+        SelectionInput(priority: priority,
+                       accounts: Dictionary(uniqueKeysWithValues: accounts.map { ($0.id, $0) }),
+                       runtime: runtime, model: model, now: T0,
+                       tried: tried, isConversationStart: start)
+    }
+    func verdict(_ e: SelectionExplanation, _ id: AccountID) -> CandidateVerdict.Disposition? {
+        e.verdicts.first { $0.id == id }?.disposition
+    }
+
+    /// 관찰용 코드가 실제 판정과 다른 답을 내면 없느니만 못하다.
+    func test_explainAgreesWithSelect() {
+        let cases: [SelectionInput] = [
+            input(["a", "b"], accounts: [acct("a"), acct("b")]),
+            input(["a"], accounts: [acct("a", autoSwitch: false)]),
+            input(["a"], accounts: [acct("a")], runtime: ["a": AccountRuntime(invalidatedAt: T0)]),
+            input(["a"], accounts: [acct("a")],
+                  runtime: ["a": AccountRuntime(accountCooldownUntil: at(300))]),
+            input(["a", "b"], accounts: [acct("a"), acct("b")],
+                  runtime: ["a": AccountRuntime(rateLimit: snap(0.02))], start: true),
+        ]
+        for (i, c) in cases.enumerated() {
+            XCTAssertEqual(explain(c).result, select(c), "케이스 \(i)")
+        }
+    }
+
+    func test_everyPriorityEntryGetsExactlyOneVerdict() {
+        let e = explain(input(["a", "b", "ghost"], accounts: [acct("a"), acct("b")]))
+        XCTAssertEqual(e.verdicts.map(\.id), ["a", "b", "ghost"], "priority 순서 그대로")
+    }
+
+    func test_reportsWhyEachAccountWasSkipped() {
+        let rt: [AccountID: AccountRuntime] = [
+            "dead": AccountRuntime(invalidatedAt: at(-10)),
+            "cool": AccountRuntime(modelCooldowns: [model: at(600)]),
+        ]
+        let e = explain(input(["tried", "off", "dead", "cool", "ok"],
+                              accounts: [acct("tried"), acct("off", autoSwitch: false),
+                                         acct("dead"), acct("cool"), acct("ok")],
+                              runtime: rt, tried: ["tried"]))
+        XCTAssertEqual(verdict(e, "tried"), .alreadyTried)
+        XCTAssertEqual(verdict(e, "off"), .autoSwitchOff(usableNow: true))
+        XCTAssertEqual(verdict(e, "dead"), .invalid(since: at(-10)))
+        XCTAssertEqual(verdict(e, "cool"), .cooling(until: at(600), scope: .model(model)))
+        XCTAssertEqual(verdict(e, "ok"), .chosen)
+    }
+
+    func test_onlyOneAccountIsChosen() {
+        let e = explain(input(["a", "b", "c"], accounts: [acct("a"), acct("b"), acct("c")]))
+        XCTAssertEqual(e.verdicts.filter { $0.disposition == .chosen }.count, 1)
+        XCTAssertEqual(verdict(e, "b"), .candidate(tier: 0), "밀린 후보는 tier 를 유지한다")
+    }
+
+    func test_reportsTierWhenProactivelyDemoted() {
+        let rt = ["a": AccountRuntime(rateLimit: snap(0.20)),
+                  "b": AccountRuntime(rateLimit: snap(0.40))]
+        let e = explain(input(["a", "b"], accounts: [acct("a"), acct("b")],
+                              runtime: rt, start: true))
+        XCTAssertEqual(verdict(e, "a"), .candidate(tier: 1), "25% 아래라 밀렸다")
+        XCTAssertEqual(verdict(e, "b"), .chosen)
+    }
+
+    /// 표시용으로 따로 계산하지 않는다. 강등 판정이 쓴 값을 그대로 보고한다.
+    func test_headroomMatchesTheValueUsedForDemotion() {
+        let e = explain(input(["a"], accounts: [acct("a")],
+                              runtime: ["a": AccountRuntime(rateLimit: snap(0.53, 0.41))],
+                              start: true))
+        XCTAssertEqual(e.verdicts[0].headroom!, 0.41, accuracy: 1e-9)
+    }
+
+    func test_headroomIsNilWhenNoReadingExists() {
+        let e = explain(input(["a"], accounts: [acct("a")], start: true))
+        XCTAssertNil(e.verdicts[0].headroom)
+        XCTAssertEqual(verdict(e, "a"), .chosen, "읽기가 없어도 제외가 아니다")
+    }
+
+    func test_reasonStringsAreHumanReadable() {
+        let e = explain(input(["off", "ok"],
+                              accounts: [acct("off", autoSwitch: false), acct("ok")]))
+        XCTAssertTrue(e.verdicts[0].reason.contains("켜면"))
+        XCTAssertEqual(e.verdicts[1].reason, "선택")
+    }
+}
+
 final class HeadroomTests: XCTestCase {
     let model = "fable"
 

@@ -12,10 +12,14 @@ let package = Package(
         .library(name: "ClflCore",  targets: ["ClflCore"]),
         .library(name: "ClflStore", targets: ["ClflStore"]),
         .library(name: "ClflProxy", targets: ["ClflProxy"]),
+        // 앱 없이 단계별로 실행하고 내부 상태를 들여다보는 도구.
+        // docs/design/08-verification.md
+        .executable(name: "clflctl", targets: ["clflctl"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.21.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
     ],
     targets: [
         // 의존성 0 이 이 구성의 핵심이다. NIO 가 한 번 들어오면 테스트가 이벤트
@@ -34,6 +38,14 @@ let package = Package(
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "NIOHTTP1", package: "swift-nio"),
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
+            ]
+        ),
+
+        .executableTarget(
+            name: "clflctl",
+            dependencies: [
+                "ClflCore", "ClflStore", "ClflProxy",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
 

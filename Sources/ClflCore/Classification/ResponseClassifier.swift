@@ -32,7 +32,7 @@ public func classifyResponse(_ input: ClassifyInput) -> SwapTrigger? {
 /// 첫 SSE 이벤트 또는 버퍼 본문에서 `error.type` 을 꺼낸다.
 /// 어떤 실패든 nil -> passthrough. Anthropic 형태가 아닌 응답을 건드리지 않기 위한
 /// 방어적 계약이다.
-func extractErrorType(_ input: ClassifyInput) -> String? {
+public func extractErrorType(_ input: ClassifyInput) -> String? {
     let raw: Data?
     if let event = input.firstSSEEvent {
         raw = Data(event.data.utf8)

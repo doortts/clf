@@ -78,53 +78,97 @@ public struct SelectionInput: Sendable {
 /// 그쪽은 선제 전환만 하므로 후보를 빼도 제자리에 있으면 그만이지만, 우리는 반응형
 /// 경로가 있어 후보를 풀에서 빼면 429 때 넘어갈 곳이 사라진다.
 public func select(_ input: SelectionInput) -> SelectionResult {
+    explain(input).result
+}
+
+/// select 와 같은 판정을 하되 후보별 이유를 함께 낸다.
+///
+/// select 를 이것의 얇은 껍질로 두는 이유는 두 경로가 갈리면 설명이 거짓말을 하기
+/// 때문이다. 관찰용 코드가 실제 판정과 다른 답을 내면 없느니만 못하다.
+public func explain(_ input: SelectionInput) -> SelectionExplanation {
     var tier0: [AccountID] = []
     var tier1: [AccountID] = []
     var earliestRecovery: Date?
     var unblockable: [AccountID] = []
+    var verdicts: [CandidateVerdict] = []
+
+    func note(_ id: AccountID, _ disposition: CandidateVerdict.Disposition,
+              _ headroom: Double? = nil) {
+        verdicts.append(CandidateVerdict(id: id, disposition: disposition, headroom: headroom))
+    }
 
     for id in input.priority {
-        guard let account = input.accounts[id] else { continue }
-        if input.tried.contains(id) { continue }
+        guard let account = input.accounts[id] else {
+            note(id, .unknownAccount)
+            continue
+        }
+        if input.tried.contains(id) {
+            note(id, .alreadyTried)
+            continue
+        }
 
         let rt = input.runtime[id] ?? AccountRuntime()
         let state = availability(rt, for: input.model, now: input.now,
                                  activeID: input.activeID, id: id)
+        // 강등 판정에 쓰는 값과 같은 값을 보고한다. 표시용으로 따로 계산하지 않는다
+        let headroom = bindingHeadroom(rt.rateLimit, for: input.model, now: input.now,
+                                       requireKnownReset: id == input.activeID)
 
         // 사용자가 뺀 조직. 지금 쓸 수 있는 상태면 "켜면 풀린다" 목록에 담는다
         guard account.autoSwitch else {
-            if case .ready = state { unblockable.append(id) }
-            if case .active = state { unblockable.append(id) }
+            let usableNow = state == .ready || state == .active
+            if usableNow { unblockable.append(id) }
+            note(id, .autoSwitchOff(usableNow: usableNow), headroom)
             continue
         }
 
         switch state {
-        case .invalid:
+        case .invalid(let since):
+            note(id, .invalid(since: since), headroom)
             continue
-        case .cooling(let until, _):
+        case .cooling(let until, let scope):
             if earliestRecovery == nil || until < earliestRecovery! { earliestRecovery = until }
+            note(id, .cooling(until: until, scope: scope), headroom)
             continue
         case .ready, .active:
             break
         }
 
-        guard input.isConversationStart else { tier0.append(id); continue }
+        guard input.isConversationStart else {
+            tier0.append(id)
+            note(id, .candidate(tier: 0), headroom)
+            continue
+        }
 
         let ceiling = input.proactiveThreshold + input.proactiveHysteresis
-        let headroom = bindingHeadroom(rt.rateLimit, for: input.model, now: input.now,
-                                       requireKnownReset: id == input.activeID)
-        if let headroom, headroom >= ceiling { tier0.append(id) } else { tier1.append(id) }
+        if let headroom, headroom >= ceiling {
+            tier0.append(id)
+            note(id, .candidate(tier: 0), headroom)
+        } else {
+            tier1.append(id)
+            note(id, .candidate(tier: 1), headroom)
+        }
     }
 
     if let pick = tier0.first ?? tier1.first, let account = input.accounts[pick] {
         let activePlan = input.activeID.flatMap { input.accounts[$0]?.plan }
-        return .selected(Selection(
-            accountID: pick,
-            plan: account.plan,
-            baseURL: account.baseURL ?? defaultAnthropicBaseURL,
-            isCrossPlan: activePlan.map { $0 != account.plan } ?? false))
+        // 고른 하나만 chosen 으로 승격한다. 나머지 후보는 tier 를 그대로 남긴다
+        if let index = verdicts.firstIndex(where: { $0.id == pick }) {
+            verdicts[index] = CandidateVerdict(id: pick, disposition: .chosen,
+                                               headroom: verdicts[index].headroom)
+        }
+        return SelectionExplanation(
+            result: .selected(Selection(
+                accountID: pick,
+                plan: account.plan,
+                baseURL: account.baseURL ?? defaultAnthropicBaseURL,
+                isCrossPlan: activePlan.map { $0 != account.plan } ?? false)),
+            verdicts: verdicts)
     }
 
-    if let until = earliestRecovery { return .wait(until: until) }
-    return .exhausted(unblockable: unblockable)
+    if let until = earliestRecovery {
+        return SelectionExplanation(result: .wait(until: until), verdicts: verdicts)
+    }
+    return SelectionExplanation(result: .exhausted(unblockable: unblockable),
+                                verdicts: verdicts)
 }

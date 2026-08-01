@@ -169,3 +169,14 @@ public final class InMemoryCredentialStore: CredentialStoring, @unchecked Sendab
         return items[id] != nil
     }
 }
+
+// MARK: 지문
+
+import CryptoKit
+
+/// 접근 토큰의 SHA-256 앞 8바이트. 같은 토큰을 두 번 등록하는 실수를 막는다.
+/// 신원 확인용이 아니다. docs/design/05-account-registration.md 6절
+public func tokenFingerprint(_ token: String) -> String {
+    SHA256.hash(data: Data(token.utf8)).prefix(8)
+        .map { String(format: "%02x", $0) }.joined()
+}
