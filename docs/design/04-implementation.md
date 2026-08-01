@@ -1,5 +1,8 @@
 # 04. 구현 설계
 
+> 2절과 3절은 방향이 바뀐 뒤 갱신했다. 4절 아래 `ClflProxy` 부분은
+> **터미널 트랙**이다. 전체 범위는 [00 범위](00-scope.md) 를 본다.
+
 코드를 치기 직전 수준. 패키지 구성, 의존성 결정, 타겟별 공개 API, 동시성 주석,
 오류 처리, 테스트 전략, 배포.
 
@@ -73,14 +76,20 @@ let package = Package(
         .library(name: "ClflCore",  targets: ["ClflCore"]),
         .library(name: "ClflStore", targets: ["ClflStore"]),
         .library(name: "ClflProxy", targets: ["ClflProxy"]),
+        .library(name: "ClflDesktop", targets: ["ClflDesktop"]),
+        .executable(name: "clflctl", targets: ["clflctl"]),
+        .executable(name: "ClflApp", targets: ["ClflApp"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.21.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
     ],
     targets: [
         .target(name: "ClflCore"),                       // 의존성 0. 이것이 규칙이다
         .target(name: "ClflStore", dependencies: ["ClflCore"]),
+        .target(name: "ClflDesktop", dependencies: ["ClflCore", "ClflStore"]),
+        .executableTarget(name: "ClflApp", dependencies: ["ClflDesktop"]),
         .target(name: "ClflProxy", dependencies: [
             "ClflCore", "ClflStore",
             .product(name: "NIOCore",        package: "swift-nio"),
@@ -151,16 +160,41 @@ Sources/ClflProxy/
 +-- RelayPump.swift                클라이언트 릴레이. once-write 불변식
 `-- ProxyError.swift
 
-앱 타겟 (Xcode)
-ClflApp/
-+-- ClflApp.swift                  @main, MenuBarExtra
-+-- AppModel.swift                 @MainActor @Observable. Router 스냅샷 소비
-+-- Views/MenuBarLabel.swift
-+-- Views/PopoverView.swift
-+-- Views/Settings/*.swift
-+-- LoginItem.swift                SMAppService
-`-- Info.plist                     LSUIElement
+Sources/ClflDesktop/            남의 앱을 읽는다. 데스크톱 트랙의 전부
++-- SafeStorage.swift              PBKDF2 + AES-128-CBC. Chromium safe storage
++-- TokenCache.swift               config.json 의 조직별 OAuth 토큰
++-- Usage.swift                    Usage API 응답 파싱, 잔여와 등급
++-- UsageFetcher.swift             네트워크 경계. 테스트가 가짜를 꽂는다
++-- DesktopReader.swift            스냅샷 조립. 읽기 전용
++-- Preferences.swift              어느 조직을 어떤 차례로 볼지
++-- RefreshPacer.swift             갱신 주기. 사용량 변화가 정한다
++-- BarText.swift                  막대 글자, 이름 줄이기, 남은 시간
+`-- LoginItem.swift                SMAppService.Status 판정 (호출은 앱에서)
+
+Sources/ClflApp/                앱. 판단이 없다
++-- ClflAppMain.swift              @main, MenuBarExtra
++-- UsageModel.swift               @MainActor. 읽기와 설정과 주기를 쥔다
++-- Views.swift                    팝오버, 조직 카드, 설정 패널
+`-- LoginItem.swift                ServiceManagement 를 부르는 유일한 자리
+
+Sources/clflctl/                앱 없이 단계별로 실행하는 도구
+`-- *Command.swift                 doctor, settings, accounts, ..., desktop
 ```
+
+### Xcode 프로젝트를 두지 않는다
+
+처음에는 "앱 번들과 Info.plist 와 서명이 필요해 SPM 실행 타겟으로 만들 수
+없다" 고 적었다. **틀렸다.** 번들에 필요한 것은 세 가지뿐이고
+`scripts/make-app.sh` 가 조립한다.
+
+```
+clfl.app/Contents/MacOS/clfl        SPM 이 만든 실행 파일
+clfl.app/Contents/Info.plist        LSUIElement
+                                    임시 서명
+```
+
+프로젝트를 두면 타겟 정의가 `Package.swift` 와 두 곳으로 갈라지고 커맨드라인
+빌드가 막힌다. [11 문서](11-menubar-app.md) 1절.
 
 ---
 

@@ -140,6 +140,8 @@ code {
 .st.done { background: var(--dot-ok); }
 .st.next { background: var(--dot-warn); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot-warn) 22%, transparent); }
 .st.todo { background: transparent; box-shadow: inset 0 0 0 1.5px var(--dot-off); }
+.st.blocked { background: var(--red); }
+.track i.blocked { background: var(--red); }
 .rung.gate { background: var(--accent-bg); }
 .rung.gate .what { font-weight: 600; }
 
@@ -241,34 +243,46 @@ a:hover { text-decoration: underline; }
 <div class="wrap">
 
 <h1>clfl 진행 현황</h1>
-<p class="lede">Claude Code 사용량 한도를 관리하고 조직을 전환하는 macOS 메뉴바 앱</p>
-<p class="meta">2026-08-01 기준 &nbsp;/&nbsp; 커밋 35개 &nbsp;/&nbsp; main</p>
+<p class="lede">Claude Code 데스크톱 앱의 조직별 잔여 한도를 보여주는 macOS 메뉴바 앱</p>
+<p class="meta">2026-08-02 기준 &nbsp;/&nbsp; 커밋 54개 &nbsp;/&nbsp; main</p>
+
+<div class="callout" style="border-left:3px solid var(--accent)">
+  <strong>방향이 바뀌었다.</strong> 원래는 한도에 걸리면 조직을 자동으로 바꿔주는
+  프록시였다. 두 번 막혔다. 데스크톱 앱은 <code>ANTHROPIC_BASE_URL</code> 을 무시해
+  프록시를 안 타고, 쿠키로 바꿀 수는 있지만 재시작이 필요해 작업 중 대화 이력이
+  끊긴다. 문제보다 해법이 크다.
+  <br><br>
+  지금 제품은 <strong>사용량을 읽어서 보여주는 것</strong>이다. 남의 파일은 읽기만 한다.
+  프록시 코드는 터미널 <code>claude</code> 에서 동작하고 테스트도 통과하지만 제품으로
+  내놓지 않는다. <a href="00-scope.md">00-scope.md</a>
+</div>
 
 <div class="kpis">
   <div class="card kpi">
     <svg width="52" height="52" viewBox="0 0 52 52" aria-label="사다리 진행률 62퍼센트">
       <circle cx="26" cy="26" r="21" fill="none" stroke="var(--sep)" stroke-width="6"/>
       <circle cx="26" cy="26" r="21" fill="none" stroke="var(--dot-ok)" stroke-width="6"
-              stroke-linecap="round" stroke-dasharray="101.5 131.9"
+              stroke-linecap="round" stroke-dasharray="131.9 0"
               transform="rotate(-90 26 26)"/>
     </svg>
     <div>
-      <div class="num">10 <span style="font-size:17px;color:var(--ink-3)">/ 13</span></div>
-      <div class="lbl">검증 사다리</div>
+      <div class="num">동작</div>
+      <div class="lbl">메뉴바 앱</div>
+      <div class="sub">실기기 확인 완료</div>
     </div>
   </div>
 
   <div class="card kpi">
     <div>
-      <div class="num">4,195</div>
+      <div class="num">6,190</div>
       <div class="lbl">소스 줄</div>
-      <div class="sub">테스트 3,422줄</div>
+      <div class="sub">테스트 4,934줄</div>
     </div>
   </div>
 
   <div class="card kpi">
     <div>
-      <div class="num">285</div>
+      <div class="num">443</div>
       <div class="lbl">통과하는 테스트</div>
       <div class="sub">실패 0, 보류 17</div>
     </div>
@@ -276,16 +290,17 @@ a:hover { text-decoration: underline; }
 
   <div class="card kpi">
     <div>
-      <div class="num">46 <span style="font-size:17px;color:var(--ink-3)">/ 51</span></div>
-      <div class="lbl">구현된 소스 파일</div>
-      <div class="sub">남은 5개는 전부 Proxy</div>
+      <div class="num">67</div>
+      <div class="lbl">소스 파일</div>
+      <div class="sub">Desktop 9, App 4</div>
     </div>
   </div>
 </div>
 
 <div class="callout">
-  프록시가 실제로 돈다. 클라이언트에서 업스트림까지 바이트가 오간다. 남은 것은
-  조직 여러 개를 오가는 스왑 루프와 메뉴바 앱이다.
+  메뉴바 앱이 돈다. <code>~/Applications/clfl.app</code> 에서 세 조직의 잔여를 읽어
+  5분마다 갱신한다. 막대에 뜨는 숫자와 <code>clflctl desktop usage</code> 가 같은
+  값을 낸다.
 </div>
 
 
@@ -293,12 +308,16 @@ a:hover { text-decoration: underline; }
 <p class="note">
   각 칸은 <strong>실행할 명령</strong>과 <strong>통과 기준</strong>을 가진다.
   윗 칸이 통과해야 아랫 칸으로 간다. 완성 전에 손으로 밟을 수 있어야 한다는 것이 규칙이다.
+  <br><br>
+  <strong>8번에서 막혔다.</strong> 그 칸을 지우지 않고 남긴다. 사다리는 통과 기록이자
+  실패 기록이다.
 </p>
 
 <div class="track">
   <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
   <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
-  <i class="done"></i><i class="done"></i><i class="next"></i><i></i><i></i>
+  <i class="done"></i><i class="done"></i><i class="blocked"></i><i class="done"></i>
+  <i class="done"></i><i class="done"></i>
 </div>
 
 <div class="card ladder">
@@ -359,32 +378,43 @@ a:hover { text-decoration: underline; }
   <div class="rung gate">
     <span class="no">8</span>
     <span class="what">프록시 단일 조직 통과
-      <span class="how">clflctl serve --single &lt;id&gt; &nbsp;->&nbsp; Claude Code 데스크톱 앱으로 대화 성공</span></span>
-    <span class="st next"></span>
+      <span class="how">데스크톱 앱은 ANTHROPIC_BASE_URL 을 무시한다 &nbsp;->&nbsp; 요청 0건</span></span>
+    <span class="st blocked"></span>
+  </div>
+  <div class="rung">
+    <span class="no">8t</span>
+    <span class="what">같은 칸, 터미널 claude
+      <span class="how">clflctl serve --single &lt;id&gt; &nbsp;->&nbsp; 요청이 잡힌다</span></span>
+    <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">9</span>
-    <span class="what">스왑
-      <span class="how">serve + runtime simulate &nbsp;->&nbsp; 스왑 발생, 트레일에 기록</span></span>
-    <span class="st todo"></span>
+    <span class="what">데스크톱 앱 조직 전환
+      <span class="how">쿠키 + 재시작으로 된다. 이력이 끊겨 안 쓰기로 결정</span></span>
+    <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">10</span>
-    <span class="what">컨트롤 플레인
-      <span class="how">clflctl watch &nbsp;->&nbsp; 스왑이 실시간으로 흐른다</span></span>
-    <span class="st todo"></span>
+    <span class="what">조직 전부의 사용량 읽기
+      <span class="how">clflctl desktop usage &nbsp;->&nbsp; 세 조직의 창 세 개가 다 나온다</span></span>
+    <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">11</span>
     <span class="what">메뉴바 앱
-      <span class="how">Xcode &nbsp;->&nbsp; 메뉴바에 같은 값이 뜬다</span></span>
-    <span class="st todo"></span>
+      <span class="how">open ~/Applications/clfl.app &nbsp;->&nbsp; 막대 숫자가 clflctl 과 같다</span></span>
+    <span class="st done"></span>
   </div>
 </div>
 
 <p class="note" style="margin-top:14px">
-  8번이 첫 관문이다. 여기서 MCP 도구 검색 제약과 <code>X-Claude-Session-Id</code> 헤더 존재
-  여부가 실제로 드러난다. 그 앞에 손으로 밟을 디딤돌 여섯 개(6a-6f)를 먼저 놓은 이유다.
+  8번이 첫 관문이었고 거기서 갈렸다. 데스크톱 앱은 프록시를 안 탄다.
+  프로세스 환경에까지 <code>ANTHROPIC_BASE_URL</code> 을 넣고 시험했지만 요청 0건이었고
+  앱 로그에는 <code>apiHost: 'https://api.anthropic.com'</code> 이 찍혔다.
+  <br><br>
+  <strong>처음에는 약한 근거로 막혔다고 단정했다.</strong> 자식 프로세스 환경을 물려받았을
+  수도 있었고, 관리 대상 변수 목록은 앱의 설정 화면을 다스릴 뿐 부모 환경을 다스리지
+  않는다. 되묻는 질문을 받고서야 제대로 시험했다. 사다리를 놓은 값어치가 여기 있었다.
 </p>
 
 
@@ -413,7 +443,26 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>clflctl</strong><em>11 / 11</em></div>
+    <div class="head"><strong>ClflDesktop</strong><em>9 / 9</em></div>
+    <div class="grid">
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+    </div>
+    <p class="cap">safe storage 해독, 토큰 캐시, Usage API, 표시 문자열, 갱신 주기, 설정.
+      네트워크만 프로토콜로 갈라 테스트가 가짜를 꽂는다.</p>
+  </div>
+
+  <div class="card layer">
+    <div class="head"><strong>ClflApp</strong><em>4 / 4</em></div>
+    <div class="grid">
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+    </div>
+    <p class="cap">SwiftUI 메뉴바와 팝오버. <strong>판단이 없다.</strong> 잔여 계산도
+      이름 줄이기도 전부 ClflDesktop 에 있어 뷰에 테스트할 것이 남지 않는다.</p>
+  </div>
+
+  <div class="card layer">
+    <div class="head"><strong>clflctl</strong><em>12 / 12</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
@@ -524,21 +573,23 @@ a:hover { text-decoration: underline; }
   <text class="t" x="340" y="164" text-anchor="middle">ClflStore</text>
   <text class="s" x="340" y="182" text-anchor="middle">파일, Keychain, 설정</text>
 
-  <rect class="bxd" x="470" y="140" width="180" height="56"/>
-  <text class="t" x="560" y="164" text-anchor="middle" fill="var(--ink-3)">ClflProxy</text>
-  <text class="s" x="560" y="182" text-anchor="middle">NIO 서버, 스왑 루프</text>
+  <rect class="bxo" x="470" y="140" width="180" height="56"/>
+  <text class="t" x="560" y="164" text-anchor="middle">ClflProxy</text>
+  <text class="s" x="560" y="182" text-anchor="middle">NIO 서버. 터미널 트랙</text>
 
-  <rect class="bxd" x="470" y="42" width="180" height="56"/>
-  <text class="t" x="560" y="66" text-anchor="middle" fill="var(--ink-3)">ClflApp</text>
+  <rect class="bxo" x="470" y="42" width="180" height="56"/>
+  <text class="t" x="560" y="66" text-anchor="middle">ClflApp</text>
   <text class="s" x="560" y="84" text-anchor="middle">SwiftUI 메뉴바</text>
+
+  <rect class="bxo" x="690" y="42" width="150" height="56"/>
+  <text class="t" x="765" y="66" text-anchor="middle">ClflDesktop</text>
+  <text class="s" x="765" y="84" text-anchor="middle">남의 앱 읽기</text>
 
   <rect class="bxo" x="60" y="42" width="180" height="56"/>
   <text class="t" x="150" y="66" text-anchor="middle">clflctl</text>
   <text class="s" x="150" y="84" text-anchor="middle">단계별 실행과 점검</text>
 
-  <rect class="bxd" x="690" y="140" width="150" height="56"/>
-  <text class="t" x="765" y="164" text-anchor="middle" fill="var(--ink-3)">컨트롤 플레인</text>
-  <text class="s" x="765" y="182" text-anchor="middle">읽기 전용 HTTP</text>
+
 
   <path class="ln" d="M340 196 L340 224"/>
   <path class="ln" d="M560 196 L560 224"/>
@@ -546,12 +597,16 @@ a:hover { text-decoration: underline; }
   <path class="ln" d="M560 98 L560 136"/>
   <path class="ln" d="M150 98 L150 168 L246 168"/>
   <path class="ln" d="M150 98 L150 256 L246 256"/>
-  <path class="ln" d="M690 168 L654 168"/>
+  <path class="ln" d="M690 70 L654 70"/>
+  <path class="ln" d="M765 98 L765 168 L434 168"/>
 </svg>
 <p class="note" style="margin-top:8px">
-  화살표는 의존하는 쪽에서 의존받는 쪽으로 향한다. 실선 상자가 완성, 점선이 미구현이다.
+  화살표는 의존하는 쪽에서 의존받는 쪽으로 향한다.
   <code>ClflCore</code> 에 의존성을 하나도 두지 않은 것이 이 구성의 핵심이다.
   NIO 가 한 번 들어오면 테스트가 이벤트 루프를 요구하기 시작한다.
+  <br><br>
+  <code>ClflDesktop</code> 과 <code>ClflProxy</code> 는 서로 모른다. 트랙이 다르다.
+  앱은 Desktop 만 쓴다.
 </p>
 </div>
 
@@ -657,6 +712,9 @@ $ ./scripts/install-clflctl.sh
     <tr><td class="m">sse-peek</td><td>첫 이벤트 프레임 경계를 찾는다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">upstream probe</td><td>실제 api.anthropic.com 왕복. 압축 해제와 사용량 헤더를 확인한다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">serve</td><td>프록시를 앱 없이 띄운다. 끝낼 때 settings.json 을 되돌린다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">desktop usage</td><td>조직별 잔여 세 창. --json 은 그대로 UI 입력이다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">desktop orgs/show/hide/order</td><td>메뉴바에 보여줄 조직과 차례</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">desktop bar</td><td>막대에 활성 하나만 그릴지 전부 그릴지</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">watch</td><td>컨트롤 플레인을 구독해 실시간으로 본다</td><td><span class="tag no">10단계</span></td></tr>
   </tbody>
 </table>
@@ -664,6 +722,12 @@ $ ./scripts/install-clflctl.sh
 
 
 <h2>5. 컨트롤 플레인</h2>
+<div class="callout">
+  <strong>터미널 트랙이다.</strong> 프록시가 도는 동안 내부 상태를 밖에서 읽기 위한
+  것이라 메뉴바 앱에는 필요 없다. 앱은 5분마다 스스로 읽고 팝오버가 곧 그 상태다.
+  프록시를 제품으로 내놓을 때 마저 만든다.
+</div>
+
 <p class="note">
   프록시가 도는 동안 내부 상태를 읽는 읽기 전용 HTTP 표면이다. 프록시 포트에
   <code>/_clfl/...</code> 같은 경로를 얹지 않고 별도 포트를 쓴다.
@@ -724,65 +788,78 @@ $ ./scripts/install-clflctl.sh
 <div class="stack">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-      <h3 style="margin:0"><span class="tag ok">7단계 완료</span> &nbsp; UpstreamExecutor + SSEPeek</h3>
-      <span class="meta">TDD. 테스트 41개</span>
+      <h3 style="margin:0"><span class="tag ok">완료</span> &nbsp; 사용량 읽기</h3>
+      <span class="meta">ClflDesktop. 테스트 60여개</span>
     </div>
     <p class="note" style="margin-top:10px">
-      압축 자동 해제를 켰고, mtime 을 고정한 gzip 바이트를 fixture 에 박아 잠갔다.
-      해제가 꺼지면 peek 이 gzip 을 읽어 테스트가 즉시 빨개진다. 문서 경고만으로는
-      언젠가 누가 끈다.
+      데스크톱 앱의 <code>config.json</code> 에서 조직별 OAuth 토큰을 꺼낸다. 거기 담긴
+      토큰에는 <code>user:profile</code> 스코프가 있어 Usage API 를 부를 수 있다.
+      <code>setup-token</code> 이 주는 토큰으로는 403 이다.
     </p>
     <p class="note">
-      TDD 가 넷을 잡았다. 스캐폴딩 enum 이 릴레이를 불가능하게 만들고 있었고
-      (남은 스트림을 들지 않았다), 연결 타임아웃 기본값 10초가 스왑 grace 예산을
-      넘겼고, peek 의 선행 읽기 없음을 내가 버그로 오해했고, 가짜 업스트림이
-      헤더 경계를 문자 수로 세고 있었다. 자세한 것은
-      <a href="08-verification.md">08-verification 7-1절</a>.
+      <strong>추론 요청이 아니라 토큰을 소모하지 않는다.</strong> 그래서 주기적으로 물어도
+      된다. 앱에서 한 번이라도 연 조직은 활성이 아니어도 읽힌다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag ok">완료</span> &nbsp; 메뉴바 앱</h3>
+      <span class="meta">SPM 실행 타겟 + make-app.sh</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      Xcode 프로젝트를 두지 않았다. 번들에 필요한 것은 실행 파일과 Info.plist 와
+      임시 서명뿐이라 스크립트가 조립한다. 프로젝트를 두면 타겟 정의가
+      <code>Package.swift</code> 와 갈라지고 커맨드라인 빌드가 막힌다.
+    </p>
+    <p class="note">
+      실기기에서 확인했다. 막대에 <code>84%</code> 가 떴고 <code>clflctl</code> 과 같은
+      숫자다. Bartender 5 가 항목을 숨김 영역으로 보내서 눈으로는 못 보고 접근성
+      API 로 읽었다.
+    </p>
+    <p class="meta">./scripts/install-app.sh 다음 open ~/Applications/clfl.app</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag ok">완료</span> &nbsp; 설정, 갱신 주기, 로그인 항목</h3>
+      <span class="meta">전부 TDD</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      설정은 <strong>보여줄 것이 아니라 숨길 것을 담는다.</strong> 보여줄 목록만 저장하면
+      조직이 새로 생겼을 때 설정을 열기 전까지 영영 안 보인다.
+    </p>
+    <p class="note">
+      갱신은 5분이 기본이고 세 번 연속 그대로면 10분으로 늘린다. 429 를 받으면
+      15분으로 물러선다. <strong>읽기 실패와 429 는 다르다.</strong> 못 읽는 것은 빨리
+      되물어야 하고 막힌 것은 물러나야 한다.
     </p>
   </div>
 
   <div class="card" style="border-left:3px solid var(--accent)">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-      <h3 style="margin:0"><span class="tag hot">첫 관문</span> &nbsp; 8단계. ProxyServer 단일 조직</h3>
-      <span class="meta">도구는 됨. 실기기 확인 대기</span>
+      <h3 style="margin:0"><span class="tag hot">다음</span> &nbsp; 앱 아이콘과 배포</h3>
+      <span class="meta">남은 것이 이것뿐이다</span>
     </div>
     <p class="note" style="margin-top:10px">
-      프록시가 돈다. 가짜 업스트림에 붙여 gzip SSE 가 평문으로 건너가고,
-      <code>anthropic-beta</code> 가 Claude Code 플래그를 덮지 않고 병합되고,
-      <code>x-claude-session-id</code> 가 usage.jsonl 까지 실리는 것을 확인했다.
-      Ctrl-C 는 settings.json 을 원래대로 되돌린다.
+      번들에 아이콘이 없다. 그리고 지금은 임시 서명이라 다른 기계에 옮기면 Gatekeeper
+      가 막는다. 남에게 줄 생각이면 공증이 필요하다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag no">보류</span> &nbsp; 터미널 트랙 프록시</h3>
+      <span class="meta">ClflProxy 13파일. 테스트는 통과</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      가짜 업스트림에 붙여 gzip SSE 릴레이와 헤더 병합과 세션 id 기록까지 확인했다.
+      Router 도 돈다. <strong>제품으로 내놓지 않는 것뿐이고 고장 난 것이 아니다.</strong>
     </p>
     <p class="note">
-      <strong>아직 통과는 아니다.</strong> 기준은 도구가 도는 것이 아니라 Claude Code
-      데스크톱 앱으로 대화가 성립하는 것이다. 실제 조직 등록이 필요하다.
+      지우지 않는다. 동작하고, 테스트가 지식을 담고 있고, 언젠가 쓸 수 있다.
+      RequestPipeline 스왑 루프가 남았다.
     </p>
-    <p class="meta">clflctl accounts add &lt;id&gt; 다음 clflctl serve --single &lt;id&gt; --install</p>
-  </div>
-
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-      <h3 style="margin:0"><span class="tag now">9단계</span> &nbsp; Router + RequestPipeline 스왑 루프</h3>
-      <span class="meta">다음 차례. ClflProxy 5개 파일</span>
-    </div>
-    <p class="note" style="margin-top:10px">
-      401 분기가 자격증명 종류에 따라 갈린다. oauth 이고 이번 요청에서 아직 갱신하지
-      않았으면 갱신 1회 후 <strong>같은 조직으로</strong> 재시도하고 시도 목록에 넣지 않는다.
-      만료된 토큰이 조직을 태우지 않게 하는 것이 부드러운 전환의 상당 부분이다.
-    </p>
-    <p class="meta">통과 기준: simulate 로 만든 쿨다운에서 스왑이 일어나고 트레일에 남는다</p>
-  </div>
-
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-      <h3 style="margin:0"><span class="tag no">10-11단계</span> &nbsp; 컨트롤 플레인과 메뉴바 앱</h3>
-      <span class="meta">Xcode 프로젝트 신규</span>
-    </div>
-    <p class="note" style="margin-top:10px">
-      앱은 <code>Router.changes</code> 를 구독해 100ms 단위로 다시 그린다.
-      시안은 이미 <a href="ui-spec.html">ui-spec.html</a> 에 있다. 기본 표시는
-      코드 + 2줄 숫자 + 3줄 도트 블록이다.
-    </p>
-    <p class="meta">통과 기준: 메뉴바 숫자가 clflctl runtime show 와 일치한다</p>
   </div>
 </div>
 
@@ -879,6 +956,7 @@ $ claude setup-token | clflctl accounts add naver_team_40 --plan team
 <table>
   <thead><tr><th class="m">파일</th><th>내용</th></tr></thead>
   <tbody>
+    <tr><td class="m"><a href="00-scope.md"><strong>00-scope</strong></a></td><td><strong>먼저 읽는다.</strong> 지금 무엇을 만들고 있고 무엇을 접었나</td></tr>
     <tr><td class="m"><a href="01-architecture.md">01-architecture</a></td><td>설계 원칙, 프로세스 수명, settings.json 소유권, 포트</td></tr>
     <tr><td class="m"><a href="02-domain-model.md">02-domain-model</a></td><td>도메인 타입, 선택 규칙, 영속화 분할, 메뉴바 표시 코드</td></tr>
     <tr><td class="m"><a href="03-request-flow.md">03-request-flow</a></td><td>요청 하나의 전 생애와 스왑 루프</td></tr>
@@ -886,7 +964,10 @@ $ claude setup-token | clflctl accounts add naver_team_40 --plan team
     <tr><td class="m"><a href="05-account-registration.md">05-account-registration</a></td><td>조직 등록 흐름</td></tr>
     <tr><td class="m"><a href="06-ccswitcher-comparison.md">06-ccswitcher-comparison</a></td><td>유사 앱과의 차이. 이메일 중복 제거가 왜 문제였는지</td></tr>
     <tr><td class="m"><a href="07-oauth-credentials.md">07-oauth-credentials</a></td><td>자격증명 두 종류, 갱신, Keychain 접근</td></tr>
-    <tr><td class="m"><a href="08-verification.md">08-verification</a></td><td>검증 사다리, 같은 레코드 원칙, 컨트롤 플레인</td></tr>
+    <tr><td class="m"><a href="08-verification.md">08-verification</a></td><td>검증 사다리, 같은 레코드 원칙, 실측 기록. 프록시가 막힌 근거</td></tr>
+    <tr><td class="m"><a href="09-desktop-org-switch.md">09-desktop-org-switch</a></td><td>조직 전환 조사와 자동 전환을 안 하기로 한 결론</td></tr>
+    <tr><td class="m"><a href="10-desktop-usage.md">10-desktop-usage</a></td><td>토큰 캐시, user:profile 스코프, 설정, 갱신 주기</td></tr>
+    <tr><td class="m"><a href="11-menubar-app.md">11-menubar-app</a></td><td>번들 조립, 막대와 팝오버, 로그인 항목, 429</td></tr>
     <tr><td class="m"><a href="ui-spec.html">ui-spec.html</a></td><td>Apple HIG 기준 UI 시안</td></tr>
   </tbody>
 </table>

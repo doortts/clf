@@ -1,5 +1,8 @@
 # 01. 아키텍처
 
+> 1절과 2절은 방향이 바뀐 뒤 갱신했다. 3절과 4절은 **터미널 트랙**이다.
+> 전체 범위는 [00 범위](00-scope.md) 를 본다.
+
 시스템 경계, 모듈 분해, 동시성 모델, 프로세스 수명.
 
 ---
@@ -13,75 +16,111 @@
 | 기본값으로 동작한다 | 설치하고 조직 등록하면 끝. 임계값이니 예산이니 묻지 않는다 |
 | 결정을 미루지 않는다 | 우리가 정할 수 있는 것은 우리가 정하고 설정에 내놓지 않는다 |
 | 손해를 기본값으로 만들지 않는다 | 프록시 때문에 꺼지는 기능은 **우리가 되살린다**. 4절 |
-| 조용하다 | 전환은 배너 한 줄. 작업을 끊지 않는다 |
-| 화면이 적다 | 팝오버 하나, 설정 창 탭 다섯. 그 이상 늘리지 않는다 |
+| 조용하다 | 남의 작업을 끊지 않는다. 그래서 자동 전환을 접었다. [09 문서](09-desktop-org-switch.md) |
+| 화면이 적다 | 팝오버 하나. 설정은 그 안에서 접었다 편다 |
+| 남의 것을 안 건드린다 | 데스크톱 앱의 파일은 **읽기만** 한다 |
 
 이 원칙이 실제로 잘라낸 것들.
 
 - API 비용 집계, 활동량 통계, 세션 대시보드 -> 넣지 않는다. 한도 관리가 전부다
 - grace 예산, 요청 본문 상한, 쿨다운 길이 -> 상수로 고정. 설정에 내놓지 않는다
 - 선제 전환 임계값 -> 켜기/끄기만 노출. 숫자는 고정값으로 시작한다
-- 메뉴바 표시 -> 노브 여러 개 대신 미리 맞춰둔 모드 셋 중 하나를 고르게 한다
+- 메뉴바 표시 -> 막대는 활성 조직만이 기본. 전부 보고 싶을 때만 바꾼다
 
 ---
 
 ## 1. 시스템 경계
 
-clfl이 소유하는 것과 소유하지 않는 것을 먼저 못박는다.
+clfl 이 소유하는 것과 소유하지 않는 것을 먼저 못박는다. 대상이 둘이고 방식이
+다르다.
+
+### 데스크톱 트랙 (지금 제품)
 
 ```
-  [Claude Code 데스크톱 앱]         <- clfl이 소유하지 않음. 건드리는 것은
-            |                          ~/.claude/settings.json 의 env 블록 한 줄뿐
-            | HTTP (127.0.0.1:고정포트)
-            v
+  [Claude Code 데스크톱 앱]
+        |
+        |  config.json, Cookies       <- 읽기만 한다. 절대 쓰지 않는다
+        v
+  +-------------------------------------+
+  |  clfl.app  (LSUIElement)            |
+  |    MenuBarExtra + 팝오버            |
+  |    DesktopReader (조직별 토큰 해독) |
+  |    RefreshPacer (갱신 주기)         |
+  +-------------------------------------+
+        |
+        |  GET /api/oauth/usage        <- 추론 요청이 아니다. 토큰을 안 쓴다
+        v
+  [api.anthropic.com]
+```
+
+앱의 트래픽이 우리를 거치지 않는다. 우리는 앱이 남긴 자격증명으로 **따로**
+사용량을 물어볼 뿐이다. 앱이 죽어도 우리가 죽어도 상대는 멀쩡하다.
+
+데스크톱 앱을 프록시로 태우려 했으나 막혔다. [00 범위](00-scope.md) 2절.
+
+### 터미널 트랙 (코드는 있고 제품은 아니다)
+
+```
+  [터미널 claude]                <- settings.json 의 env 블록 한 줄만 건드린다
+        |
+        |  HTTP (127.0.0.1:고정포트)
+        v
   +---------------------------------------+
-  |  clfl.app  (LSUIElement, 상시 실행)   |
-  |                                       |
-  |   MenuBarExtra UI                     |
-  |   Router (계정 선택, 쿨다운)          |
-  |   ProxyServer (peek, 분류, 릴레이)    |
-  |   Store (Keychain, 설정, 로그)        |
+  |  Router (계정 선택, 쿨다운)           |
+  |  ProxyServer (peek, 분류, 릴레이)     |
+  |  Store (Keychain, 설정, 로그)         |
   +---------------------------------------+
-            |
-            | HTTPS
-            v
+        |
+        |  HTTPS
+        v
   [api.anthropic.com]  또는 계정별 base_url
 ```
 
-clfl은 **대화를 소유하지 않는다.** Messages API는 stateless이고 전체 이력은 매 요청
-body에 담겨 온다. clfl이 하는 일은 요청 하나에 어떤 인증 헤더를 붙일지 정하는 것뿐이다.
+clfl 은 **대화를 소유하지 않는다.** Messages API 는 stateless 이고 전체 이력은 매
+요청 body 에 담겨 온다. 여기서 하는 일은 요청 하나에 어떤 인증 헤더를 붙일지
+정하는 것뿐이다.
 
 ### 소유하지 않기로 한 것
 
 | 항목 | 이유 |
 |---|---|
-| 대화 실행 UI | Claude Code 데스크톱 앱의 일. clfl은 라우팅만 |
-| `~/.claude/` 의 나머지 전부 | settings.json 의 `env` 블록 외에는 읽지도 쓰지도 않는다 |
-| 계정별 CLAUDE.md / skills / memory | 프록시가 credential 을 주입하므로 설정 디렉토리는 identity 무관하게 유지 |
-| Agent View 백그라운드 워커 (MITM) | 1차 범위 밖. 4절 참고 |
+| 대화 실행 UI | Claude Code 의 일 |
+| 데스크톱 앱의 파일 | 읽는다. **쓰지 않는다.** 조직 전환도 안 한다 |
+| 토큰 갱신 | 데스크톱 앱이 하게 두고 만료되면 그 사실만 말한다 |
+| `~/.claude/` 의 나머지 전부 | 터미널 트랙에서 `settings.json` 의 `env` 블록만 |
+| Agent View 백그라운드 워커 (MITM) | 범위 밖 |
 
 ---
 
 ## 2. 모듈 분해
 
-Swift Package Manager 타겟 4개. **의존은 한 방향으로만 흐른다.**
+Swift Package Manager 타겟 여섯. **의존은 한 방향으로만 흐른다.**
 
 ```
-ClflApp        (SwiftUI, MenuBarExtra, MainActor)
-   |
-   +--> ClflProxy   (NIO / AsyncHTTPClient, 서버와 업스트림)
-   |       |
-   +-------+--> ClflStore   (Keychain, 설정 파일, JSONL 로그)
-   |       |       |
-   +-------+-------+--> ClflCore   (순수 도메인. I/O 없음, AppKit 없음)
+ClflApp        (SwiftUI, MenuBarExtra, MainActor)     clflctl  (검증 도구)
+   |                                                     |
+   +--> ClflDesktop  (남의 앱 읽기, 사용량, 설정)  <-----+
+   |       |                                             |
+   |       |            ClflProxy  (NIO, 터미널 트랙) <--+
+   |       |               |
+   +-------+---------------+--> ClflStore   (Keychain, 설정 파일, JSONL)
+   |       |               |       |
+   +-------+---------------+-------+--> ClflCore  (순수 도메인. I/O 없음)
 ```
+
+`ClflDesktop` 과 `ClflProxy` 는 서로 모른다. 트랙이 다르다.
 
 | 타겟 | 담는 것 | 담지 않는 것 |
 |---|---|---|
 | **ClflCore** | HeaderBag, 헤더 변환, 응답 분류, reset epoch 계산, SSE 경계 스캐너/파서, 계정 선택 알고리즘, 쿨다운 산술 | 네트워크, 파일, 시계, 로그 |
 | **ClflStore** | Keychain 토큰, 계정/우선순위 영속화, 모델 쿨다운 캐시, usage/audit JSONL, `~/.claude/settings.json` 관리 | 라우팅 판단 |
+| **ClflDesktop** | safe storage 해독, 토큰 캐시 파싱, Usage API, 표시 문자열, 갱신 주기, 설정 | 화면. 남의 파일 쓰기 |
 | **ClflProxy** | 로컬 HTTP 서버, 업스트림 실행기, peek/릴레이 펌프, Router actor | 헤더/분류 규칙 (Core 호출) |
-| **ClflApp** | MenuBarExtra, 팝오버, 설정 창, 알림, 로그인 항목 등록 | 라우팅 상태의 원본 |
+| **ClflApp** | MenuBarExtra, 팝오버, 설정 화면, 로그인 항목 등록 | **판단.** 전부 ClflDesktop 에 있다 |
+
+`ClflApp` 에 판단을 두지 않는 이유는 뷰를 테스트할 수 없기 때문이다. 잔여를
+몇 퍼센트로 쓸지, 이름을 어떻게 줄일지, 리셋까지 몇 시간인지가 전부 순수
+함수라 `ClflDesktopTests` 가 잠근다. [11 문서](11-menubar-app.md) 2절.
 
 ### ClflCore 를 순수하게 유지하는 이유
 
