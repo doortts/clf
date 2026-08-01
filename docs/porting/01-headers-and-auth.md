@@ -7,7 +7,7 @@
 
 ---
 
-## 0. 공통 타입 — 케이스 무시 헤더 백
+## 0. 공통 타입 - 케이스 무시 헤더 백
 
 TS 원본의 소문자 정규화 체조는 Swift에서 타입 하나로 사라진다.
 
@@ -23,7 +23,7 @@ struct HeaderBag {
 ```
 
 > **NIO 주의:** `HTTPHeaders`는 조회만 케이스 무시고 **순회 시 원본 케이싱을 보존**한다.
-> `hasPrefix("anthropic-ratelimit-")` 같은 순회 기반 규칙([02](02-response-classification.md) §2-2)이
+> `hasPrefix("anthropic-ratelimit-")` 같은 순회 기반 규칙([02](02-response-classification.md) 2-2절)이
 > 있으므로, 경계에서 위 타입으로 한 번 정규화하고 들어갈 것.
 
 ---
@@ -34,7 +34,7 @@ struct HeaderBag {
 enum ProxyHeaders {
     /// 업스트림 전송 전 클라이언트 요청에서 제거.
     /// authorization/x-api-key는 vault 토큰으로 대체되므로 클라이언트 값은 오염된 것으로 간주.
-    /// host는 업스트림 URL이 자체 Host를 정의. 나머지는 RFC 7230 §6.1 hop-by-hop.
+    /// host는 업스트림 URL이 자체 Host를 정의. 나머지는 RFC 7230 6.1절 hop-by-hop.
     static let requestBlocklist: Set<String> = [
         "authorization", "x-api-key", "host",
         "connection", "keep-alive",
@@ -42,7 +42,7 @@ enum ProxyHeaders {
         "te", "trailer", "transfer-encoding", "upgrade",
     ]
 
-    /// 클라이언트로 되돌릴 때 제거. 요청 쪽과 달리 proxy-connection·host·auth 없음.
+    /// 클라이언트로 되돌릴 때 제거. 요청 쪽과 달리 proxy-connection, host, auth 없음.
     static let responseBlocklist: Set<String> = [
         "connection", "keep-alive",
         "proxy-authenticate", "proxy-authorization",
@@ -50,7 +50,7 @@ enum ProxyHeaders {
     ]
 
     /// `claude setup-token`이 발급하는 장기 OAuth 토큰 접두사.
-    /// 콘솔 발급 클래식 API 키는 `sk-ant-api03-…`.
+    /// 콘솔 발급 클래식 API 키는 `sk-ant-api03-...`.
     static let oauthTokenPrefix = "sk-ant-oat01-"
 
     /// Anthropic이 Authorization: Bearer로 OAuth 토큰을 받기 위해 요구하는 beta 플래그.
@@ -66,7 +66,7 @@ enum ProxyHeaders {
 
 ---
 
-## 2. 인증 재작성 — 최우선 규칙
+## 2. 인증 재작성 - 최우선 규칙
 
 ```swift
 extension ProxyHeaders {
@@ -107,9 +107,9 @@ extension ProxyHeaders {
 
 ```
 401 "invalid x-api-key"
-  → 스왑 로직이 authentication_error로 분류
-  → 모든 계정이 차례로 invalid 처리
-  → 체인이 즉시 소진
+  -> 스왑 로직이 authentication_error로 분류
+  -> 모든 계정이 차례로 invalid 처리
+  -> 체인이 즉시 소진
 ```
 
 증상이 "전 계정 인증 실패"로 나타나 원인 추적이 매우 어렵다.
@@ -155,7 +155,7 @@ extension ProxyHeaders {
 **적용 순서는 고정이다:**
 
 ```
-stripClientHopByHop → rewriteAuth → injectAnthropicVersion
+stripClientHopByHop -> rewriteAuth -> injectAnthropicVersion
 ```
 
 ---
@@ -164,7 +164,7 @@ stripClientHopByHop → rewriteAuth → injectAnthropicVersion
 
 ```swift
 extension ProxyHeaders {
-    /// ⚠️ URLComponents / URL(string:) 를 쓰지 말 것.
+    /// 주의: URLComponents / URL(string:) 를 쓰지 말 것.
     /// 정규화가 enterprise gateway의 path prefix(`/anthropic` 등)를 망가뜨리고
     /// query string을 재인코딩한다. 문자열 결합이 의도된 구현.
     static func buildUpstreamURL(baseURL: String, requestURI: String) -> String {
@@ -179,7 +179,7 @@ extension ProxyHeaders {
 
 ---
 
-## 5. 응답 헤더 — 원본을 그대로 베끼면 안 되는 유일한 항목
+## 5. 응답 헤더 - 원본을 그대로 베끼면 안 되는 유일한 항목
 
 ```swift
 extension ProxyHeaders {
@@ -226,7 +226,7 @@ Swift에서는 HTTP 클라이언트에 따라 갈린다:
 | 2 | `anthropic-beta`에 oauth 플래그 누락 | `401 "OAuth authentication is currently not supported."` |
 | 3 | `anthropic-beta`를 병합 대신 덮어쓰기 | Claude Code 기능 소실 |
 | 4 | `content-encoding`을 무조건 제거 | NIO raw 릴레이 시 클라이언트가 압축 바이트를 평문 파싱 |
-| 5 | URL 조립에 `URLComponents` | enterprise gateway path prefix·query 손상 |
+| 5 | URL 조립에 `URLComponents` | enterprise gateway path prefix, query 손상 |
 
 ---
 
@@ -238,12 +238,12 @@ Swift에서는 HTTP 클라이언트에 따라 갈린다:
 - `authorization` / `x-api-key` / `host` / hop-by-hop 메타데이터를 제거한다
 - 모든 헤더 키를 소문자화한다
 
-### `rewriteAuth` — 클래식 API 키 분기
+### `rewriteAuth` - 클래식 API 키 분기
 - vault 토큰을 `x-api-key`로 설정한다
 - 입력 객체를 변경하지 않는다 (fresh record 반환)
 - **`anthropic-beta`를 건드리지 않는다**
 
-### `rewriteAuth` — OAuth 분기 (함정 1·2·3을 잠그는 회귀 테스트)
+### `rewriteAuth` - OAuth 분기 (함정 1, 2, 3을 잠그는 회귀 테스트)
 - 클라이언트 beta가 없을 때 `Authorization: Bearer` + oauth 플래그를 설정한다
 - 기존 `anthropic-beta`에 `oauth-2025-04-20`을 **중복 없이 병합**한다
 - 클라이언트가 이미 `oauth-2025-04-20`을 보냈으면 **멱등**하다
@@ -263,4 +263,4 @@ Swift에서는 HTTP 클라이언트에 따라 갈린다:
 
 ### `pickResponseHeaders`
 - hop-by-hop 응답 헤더와 `content-length`를 제거하고 키를 소문자화한다
-- **(추가)** `clientDecodedBody = false`일 때 `content-encoding`을 **유지**한다 ← Swift 전용
+- **(추가)** `clientDecodedBody = false`일 때 `content-encoding`을 **유지**한다 <- Swift 전용

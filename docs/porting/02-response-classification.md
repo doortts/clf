@@ -16,7 +16,7 @@ enum SwapTrigger: Equatable {
     case sessionLimit(accountID: String, resetEpoch: Int, sessionID: String)
     case authentication(accountID: String, sessionID: String)
 
-    /// 분류기는 절대 생성하지 않음 — 스왑 루프의 종단 분기 전용.
+    /// 분류기는 절대 생성하지 않음 - 스왑 루프의 종단 분기 전용.
     /// 같은 enum에 두는 이유는 소비자가 하나의 exhaustive switch를 쓰게 하려고.
     case poolExhausted(accountID: String?, sessionID: String)
 }
@@ -28,7 +28,7 @@ struct ClassifyInput {
     let firstSSEEvent: SSEEvent?    // 스트리밍: peek한 첫 이벤트
     let accountID: String
     let sessionID: String
-    let now: Int                    // epoch seconds — retry-after 계산 기준점
+    let now: Int                    // epoch seconds - retry-after 계산 기준점
 }
 ```
 
@@ -87,30 +87,30 @@ func extractErrorType(_ input: ClassifyInput) -> String? {
           let obj   = try? JSONSerialization.jsonObject(with: raw) as? [String: Any],
           let error = obj["error"] as? [String: Any],
           let type  = error["type"] as? String
-    else { return nil }        // 어떤 실패든 nil → passthrough (방어적 계약)
+    else { return nil }        // 어떤 실패든 nil -> passthrough (방어적 계약)
     return type
 }
 ```
 
-JSON이 아니거나, `error` 객체가 없거나, `type`이 문자열이 아니면 전부 `nil` → 통과.
+JSON이 아니거나, `error` 객체가 없거나, `type`이 문자열이 아니면 전부 `nil` -> 통과.
 Anthropic 형태의 에러가 아닌 응답을 건드리지 않기 위한 방어적 계약이다.
 
 ---
 
-## 3. 쿨다운 시각 해석 — 2순위 함정
+## 3. 쿨다운 시각 해석 - 2순위 함정
 
 ```swift
 private let defaultCooldownSeconds = 60
 private let epochHeuristicMin = 1_000_000_000        // 2001-09-09. 이보다 작으면 epoch 아님
 
 func resolveResetEpoch(_ headers: HeaderBag, now: Int) -> Int {
-    // ① retry-after (초 단위 delta) — Anthropic의 권위 있는 "다음 재시도" 신호.
+    // 1. retry-after (초 단위 delta) - Anthropic의 권위 있는 "다음 재시도" 신호.
     //    실제로 이 요청을 막고 있는 윈도우가 무엇이든 그걸 반영한다.
     if let raw = headers["retry-after"], let n = Int(raw), n >= 0 {
         return now + n
     }
 
-    // ② 없으면: 아직 도래하지 않은 anthropic-ratelimit-*-reset 중 "가장 가까운" 것
+    // 2. 없으면: 아직 도래하지 않은 anthropic-ratelimit-*-reset 중 "가장 가까운" 것
     var nearest: Int?
     for (k, v) in headers.storage {
         guard k.hasPrefix("anthropic-ratelimit-"), k.hasSuffix("-reset") else { continue }
@@ -119,14 +119,14 @@ func resolveResetEpoch(_ headers: HeaderBag, now: Int) -> Int {
     }
     if let nearest { return nearest }
 
-    // ③ 그래도 없으면 60초
+    // 3. 그래도 없으면 60초
     return now + defaultCooldownSeconds
 }
 ```
 
 ### `max`가 아니라 `min`(nearest)인 이유
 
-Anthropic은 429에 **추적 중인 모든 윈도우**의 reset을 함께 실어 보낸다(5h, 7d, …).
+Anthropic은 429에 **추적 중인 모든 윈도우**의 reset을 함께 실어 보낸다(5h, 7d, ...).
 5h만 걸린 상황에서도 7d reset은 수십 시간~일주일 뒤다.
 
 `max`를 쓰면 실제 쿨다운이 5시간인데 **계정을 37시간 이상 퇴장**시킨다.
@@ -136,20 +136,20 @@ Anthropic은 429에 **추적 중인 모든 윈도우**의 reset을 함께 실어
 
 ### 두 개의 가드
 
-- `epoch > now` — 이미 지난 reset 헤더는 건너뛴다
-- `epoch >= epochHeuristicMin` — 서버가 delta-seconds를 reset 헤더에 넣는 경우를 거른다
+- `epoch > now` - 이미 지난 reset 헤더는 건너뛴다
+- `epoch >= epochHeuristicMin` - 서버가 delta-seconds를 reset 헤더에 넣는 경우를 거른다
 
 ### Swift 파싱 엄격성 차이
 
 `Int("120s")`는 `nil`이지만 JS `parseInt("120s", 10)`은 `120`이다. Swift 쪽이 더 엄격해
-안전하지만, 값이 파싱되지 않으면 ② → ③으로 폴백한다는 점을 인지할 것.
+안전하지만, 값이 파싱되지 않으면 2. -> 3.으로 폴백한다는 점을 인지할 것.
 
 HTTP 명세상 `retry-after`는 delta-seconds 또는 HTTP-date인데, 원본도 Swift도 HTTP-date는
 파싱하지 않고 폴백한다.
 
 ---
 
-## 4. transient overload — 보조 규칙
+## 4. transient overload - 보조 규칙
 
 **출처:** `swap.ts`의 `isRetryableRateLimit` (`swap.ts:388-413`)
 
@@ -163,10 +163,10 @@ func isTransientOverload(headers: HeaderBag, trigger: SwapTrigger) -> Bool {
     // sessionLimit(공유 5h 예산)과 authentication은 절대 transient가 아니다.
     guard case .rateLimit = trigger else { return false }
 
-    // ① Anthropic 자신의 "재시도해라" 신호
+    // 1. Anthropic 자신의 "재시도해라" 신호
     guard headers["x-should-retry"] == "true" else { return false }
 
-    // ② anthropic-ratelimit-* 윈도우 헤더가 "없어야" 한다.
+    // 2. anthropic-ratelimit-* 윈도우 헤더가 "없어야" 한다.
     //    진짜 5h/7d/overage 거절은 항상 unified 윈도우 헤더를 동반한다
     //    (resolveResetEpoch가 실제 reset을 거기서 얻는다).
     //    "부재"를 요구해야 진짜 한도를 transient로 오분류하지 않는다.
@@ -180,10 +180,10 @@ claulay README 트러블슈팅에 기록된 실제 증상:
 
 ```
 시작 시 요청이 우선순위 체인을 훑음
-  → 건강한 계정마다 일시 과부하 429를 연쇄로 맞음
-  → 각 계정을 60초 벤치
-  → 풀 전체가 ~60초 동시 암전
-  → 503 no account available
+  -> 건강한 계정마다 일시 과부하 429를 연쇄로 맞음
+  -> 각 계정을 60초 벤치
+  -> 풀 전체가 ~60초 동시 암전
+  -> 503 no account available
 ```
 
 정작 `status`는 정상으로 보여서 진단이 어렵다. 계정은 실제로 소진되지 않았다.
@@ -193,7 +193,7 @@ claulay README 트러블슈팅에 기록된 실제 증상:
 풀이 순간 비었을 때 즉시 503을 내지 않고, 가장 이른 쿨다운 해제까지 기다렸다가 다시
 훑는 예산이 필요하다. claulay는 `CLAULAY_POOL_GRACE_SECONDS`(기본 15초)로 노출한다.
 
-진짜 소진(5h/7d/overage — reset이 먼 미래)은 이 예산을 초과하므로 영향 없이 즉시 fast-fail 된다.
+진짜 소진(5h/7d/overage - reset이 먼 미래)은 이 예산을 초과하므로 영향 없이 즉시 fast-fail 된다.
 
 ---
 
@@ -201,7 +201,7 @@ claulay README 트러블슈팅에 기록된 실제 증상:
 
 | 응답 | 판정 | 왜 |
 |---|---|---|
-| `200` 정상 | 통과 | — |
+| `200` 정상 | 통과 | - |
 | `529 overloaded_error` | **통과** | Anthropic 측 과부하. 계정 바꿔도 소용없음 |
 | `500 api_error` | **통과** | 위와 동일 |
 | `429` + 알 수 없는 `error.type` | **통과** | 스왑 집합에 없는 타입은 건드리지 않음 |
@@ -216,12 +216,12 @@ claulay README 트러블슈팅에 기록된 실제 증상:
 **출처:** `swap.ts`의 `runSwapLoop` 계약 (`swap.ts:60-88`)
 
 ```
-1. 클라이언트 body를 전량 버퍼링 (≤ maxRetryBodyBytes)
-2. selectAccount() — 우선순위 최상위 가용 계정
+1. 클라이언트 body를 전량 버퍼링 (<= maxRetryBodyBytes)
+2. selectAccount() - 우선순위 최상위 가용 계정
 3. 업스트림 시도
 4. classifyResponse:
-     nil       → 바이트를 그대로 통과, 종료
-     트리거 있음 → 런타임 상태 변경(쿨다운/무효화) + 감사 로그 + 2번으로 루프
+     nil       -> 바이트를 그대로 통과, 종료
+     트리거 있음 -> 런타임 상태 변경(쿨다운/무효화) + 감사 로그 + 2번으로 루프
 5. 시도 횟수를 priority.count로 제한
 6. 체인이 소진되면: 마지막 실패 응답을 클라이언트에 원문 그대로 재생하고
    세션당 pool_exhausted 감사 항목 1건 기록
@@ -243,7 +243,7 @@ let defaultMaxRetryBodyBytes = 8 * 1024 * 1024   // 8 MiB
 이 값을 넘으면 버퍼링을 포기하고 그냥 스트리밍으로 흘려보내며, 그 요청은 재전송할 원본이
 없어 **스왑이 스킵**된다.
 
-순수 텍스트 1M 컨텍스트는 4~5MB 정도라 여유가 있지만, **base64 이미지·PDF 첨부**가
+순수 텍스트 1M 컨텍스트는 4~5MB 정도라 여유가 있지만, **base64 이미지, PDF 첨부**가
 body를 크게 부풀린다. 스크린샷 몇 장 붙인 턴에서 429가 뜨면 스왑이 안 되고 에러가
 그대로 노출된다. 설정으로 노출할 것.
 
@@ -257,9 +257,9 @@ Authorization으로 재전송**하는 것이다.
 
 그래서 다음이 따라온다:
 
-1. **cross-plan 데이터 이그레스** — team 계정에서 하던 대화 전문이 enterprise 계정의
-   로깅·보존 정책 아래로 들어간다. 사용자 고지가 필요한 이유.
-2. **prompt cache 전량 무효화** — 캐시는 계정/조직 스코프다. 스왑하면 새 계정에서
+1. **cross-plan 데이터 이그레스** - team 계정에서 하던 대화 전문이 enterprise 계정의
+   로깅, 보존 정책 아래로 들어간다. 사용자 고지가 필요한 이유.
+2. **prompt cache 전량 무효화** - 캐시는 계정/조직 스코프다. 스왑하면 새 계정에서
    전부 cache miss가 되고 컨텍스트 전체를 `cache_creation`으로 다시 쓴다
    (cache write는 1.25배 단가). 긴 대화일수록 손해가 크다.
 3. 429로 죽은 첫 시도 자체는 과금되지 않는다.
@@ -271,13 +271,13 @@ Authorization으로 재전송**하는 것이다.
 ### 선제 전환 설계 노트
 
 quota가 차기 전에 미리 전환하려면 잔여량을 알아야 하는데, 5h/7d 잔여는
-`anthropic-ratelimit-unified-*` **응답 헤더**에만 있다 → **프록시를 경유해야만 보인다.**
+`anthropic-ratelimit-unified-*` **응답 헤더**에만 있다 -> **프록시를 경유해야만 보인다.**
 (OAuth Usage API는 `user:profile` 스코프가 필요한데 `setup-token`은 inference-only라 403.)
 
 `selectAccount`에 조건을 추가하는 형태가 된다:
 
 ```
-5h 사용률 > 임계값 → 쿨다운은 아니지만 선호도 강등 → 다음 계정
+5h 사용률 > 임계값 -> 쿨다운은 아니지만 선호도 강등 -> 다음 계정
 ```
 
 단, **선제 전환은 프롬프트 캐시를 자발적으로 버리는 행위**다. 남은 여유분의 가치보다
@@ -303,12 +303,12 @@ quota가 차기 전에 미리 전환하려면 잔여량을 알아야 하는데, 
 - 인증 body를 가진 401에 대해 `authentication_error`를 낸다
 
 ### 통과 분기
-- `529 overloaded_error` → `nil`
-- `500 api_error` → `nil`
-- `200` 성공 → `nil`
-- 스왑 집합에 없는 `error.type`의 429 → `nil`
-- 인증이 아닌 body의 401 → `nil`
-- 파싱 불가 body → `nil` (방어적)
+- `529 overloaded_error` -> `nil`
+- `500 api_error` -> `nil`
+- `200` 성공 -> `nil`
+- 스왑 집합에 없는 `error.type`의 429 -> `nil`
+- 인증이 아닌 body의 401 -> `nil`
+- 파싱 불가 body -> `nil` (방어적)
 
 ### `resolveResetEpoch` 단위
 - 헤더가 없으면 `now + 60`
