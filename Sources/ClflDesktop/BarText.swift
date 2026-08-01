@@ -9,28 +9,71 @@ public enum BarText {
     /// 사용량을 못 읽은 조직. 0% 로 그리면 한도가 찬 것처럼 보인다.
     public static let unknown = "?"
 
-    /// 조직 이름을 세 글자 안팎으로 줄인다.
+    /// 조직 이름을 두세 글자로 줄인다.
     ///
-    /// 숫자로 끝나면 앞 낱말의 첫 글자를 붙인다. `NAVER_TEAM_40` 은 `T40` 이다.
-    /// 한 계정이 쓰는 조직들은 접두사가 같은 경우가 많아 뒤쪽이 구별에 쓸모 있다.
-    public static func short(_ name: String) -> String {
-        let words = name.split(whereSeparator: { $0 == "_" || $0 == "-" || $0 == " " })
-        guard let last = words.last else { return unknown }
+    /// docs/design/ui-spec.html "조직 이름 대신 두 글자 코드를 쓴다".
+    /// 코드는 **집합에 딸린 값**이다. 겹치는지 알아야 정할 수 있어서 이름 하나만
+    /// 보고는 못 만든다.
+    ///
+    /// | 이름 | 코드 | 규칙 |
+    /// |---|---|---|
+    /// | `NAVER_TEAM_40` | `T40` | 끝 숫자와 앞 낱말 첫 글자 |
+    /// | `team1` | `T1` | 낱말과 숫자가 붙어 있어도 가른다 |
+    /// | `Naver` | `Na` | 숫자가 없으면 앞 두 글자 |
+    /// | `Naver` + `Nasdaq` | `N1` `N2` | 겹치면 첫 글자에 알파벳순 순번 |
+    ///
+    /// 시안은 `team` 이 든 이름에 알파벳순 번호를 붙이라고 했다. 이름이 이미
+    /// 번호를 달고 있으면 그쪽을 쓴다. 앱 드롭다운에서 보는 것과 같아야 한다.
+    public static func codes(for names: [String]) -> [String: String] {
+        var draft: [String: String] = [:]
+        for name in names { draft[name] = base(name) }
 
+        // 겹치는 것만 첫 글자 + 알파벳순 순번으로 바꾼다. 순번이 목록 차례를
+        // 따르면 조직이 늘고 줄 때마다 코드가 흔들려 눈이 못 따라간다
+        var byCode: [String: [String]] = [:]
+        for (name, code) in draft { byCode[code, default: []].append(name) }
+        for (_, clashing) in byCode where clashing.count > 1 {
+            for (i, name) in clashing.sorted().enumerated() {
+                let initial = name.first.map { String($0).uppercased() } ?? unknown
+                draft[name] = initial + String(i + 1)
+            }
+        }
+        return draft
+    }
+
+    /// 겹침을 따지기 전의 1차 코드.
+    static func base(_ name: String) -> String {
+        let words = split(name)
+        guard let last = words.last else { return unknown }
         if last.allSatisfy(\.isNumber) {
             guard words.count >= 2, let initial = words[words.count - 2].first else {
                 return String(last)
             }
             return initial.uppercased() + last
         }
-        return String(last.prefix(3)).capitalizedFirst
+        return String(last.prefix(2)).capitalizedFirst
     }
 
-    /// 조직이 하나면 이름을 안 붙인다. 어느 조직인지는 이미 안다.
+    /// 구분자로도 가르고 글자와 숫자가 붙은 자리에서도 가른다.
+    /// `team1` 은 구분자가 없지만 `team` 과 `1` 이다.
+    private static func split(_ name: String) -> [Substring] {
+        let byMark = name.split(whereSeparator: { $0 == "_" || $0 == "-" || $0 == " " })
+        var out: [Substring] = []
+        for word in byMark {
+            guard let edge = word.lastIndex(where: { !$0.isNumber }),
+                  word.index(after: edge) < word.endIndex else { out.append(word); continue }
+            out.append(word[...edge])
+            out.append(word[word.index(after: edge)...])
+        }
+        return out
+    }
+
+    /// 글자만 쓰는 예비 표기. 그림을 못 그릴 때와 테스트가 쓴다.
     public static func label(for orgs: [OrgUsage]) -> String {
         guard !orgs.isEmpty else { return placeholder }
         if orgs.count == 1 { return percent(orgs[0]) }
-        return orgs.map { "\(short($0.name)) \(percent($0))" }.joined(separator: "  ")
+        let map = codes(for: orgs.map(\.name))
+        return orgs.map { "\(map[$0.name] ?? unknown) \(percent($0))" }.joined(separator: "  ")
     }
 
     /// 리셋까지 남은 시간을 사람이 읽는 말로.

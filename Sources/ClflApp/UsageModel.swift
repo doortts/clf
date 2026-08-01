@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 import ClflDesktop
@@ -9,6 +10,8 @@ import ClflDesktop
 final class UsageModel: ObservableObject {
     @Published private(set) var orgs: [OrgUsage] = []
     @Published private(set) var barOrgs: [OrgUsage] = []
+    /// 막대에 올릴 그림. 색을 살리려면 이미지여야 한다.
+    @Published private(set) var barImage: NSImage?
     @Published private(set) var failure: String?
     @Published private(set) var readAt: Date?
     @Published private(set) var refreshing = false
@@ -20,6 +23,7 @@ final class UsageModel: ObservableObject {
     private let file: DesktopPreferencesFile?
     private var pacer = RefreshPacer()
     private var loop: Task<Void, Never>?
+    private var appearanceWatch: (any NSObjectProtocol)?
     /// 설정 화면이 보는 목록. 사용량을 못 읽는 조직도 들어간다.
     private(set) var known: [OrgUsage] = []
 
@@ -32,6 +36,7 @@ final class UsageModel: ObservableObject {
 
     /// 켜자마자 한 번 읽고, 그다음은 사용량이 정하는 주기로.
     func start() {
+        watchAppearance()
         guard loop == nil else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -47,6 +52,26 @@ final class UsageModel: ObservableObject {
         loop = nil
     }
 
+    /// 라이트와 다크를 오가면 막대 그림을 다시 구워야 한다. 색이 구울 때
+    /// 박히므로 그냥 두면 배경과 같은 색 글씨가 남는다.
+    private func watchAppearance() {
+        guard appearanceWatch == nil else { return }
+        appearanceWatch = DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            // 알림이 외양 반영보다 먼저 오는 경우가 있다. 한 틱 뒤에 굽는다
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(250))
+                self?.redrawBar()
+            }
+        }
+    }
+
+    private func redrawBar() {
+        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
+    }
+
     /// 팝오버를 열 때와 새로고침 단추를 누를 때. 주기와 무관하게 한 번 더 읽는다.
     func refresh() async {
         guard !refreshing else { return }
@@ -58,6 +83,7 @@ final class UsageModel: ObservableObject {
             known = snapshot.knownOrgs
             orgs = prefs.apply(to: known)
             barOrgs = prefs.barOrgs(from: known)
+            barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
             readAt = snapshot.readAt
             failure = nil
         } catch {
@@ -103,9 +129,15 @@ final class UsageModel: ObservableObject {
         prefs.apply(to: known).map(\.uuid) + known.map(\.uuid).filter { prefs.isHidden($0) }
     }
 
+    func setBarDetail(_ detail: BarDetail) {
+        prefs.barDetail = detail
+        persist()
+    }
+
     private func persist() {
         try? file?.save(prefs)
         orgs = prefs.apply(to: known)
         barOrgs = prefs.barOrgs(from: known)
+        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
     }
 }

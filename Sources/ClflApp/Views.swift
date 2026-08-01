@@ -12,70 +12,67 @@ extension UsageBand {
     }
 }
 
-/// 잔여를 막대 하나로. 남은 만큼 채운다.
-struct RemainingBar: View {
-    let limit: UsageLimit?
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.primary.opacity(0.09))
-                if let limit {
-                    Capsule()
-                        .fill(limit.band.color)
-                        .frame(width: max(2, geo.size.width * Double(limit.percentRemaining) / 100))
-                }
-            }
-        }
-        .frame(height: 5)
-    }
-}
-
-/// 조직 하나. 세 줄이 5시간, 주간 전체, 주간 모델별이다.
+/// 조직 하나. 세 줄이 5시간, 주간, 모델별이다.
+///
+/// docs/design/ui-spec.html 의 팝오버. 리셋 문구는 값 옆이 아니라 아랫줄에
+/// 둔다. 한 줄에 넣으면 값과 시각이 눈싸움을 한다.
 struct OrgCard: View {
     let org: OrgUsage
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 if org.isActive {
                     Circle().fill(Color.accentColor).frame(width: 6, height: 6)
                 }
-                Text(org.name).font(.system(size: 12, weight: .semibold))
-                if let plan = org.plan {
-                    Text(plan).font(.system(size: 9))
-                        .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 3))
+                Text(org.name).font(.system(size: 13, weight: .semibold))
+                if let plan = org.plan { badge(plan, tint: .accentColor) }
+                // 정상은 아무 말도 하지 않는다. 배지가 늘 켜져 있으면 안 읽힌다
+                if let band = org.binding?.band, band.isNoteworthy {
+                    badge(band.label, tint: band.fillColor)
                 }
                 Spacer()
                 if org.isActive {
-                    Text("사용 중").font(.system(size: 9)).foregroundStyle(.secondary)
+                    Text("사용 중").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
             }
 
             if let error = org.error {
-                Text(error).font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(error).font(.system(size: 11)).foregroundStyle(.secondary)
             } else {
-                ForEach(LimitKind.allCases, id: \.self) { kind in
-                    row(kind, org.limits[kind])
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(LimitKind.allCases, id: \.self) { kind in
+                        row(kind, org.limits[kind])
+                    }
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+    }
+
+    private func badge(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 5).padding(.vertical, 1)
+            .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 4))
     }
 
     private func row(_ kind: LimitKind, _ limit: UsageLimit?) -> some View {
-        HStack(spacing: 8) {
-            Text(kind.label)
-                .font(.system(size: 10)).foregroundStyle(.secondary)
-                .frame(width: 62, alignment: .leading)
-            RemainingBar(limit: limit).frame(width: 96)
-            Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
-                .font(.system(size: 10, weight: .medium).monospacedDigit())
-                .frame(width: 32, alignment: .trailing)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 8) {
+                Text(kind.label)
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .frame(width: 56, alignment: .leading)
+                DotRow(limit: limit, columns: 34, width: 180)
+                Spacer(minLength: 0)
+                Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
+                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(limit?.band.fillColor ?? .secondary)
+            }
             Text(BarText.until(limit?.resetsAt))
-                .font(.system(size: 9)).foregroundStyle(.tertiary)
-                .frame(minWidth: 74, alignment: .leading)
+                .font(.system(size: 10)).foregroundStyle(.tertiary)
+                .padding(.leading, 64)
         }
     }
 }
@@ -91,6 +88,15 @@ struct SettingsPane: View {
                 set: { model.setBarContent($0) }
             )) {
                 ForEach(BarContent.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Picker("자세히", selection: Binding(
+                get: { model.prefs.barDetail },
+                set: { model.setBarDetail($0) }
+            )) {
+                ForEach(BarDetail.allCases, id: \.self) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -155,6 +161,23 @@ struct PopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("clfl").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Button { Task { await model.refresh() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(model.refreshing)
+                .accessibilityLabel("지금 새로고침")
+                Button { NSApplication.shared.terminate(nil) } label: {
+                    Image(systemName: "power")
+                }
+                .accessibilityLabel("clfl 종료")
+            }
+            .buttonStyle(.borderless)
+            .font(.system(size: 12))
+            .padding(.bottom, 8)
+
             if let failure = model.failure {
                 Text(failure)
                     .font(.system(size: 10)).foregroundStyle(.red)
@@ -184,20 +207,15 @@ struct PopoverView: View {
                     withAnimation(.easeOut(duration: 0.12)) { showingSettings.toggle() }
                 }
                 .accessibilityLabel(showingSettings ? "설정 닫기" : "설정 열기")
-                Button("새로고침") { Task { await model.refresh() } }
-                    .disabled(model.refreshing)
-                    .accessibilityLabel("지금 새로고침")
                 Spacer()
                 Text(model.readAt.map { stamp($0) } ?? "-")
                     .font(.system(size: 9)).foregroundStyle(.tertiary)
-                Button("종료") { NSApplication.shared.terminate(nil) }
-                    .accessibilityLabel("clfl 종료")
             }
             .buttonStyle(.borderless)
             .font(.system(size: 10))
         }
-        .padding(12)
-        .frame(width: 320)
+        .padding(Metrics.popoverPadding)
+        .frame(width: Metrics.popoverWidth)
         .task { await model.refresh() }
     }
 

@@ -13,9 +13,13 @@ struct ClflMenuBarApp: App {
         MenuBarExtra {
             PopoverView(model: model)
         } label: {
-            // 이미지 없이 글자만. 잔여 숫자가 곧 아이콘이다
-            Text(BarText.label(for: model.barOrgs))
-                .onAppear { model.start() }
+            // 라벨을 뷰로 주면 MenuBarExtra 가 템플릿으로 그려 색이 날아간다.
+            // 구운 이미지로 넘겨야 등급 색이 남는다
+            if let image = model.barImage {
+                Image(nsImage: image).onAppear { model.start() }
+            } else {
+                Text(BarText.label(for: model.barOrgs)).onAppear { model.start() }
+            }
         }
         .menuBarExtraStyle(.window)
     }

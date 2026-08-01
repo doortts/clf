@@ -9,36 +9,6 @@ private func org(_ name: String, _ remaining: Int?, active: Bool = false,
              error: remaining == nil ? "토큰 만료" : nil)
 }
 
-/// 메뉴바 막대는 자리가 좁다. 이름을 줄여야 한다.
-final class ShortNameTests: XCTestCase {
-
-    /// 숫자로 끝나는 이름은 앞 낱말의 첫 글자 + 숫자. 조직 여럿이 같은 접두사를
-    /// 쓰는 경우가 많아서 뒤쪽이 구별에 쓸모 있다.
-    func test_trailingNumberKeepsItsWordInitial() {
-        XCTAssertEqual(BarText.short("NAVER_TEAM_40"), "T40")
-        XCTAssertEqual(BarText.short("NAVER_TEAM_52"), "T52")
-        XCTAssertEqual(BarText.short("acme_prod_7"), "P7")
-    }
-
-    func test_plainNameTakesThreeLetters() {
-        XCTAssertEqual(BarText.short("Naver"), "Nav")
-        XCTAssertEqual(BarText.short("Anthropic"), "Ant")
-    }
-
-    func test_shortNameStaysWhole() {
-        XCTAssertEqual(BarText.short("Ab"), "Ab")
-    }
-
-    /// 숫자만 있으면 붙일 첫 글자가 없다.
-    func test_bareNumber() {
-        XCTAssertEqual(BarText.short("40"), "40")
-    }
-
-    func test_emptyNameDoesNotCrash() {
-        XCTAssertEqual(BarText.short(""), "?")
-    }
-}
-
 final class BarLabelTests: XCTestCase {
 
     /// 활성 하나만 그릴 때는 이름을 안 붙인다. 어느 조직인지는 앱이 이미 안다.
@@ -50,7 +20,7 @@ final class BarLabelTests: XCTestCase {
     func test_multipleOrgsGetShortNames() {
         XCTAssertEqual(
             BarText.label(for: [org("NAVER_TEAM_40", 51, active: true), org("Naver", 88)]),
-            "T40 51%  Nav 88%")
+            "T40 51%  Na 88%")
     }
 
     /// 가장 좁은 창을 쓴다. 5시간이 널널해도 주간이 바닥이면 바닥이 사실이다.
@@ -66,7 +36,7 @@ final class BarLabelTests: XCTestCase {
     func test_unreadableOrgIsNotZero() {
         XCTAssertEqual(BarText.label(for: [org("Naver", nil)]), "?")
         XCTAssertEqual(BarText.label(for: [org("NAVER_TEAM_40", 51, active: true), org("Naver", nil)]),
-                       "T40 51%  Nav ?")
+                       "T40 51%  Na ?")
     }
 
     /// 전부 숨겼거나 아직 못 읽었다. 빈 막대는 앱이 죽은 것처럼 보인다.

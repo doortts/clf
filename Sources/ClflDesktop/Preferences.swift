@@ -9,6 +9,34 @@ import ClflStore
 /// **보여줄 것을 담지 않고 숨길 것을 담는다.** 그래야 조직이 새로 생겼을 때
 /// 자동으로 보인다. 보여줄 목록만 저장하면 새 조직이 설정을 열기 전까지
 /// 영영 안 보인다.
+/// 막대를 얼마나 자세히 그릴지.
+///
+/// docs/design/ui-spec.html "표시 모드는 하나만 고른다". 폭과 정보량은 맞바꿀
+/// 수밖에 없어서 노브를 여러 개 두지 않고 미리 맞춰둔 넷 중 하나를 고르게 한다.
+public enum BarDetail: String, Codable, Sendable, CaseIterable {
+    /// 코드, 숫자 두 줄, 도트 블록 세 줄
+    case full = "full"
+    /// 코드와 블록. 세 창을 그대로 보여주면서 폭은 절반 아래로
+    case dots = "dots"
+    /// 코드와 숫자 두 줄
+    case numbers = "numbers"
+    /// 코드 하나. 자세한 값은 눌러서 본다
+    case code = "code"
+
+    public var label: String {
+        switch self {
+        case .full:    return "기본"
+        case .dots:    return "도트만"
+        case .numbers: return "숫자만"
+        case .code:    return "코드만"
+        }
+    }
+
+    public var showsCode: Bool { true }
+    public var showsNumbers: Bool { self == .full || self == .numbers }
+    public var showsDots: Bool { self == .full || self == .dots }
+}
+
 /// 메뉴바 막대에 무엇을 그릴지.
 public enum BarContent: String, Codable, Sendable, CaseIterable {
     /// 활성 조직 하나만. 조직이 셋이면 막대가 너무 길어진다
@@ -32,13 +60,16 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var order: [String]
     /// 막대에 그릴 범위. 팝오버는 이것과 무관하게 보이는 조직을 전부 보여준다.
     public var barContent: BarContent
+    /// 막대를 얼마나 자세히 그릴지.
+    public var barDetail: BarDetail
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
-                barContent: BarContent = .activeOnly) {
+                barContent: BarContent = .activeOnly, barDetail: BarDetail = .full) {
         self.version = version
         self.hidden = hidden
         self.order = order
         self.barContent = barContent
+        self.barDetail = barDetail
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -48,6 +79,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         hidden = try c.decodeIfPresent(Set<String>.self, forKey: .hidden) ?? []
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
         barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .activeOnly
+        barDetail = try c.decodeIfPresent(BarDetail.self, forKey: .barDetail) ?? .full
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }

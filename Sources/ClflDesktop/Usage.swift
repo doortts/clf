@@ -52,8 +52,31 @@ public struct UsageLimit: Sendable, Equatable {
 }
 
 /// 메뉴바 색을 정하는 구간. 잔여 기준이다.
-public enum UsageBand: Sendable, Equatable {
-    case empty, low, normal, ample
+/// 잔여 구간. docs/design/ui-spec.html "색은 창마다 따로 붙는다"
+///
+/// 경계값은 임의가 아니다. 노랑이 시작되는 15% 는 선제 전환 임계값과 같아서
+/// 노랑은 곧 "새 대화 후보에서 이미 밀려났다" 는 뜻이다.
+public enum UsageBand: Sendable, Equatable, CaseIterable {
+    /// 5% 미만. 사실상 소진
+    case empty
+    /// 5% 이상 15% 미만. 임계값 아래
+    case low
+    /// 15% 이상 50% 미만. 눈길을 끌지 않는다
+    case normal
+    /// 50% 이상. 넘어올 곳으로도 좋다
+    case ample
+
+    public var label: String {
+        switch self {
+        case .empty:  return "소진"
+        case .low:    return "주의"
+        case .normal: return "정상"
+        case .ample:  return "여유"
+        }
+    }
+
+    /// 배지로 내보일 만한 상태인가. 정상은 아무 말도 하지 않는다.
+    public var isNoteworthy: Bool { self != .normal }
 }
 
 public struct UsageParseError: Error, CustomStringConvertible {
