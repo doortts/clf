@@ -16,7 +16,7 @@ Weekly, all models    Resets Fri 6:00 AM      6%
 Weekly, Fable                                 0%      <- 여기
 ```
 
-모델별 주간 한도는 **응답 헤더에 없다.** 헤더는 `anthropic-ratelimit-unified-5h` 와
+모델별 주간 한도는 **응답 헤더에 없다.** 헤더는 `anthropic-ratelimit-unified-5h-utilization` 과
 `-7d` 뿐이고, 모델별 창은 Usage API 응답의 `limits[]`(`kind == "weekly_scoped"`)가
 유일한 출처다. 그리고 그 API 는 `user:profile` 스코프를 요구한다.
 

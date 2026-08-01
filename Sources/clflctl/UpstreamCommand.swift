@@ -126,7 +126,16 @@ struct Upstream: AsyncParsableCommand {
 
             if let trigger {
                 print()
-                print("  판정    스왑 대상: \(describe(trigger))")
+                let transient = isTransientOverload(headers: responseHeaders, trigger: trigger)
+                print("  판정    \(describe(trigger, responseHeaders))")
+                if transient {
+                    // x-should-retry 가 있고 ratelimit 헤더가 없다. 할당량이 아니라 용량이다.
+                    // 이걸 구분해 말하지 않으면 멀쩡한 조직을 소진으로 오해한다
+                    print("  일시 과부하다. 조직 할당량과 무관하다.")
+                    print("  x-should-retry 가 있고 ratelimit 헤더가 없는 것이 그 서명이다.")
+                    print("  스왑 루프는 이 조직을 5초만 쉬게 하고 다시 쓴다.")
+                    print("  다른 모델로 확인해 본다: --model claude-haiku-4-5-20251001")
+                }
             }
 
             if save, let snapshot = rateLimitSnapshot(from: responseHeaders, now: Date()) {
@@ -142,6 +151,12 @@ struct Upstream: AsyncParsableCommand {
             }
 
             guard status == 200 else {
+                if let trigger, isTransientOverload(headers: responseHeaders, trigger: trigger) {
+                    throw CheckFailed(description: """
+                    200 이 아니지만 배관 문제는 아니다. 업스트림이 지금 이 모델을
+                    받지 못하는 것뿐이다. 잠시 뒤나 다른 모델로 다시 해본다.
+                    """)
+                }
                 throw CheckFailed(description: "200 이 아니다. 7단계는 통과가 아니다")
             }
         }
@@ -171,12 +186,20 @@ struct Upstream: AsyncParsableCommand {
             print("  모델별 주간은 헤더에 없다. Usage API 를 불러야 한다")
         }
 
-        private func describe(_ trigger: SwapTrigger) -> String {
+        /// 해제 시각이 서버가 준 값인지 우리 폴백인지 밝힌다. 폴백을 실제
+        /// 해제 시각처럼 보여주면 사용자가 그 시각까지 기다린다.
+        private func describe(_ trigger: SwapTrigger, _ lastHeaders: HeaderBag) -> String {
+            func when(_ reset: Int, _ headers: HeaderBag) -> String {
+                let known = headers["retry-after"] != nil
+                    || headers.storage.keys.contains { $0.hasPrefix("anthropic-ratelimit-") }
+                return stamp(Date(timeIntervalSince1970: TimeInterval(reset)))
+                    + (known ? " 해제" : " 해제 (서버가 안 알려줘 우리가 60초로 잡은 값)")
+            }
             switch trigger {
             case .rateLimit(_, let reset, _):
-                return "rate_limit, \(stamp(Date(timeIntervalSince1970: TimeInterval(reset)))) 해제"
+                return "rate_limit. \(when(reset, lastHeaders))"
             case .sessionLimit(_, let reset, _):
-                return "session_limit, \(stamp(Date(timeIntervalSince1970: TimeInterval(reset)))) 해제"
+                return "session_limit. \(when(reset, lastHeaders))"
             case .authentication:
                 return "authentication"
             case .poolExhausted:

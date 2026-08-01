@@ -75,7 +75,7 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 | 6d | 선택 판정 | `clflctl runtime simulate` + `select` | 표가 예상과 같다 | 됨 |
 | 6e | 응답 분류 | `clflctl classify` | 네 경로가 갈린다 | 됨 |
 | 6f | SSE 경계 | `clflctl sse-peek` | 주석 프레임을 건너뛴다 | 됨 |
-| 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 도구는 됨 |
+| 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 통과 |
 | 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **Claude Code 데스크톱 앱으로 대화 성공** | 도구는 됨 |
 | 9 | 스왑 | `clflctl serve` + `runtime simulate` | 스왑 발생, 트레일에 기록 | 아직 |
 | 10 | 컨트롤 플레인 | `clflctl watch` | 스왑이 실시간으로 흐른다 | 아직 |
@@ -479,6 +479,61 @@ launchctl setenv ANTHROPIC_BASE_URL http://127.0.0.1:51710
 관리 대상 목록은 앱의 사용자 입력 UI 를 막는 것이라 부모 환경 전달과는 다른
 경로일 수 있다. 다만 자식이 받은 값이 정확히 기본값이었다는 점에서 앱이 스스로
 정하는 쪽에 무게가 실린다.
+
+---
+
+## 7-5. 실 트래픽이 잡아낸 것
+
+가짜 업스트림으로는 못 잡는 것 셋이 실제 요청에서 드러났다.
+
+### 사용량 헤더 이름을 잘못 알고 있었다
+
+`anthropic-ratelimit-unified-5h-remaining` 을 찾고 있었는데 그런 헤더는 없다.
+실제로 오는 것은 이렇다.
+
+```
+anthropic-ratelimit-unified-5h-utilization: 0.16
+anthropic-ratelimit-unified-5h-reset: 1785600000
+anthropic-ratelimit-unified-7d-utilization: 0.11
+anthropic-ratelimit-unified-7d-reset: 1786050000
+anthropic-ratelimit-unified-representative-claim: five_hour
+anthropic-ratelimit-unified-status: allowed
+```
+
+이름만 틀린 것이 아니라 의미도 반대였다. 서버는 **잔여가 아니라 사용률**을 주고,
+단위는 백분율이 아니라 **0..1 비율**이다. 백분율로 읽었으면 100배 틀렸을 것이다.
+`0.16`, `0.11` 은 Claude Code 가 보여주는 5시간 15%, 주간 11% 와 같은 값이다.
+
+`representative-claim` 은 서버가 스스로 지목하는 구속 창이다. 우리가 셋 중
+가장 좁은 창을 고르는 계산과 대조할 수 있는 값이라 이름만 잡아 두었다.
+
+### 일시 과부하가 할당량 소진처럼 보였다
+
+opus 로 probe 를 돌리니 429 `rate_limit_error` 가 왔는데 조직은 5시간 15%,
+주간 11% 로 한참 여유가 있었다. 본문은 `{"message":"Error"}` 로 아무것도
+말하지 않는다.
+
+헤더가 답이었다. `x-should-retry: true` 가 있고 `anthropic-ratelimit-*` 는
+하나도 없다. claulay 에서 옮겨온 `isTransientOverload` 가 정의한 서명 그대로다.
+같은 시각 haiku 는 200 이었다. 조직 문제가 아니라 그 모델의 용량 문제였다.
+
+**분류기는 옳았는데 도구가 그 구분을 말하지 않았다.** 그래서 멀쩡한 조직을
+소진으로 오해했다. probe 가 이제 일시 과부하를 따로 말하고, 해제 시각이
+서버가 준 값인지 우리 60초 폴백인지도 밝힌다.
+
+일시 과부하 응답에는 ratelimit 헤더가 없으므로 사용량 스냅샷은 nil 이다.
+용량 문제를 사용량 0 으로 기록하면 안 된다.
+
+### Usage API 는 setup-token 으로 못 부른다
+
+```
+403 {"type":"error","error":{"type":"permission_error",
+     "message":"OAuth token does not meet scope requirement user:profile"}}
+```
+
+[07 자격증명](07-oauth-credentials.md) 이 적어둔 대로다. setup-token 은
+`user:inference` 뿐이라 모델별 주간 한도를 영영 못 읽는다. 그 세 번째 줄을
+보여주려면 `claude auth login` 캡처 경로가 필요하다.
 
 ---
 

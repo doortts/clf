@@ -254,7 +254,7 @@ Weekly, all models    Resets Fri 6:00 AM      6%
 Weekly, Fable                                 0%
 ```
 
-세 번째 줄은 **응답 헤더에 없다.** 헤더는 `anthropic-ratelimit-unified-5h` 와 `-7d` 뿐이고,
+세 번째 줄은 **응답 헤더에 없다.** 헤더는 `anthropic-ratelimit-unified-5h-utilization` 과 `-7d-utilization` 뿐이고,
 모델별 주간은 Usage API 응답의 `limits[]` 배열(`kind == "weekly_scoped"`)이 유일한 출처다.
 
 그래서 이 값을 얻으려면 `user:profile` 스코프가 있는 토큰이 필요하다
