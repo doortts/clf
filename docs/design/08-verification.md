@@ -76,7 +76,7 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 | 6e | 응답 분류 | `clflctl classify` | 네 경로가 갈린다 | 됨 |
 | 6f | SSE 경계 | `clflctl sse-peek` | 주석 프레임을 건너뛴다 | 됨 |
 | 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 도구는 됨 |
-| 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **Claude Code 데스크톱 앱으로 대화 성공** | 아직 |
+| 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **Claude Code 데스크톱 앱으로 대화 성공** | 도구는 됨 |
 | 9 | 스왑 | `clflctl serve` + `runtime simulate` | 스왑 발생, 트레일에 기록 | 아직 |
 | 10 | 컨트롤 플레인 | `clflctl watch` | 스왑이 실시간으로 흐른다 | 아직 |
 | 11 | 앱 | Xcode | 메뉴바에 같은 값이 뜬다 | 아직 |
@@ -202,6 +202,9 @@ clflctl runtime clear [<id>]
 clflctl select [--model] [--start]      선택 판정과 후보별 이유
 clflctl classify --status 429 ...       응답 하나를 분류기에 먹인다
 clflctl sse-peek <file>                 첫 이벤트 프레임 경계
+
+clflctl upstream probe <id> [--stream]  실제 왕복 한 번
+clflctl serve --single <id> [--install] 프록시를 띄운다
 ```
 
 토큰을 인자로 받지 않는다. argv 는 셸 히스토리에 남는다.
@@ -262,6 +265,52 @@ fixture 에 박아두고, 가짜 업스트림이 그것을 `content-encoding: gz
 
 ---
 
+## 7-2. 8단계에서 나온 것
+
+같은 방식으로 진행했다. 릴레이 15개, 서버 11개, 단일 조직 핸들러 16개를 먼저 쓰고
+빨간 것을 확인한 뒤 구현했다.
+
+**릴레이의 불변식을 호출 기록으로 표현했다.** 가짜 클라이언트가 writeHead, write,
+end, abort 를 순서대로 적기만 하면 불변식 검증이 끝난다. 무엇을 언제 몇 번 불렀나가
+곧 계약이기 때문이다. `end` 와 `abort` 를 가르는 테스트가 특히 그렇다. 중간에 끊긴
+스트림에 `end()` 를 부르면 chunked 종단자가 나가 잘린 응답이 완결된 것처럼 보이고,
+Claude Code 에서는 "Response stalled mid-stream" 으로 나타난다.
+
+**프레이밍을 서버가 정해야 했다.** 릴레이가 `content-length` 를 떼므로 응답에
+길이 정보가 없다. 그대로 두면 NIO 가 연결 종료로 본문 끝을 표시하는데 그러면
+keep-alive 가 깨진다. 길이가 없을 때 `transfer-encoding: chunked` 를 붙인다.
+
+**settings.json 에 URL 이 `http:\/\/...` 로 적히고 있었다.** 유효한 JSON 이고
+Claude Code 도 잘 읽지만 사용자가 열어보고 손으로 고치는 파일이다.
+`JSONSerialization` 의 `withoutEscapingSlashes` 를 켰다. 실제로 띄워 보고 파일을
+열어보지 않았으면 못 봤을 것이다.
+
+**니글 알고리즘을 꺼야 했다.** `tcp_nodelay` 없이는 작은 SSE 프레임이 커널에서
+뭉쳐 나간다. 프레임이 하나씩 도착하는지 세는 테스트가 그것을 잡는다.
+
+### 8단계에서 확인한 것
+
+가짜 업스트림(gzip SSE)에 붙여 전 경로를 태웠다.
+
+- 업스트림의 gzip 이 클라이언트에 평문으로 도착한다
+- `anthropic-beta` 가 병합된다. 클라이언트가 보낸 `claude-code-20250219` 를
+  덮지 않고 `claude-code-20250219, oauth-2025-04-20` 이 된다
+- 클라이언트의 `authorization` 과 `host` 가 우리 것으로 바뀐다
+- `x-claude-session-id` 가 그대로 넘어가고 usage.jsonl 에 실린다
+- 캐시 두 필드가 기록된다
+- Ctrl-C 가 settings.json 을 원래대로 되돌린다. 남의 키는 그대로다
+
+**아직 통과가 아니다.** 사다리 8칸의 기준은 도구가 도는 것이 아니라 Claude Code
+데스크톱 앱으로 대화가 성립하는 것이다. 실제 조직 등록이 필요하므로 사용자가
+직접 밟아야 한다.
+
+```
+clflctl accounts add <id> --plan team    # 토큰은 stdin
+clflctl serve --single <id> --install
+```
+
+---
+
 ## 8. 열린 질문
 
 ### tier 1 안에서 무엇을 먼저 쓸 것인가
@@ -287,7 +336,6 @@ fixture 에 박아두고, 가짜 업스트림이 그것을 `content-encoding: gz
 
 | 항목 | 언제 |
 |---|---|
-| `clflctl serve` | 8단계. 프록시를 앱 없이 띄운다 |
 | `clflctl watch` | 10단계. 컨트롤 플레인 구독 |
 | 컨트롤 플레인 본체 | 프록시가 생긴 뒤. 붙일 상태가 있어야 한다 |
 | 시나리오 재생 | 가짜 업스트림으로 스왑 루프 전체를 오프라인 재생 |

@@ -112,8 +112,11 @@ public struct ClaudeSettingsFile: ClaudeSettingsManaging {
     }
 
     private func writeSettings(_ settings: [String: Any]) throws {
+        // withoutEscapingSlashes 가 없으면 URL 이 "http:\/\/..." 로 적힌다.
+        // 유효한 JSON 이지만 사용자가 열어보고 손으로 고치는 파일이다
         let data = try JSONSerialization.data(
-            withJSONObject: settings, options: [.prettyPrinted, .sortedKeys])
+            withJSONObject: settings,
+            options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
         try atomicWrite(data, to: settingsURL)
     }
 

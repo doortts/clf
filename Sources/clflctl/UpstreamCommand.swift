@@ -48,7 +48,13 @@ struct Upstream: AsyncParsableCommand {
             guard let account = doc.accounts[id] else {
                 throw CheckFailed(description: "\(id) 는 등록돼 있지 않다. clflctl accounts list")
             }
-            let token = try accessToken(for: account)
+            let token: String
+            do {
+                token = try await StoredTokenProvider(store: paths.credentials)
+                    .accessToken(for: account.id)
+            } catch let error as TokenUnavailable {
+                throw CheckFailed(description: error.reason)
+            }
 
             // stripClientHopByHop -> rewriteAuth -> injectAnthropicVersion 순서 고정
             var headers = ProxyHeaders.stripClientHopByHop(HeaderBag())
@@ -149,26 +155,6 @@ struct Upstream: AsyncParsableCommand {
                 "messages": [["role": "user", "content": "hi"]],
             ]
             return [UInt8](try! JSONSerialization.data(withJSONObject: payload))
-        }
-
-        /// 갱신하지 않는다. 갱신은 9단계의 TokenProvider 몫이다.
-        /// 만료된 oauth 는 조용히 401 을 맞는 대신 여기서 이유를 말한다.
-        private func accessToken(for account: Account) throws -> String {
-            switch try paths.credentials.credential(for: account.id) {
-            case .longLived(let token):
-                return token
-            case .oauth(let json):
-                guard let parsed = OAuthCredential(claudeAiOauthJSON: json) else {
-                    throw CheckFailed(description: "저장된 oauth 블록을 읽지 못했다")
-                }
-                if parsed.expiresAt < Date() {
-                    throw CheckFailed(description: """
-                    접근 토큰이 \(stamp(parsed.expiresAt)) 에 만료됐다.
-                    갱신은 아직 없다(9단계). claude auth login 후 다시 캡처한다.
-                    """)
-                }
-                return parsed.accessToken
-            }
         }
 
         private func printUsage(_ headers: HeaderBag) {

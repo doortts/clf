@@ -56,9 +56,10 @@ let package = Package(
         .testTarget(
             name: "ClflProxyTests",
             dependencies: [
-                "ClflProxy",
+                "ClflProxy", "ClflStore",
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
             ]
         ),
     ],

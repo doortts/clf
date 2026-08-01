@@ -115,6 +115,15 @@ final class ClaudeSettingsTests: TempDirTestCase {
         XCTAssertEqual(try env()["ANTHROPIC_BASE_URL"], ourURL.absoluteString)
     }
 
+    /// 사용자가 열어보고 손으로 고치는 파일이다. URL 이 "http:\\/\\/" 로 적히면 안 된다.
+    func test_urlIsWrittenWithoutSlashEscapes() throws {
+        try makeSettings().install(baseURL: ourURL, enableToolSearch: true, force: false)
+        let raw = String(decoding:
+            try Data(contentsOf: config.appendingPathComponent("settings.json")), as: UTF8.self)
+        XCTAssertTrue(raw.contains("http://127.0.0.1:51710"), "받은 원문:\n\(raw)")
+        XCTAssertFalse(raw.contains("\\/"))
+    }
+
     // MARK: read
 
     func test_readManagedBaseURL() throws {

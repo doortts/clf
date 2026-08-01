@@ -242,33 +242,33 @@ a:hover { text-decoration: underline; }
 
 <h1>clfl 진행 현황</h1>
 <p class="lede">Claude Code 사용량 한도를 관리하고 조직을 전환하는 macOS 메뉴바 앱</p>
-<p class="meta">2026-08-01 기준 &nbsp;/&nbsp; 커밋 30개 &nbsp;/&nbsp; main</p>
+<p class="meta">2026-08-01 기준 &nbsp;/&nbsp; 커밋 31개 &nbsp;/&nbsp; main</p>
 
 <div class="kpis">
   <div class="card kpi">
     <svg width="52" height="52" viewBox="0 0 52 52" aria-label="사다리 진행률 62퍼센트">
       <circle cx="26" cy="26" r="21" fill="none" stroke="var(--sep)" stroke-width="6"/>
       <circle cx="26" cy="26" r="21" fill="none" stroke="var(--dot-ok)" stroke-width="6"
-              stroke-linecap="round" stroke-dasharray="91.3 131.9"
+              stroke-linecap="round" stroke-dasharray="101.5 131.9"
               transform="rotate(-90 26 26)"/>
     </svg>
     <div>
-      <div class="num">9 <span style="font-size:17px;color:var(--ink-3)">/ 13</span></div>
+      <div class="num">10 <span style="font-size:17px;color:var(--ink-3)">/ 13</span></div>
       <div class="lbl">검증 사다리</div>
     </div>
   </div>
 
   <div class="card kpi">
     <div>
-      <div class="num">3,417</div>
+      <div class="num">3,918</div>
       <div class="lbl">소스 줄</div>
-      <div class="sub">테스트 2,378줄</div>
+      <div class="sub">테스트 3,192줄</div>
     </div>
   </div>
 
   <div class="card kpi">
     <div>
-      <div class="num">212</div>
+      <div class="num">255</div>
       <div class="lbl">통과하는 테스트</div>
       <div class="sub">실패 0, 보류 17</div>
     </div>
@@ -276,16 +276,16 @@ a:hover { text-decoration: underline; }
 
   <div class="card kpi">
     <div>
-      <div class="num">40 <span style="font-size:17px;color:var(--ink-3)">/ 47</span></div>
+      <div class="num">44 <span style="font-size:17px;color:var(--ink-3)">/ 49</span></div>
       <div class="lbl">구현된 소스 파일</div>
-      <div class="sub">남은 7개는 전부 Proxy</div>
+      <div class="sub">남은 5개는 전부 Proxy</div>
     </div>
   </div>
 </div>
 
 <div class="callout">
-  판정 계층(Core)과 저장 계층(Store)이 끝났고, 네트워크 계층(Proxy)에 첫 두 조각
-  (SSEPeek, UpstreamExecutor)이 들어갔다. 남은 것은 프록시 서버와 스왑 루프다.
+  프록시가 실제로 돈다. 클라이언트에서 업스트림까지 바이트가 오간다. 남은 것은
+  조직 여러 개를 오가는 스왑 루프와 메뉴바 앱이다.
 </div>
 
 
@@ -298,7 +298,7 @@ a:hover { text-decoration: underline; }
 <div class="track">
   <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
   <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
-  <i class="done"></i><i class="next"></i><i></i><i></i><i></i>
+  <i class="done"></i><i class="done"></i><i class="next"></i><i></i><i></i>
 </div>
 
 <div class="card ladder">
@@ -413,23 +413,24 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>clflctl</strong><em>10 / 10</em></div>
+    <div class="head"><strong>clflctl</strong><em>11 / 11</em></div>
     <div class="grid">
-      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
     </div>
     <p class="cap">앱 없이 단계를 실행하는 도구. doctor, settings, accounts, runtime,
-      select, classify, sse-peek, upstream probe.</p>
+      select, classify, sse-peek, upstream probe, serve.</p>
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflProxy</strong><em>4 / 11</em></div>
+    <div class="head"><strong>ClflProxy</strong><em>7 / 12</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
-      <u></u><u></u><u></u><u></u><u></u><u></u><u></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u>
+      <u></u><u></u><u></u><u></u><u></u>
     </div>
-    <p class="cap">SSEPeek, UpstreamExecutor, 사용량 헤더가 들어갔다. 남은 일곱은
-      서버와 스왑 루프다.</p>
+    <p class="cap">서버, 릴레이, 단일 조직 핸들러까지 들어갔다. 남은 다섯은
+      Router, 스왑 루프, 토큰 갱신, Usage API 다.</p>
   </div>
 
   <div class="card layer">
@@ -445,30 +446,30 @@ a:hover { text-decoration: underline; }
 <h3>코드 규모</h3>
 <div class="card bars">
   <div class="bar-row">
+    <span class="name">ClflProxy</span>
+    <span class="gauge"><span class="g-src" style="width:28.0%"></span><span class="g-todo" style="width:9.9%"></span><span class="g-test" style="width:62.1%"></span></span>
+    <span class="val">963 + 1581</span>
+  </div>
+  <div class="bar-row">
     <span class="name">ClflCore</span>
-    <span class="gauge"><span class="g-src" style="width:53.7%"></span><span class="g-test" style="width:46.4%"></span></span>
+    <span class="gauge"><span class="g-src" style="width:42.8%"></span><span class="g-test" style="width:37.0%"></span></span>
     <span class="val">1089 + 941</span>
   </div>
   <div class="bar-row">
-    <span class="name">clflctl</span>
-    <span class="gauge"><span class="g-src" style="width:51.2%"></span></span>
-    <span class="val">1039 + 0</span>
-  </div>
-  <div class="bar-row">
     <span class="name">ClflStore</span>
-    <span class="gauge"><span class="g-src" style="width:34.8%"></span><span class="g-test" style="width:32.6%"></span></span>
+    <span class="gauge"><span class="g-src" style="width:27.8%"></span><span class="g-test" style="width:26.0%"></span></span>
     <span class="val">706 + 661</span>
   </div>
   <div class="bar-row">
-    <span class="name">ClflProxy</span>
-    <span class="gauge"><span class="g-src" style="width:13.5%"></span><span class="g-todo" style="width:15.2%"></span><span class="g-test" style="width:38.2%"></span></span>
-    <span class="val">583 + 776</span>
+    <span class="name">clflctl</span>
+    <span class="gauge"><span class="g-src" style="width:45.5%"></span></span>
+    <span class="val">1157 + 0</span>
   </div>
   <div class="legend">
     <span><b class="g-src" style="background:var(--accent)"></b>구현</span>
     <span><b style="background:color-mix(in srgb, var(--accent) 32%, transparent)"></b>테스트</span>
     <span><b class="g-todo"></b>스캐폴딩 (본문 없음)</span>
-    <span style="color:var(--ink-3)">설계 문서는 별도로 6,041줄</span>
+    <span style="color:var(--ink-3)">설계 문서는 별도로 6,969줄</span>
   </div>
 </div>
 
@@ -481,13 +482,13 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="bar-row">
     <span class="name">Store</span>
-    <span class="gauge"><span style="width:46.2%;background:var(--dot-ok)"></span><span style="width:3.4%;background:var(--dot-warn)"></span></span>
-    <span class="val">54 + 4 보류</span>
+    <span class="gauge"><span style="width:47.0%;background:var(--dot-ok)"></span><span style="width:3.4%;background:var(--dot-warn)"></span></span>
+    <span class="val">55 + 4 보류</span>
   </div>
   <div class="bar-row">
     <span class="name">Proxy</span>
-    <span class="gauge"><span style="width:35.0%;background:var(--dot-ok)"></span><span style="width:11.1%;background:var(--dot-off)"></span></span>
-    <span class="val">41 + 13 대기</span>
+    <span class="gauge"><span style="width:70.9%;background:var(--dot-ok)"></span><span style="width:11.1%;background:var(--dot-off)"></span></span>
+    <span class="val">83 + 13 대기</span>
   </div>
   <div class="legend">
     <span><b style="background:var(--dot-ok)"></b>통과</span>
@@ -644,7 +645,7 @@ $ clflctl select \
     <tr><td class="m">classify</td><td>응답 하나를 분류기에 먹인다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">sse-peek</td><td>첫 이벤트 프레임 경계를 찾는다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">upstream probe</td><td>실제 api.anthropic.com 왕복. 압축 해제와 사용량 헤더를 확인한다</td><td><span class="tag ok">됨</span></td></tr>
-    <tr><td class="m">serve</td><td>프록시를 앱 없이 띄운다</td><td><span class="tag now">8단계</span></td></tr>
+    <tr><td class="m">serve</td><td>프록시를 앱 없이 띄운다. 끝낼 때 settings.json 을 되돌린다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">watch</td><td>컨트롤 플레인을 구독해 실시간으로 본다</td><td><span class="tag no">10단계</span></td></tr>
   </tbody>
 </table>
@@ -732,20 +733,25 @@ $ clflctl select \
   <div class="card" style="border-left:3px solid var(--accent)">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
       <h3 style="margin:0"><span class="tag hot">첫 관문</span> &nbsp; 8단계. ProxyServer 단일 조직</h3>
-      <span class="meta">다음 차례. ClflProxy 3개 파일</span>
+      <span class="meta">도구는 됨. 실기기 확인 대기</span>
     </div>
     <p class="note" style="margin-top:10px">
-      스왑 없이 한 조직으로만 통과시킨다. 여기서 세 가지가 처음 드러난다.
-      MCP 도구 검색을 되살린 것이 실제로 먹히는지, <code>X-Claude-Session-Id</code> 헤더가
-      오는지, 원격 제어 제약이 어떻게 나타나는지.
+      프록시가 돈다. 가짜 업스트림에 붙여 gzip SSE 가 평문으로 건너가고,
+      <code>anthropic-beta</code> 가 Claude Code 플래그를 덮지 않고 병합되고,
+      <code>x-claude-session-id</code> 가 usage.jsonl 까지 실리는 것을 확인했다.
+      Ctrl-C 는 settings.json 을 원래대로 되돌린다.
     </p>
-    <p class="meta">통과 기준: Claude Code 데스크톱 앱으로 대화가 성립한다</p>
+    <p class="note">
+      <strong>아직 통과는 아니다.</strong> 기준은 도구가 도는 것이 아니라 Claude Code
+      데스크톱 앱으로 대화가 성립하는 것이다. 실제 조직 등록이 필요하다.
+    </p>
+    <p class="meta">clflctl accounts add &lt;id&gt; 다음 clflctl serve --single &lt;id&gt; --install</p>
   </div>
 
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-      <h3 style="margin:0"><span class="tag no">9단계</span> &nbsp; Router + RequestPipeline 스왑 루프</h3>
-      <span class="meta">ClflProxy 4개 파일</span>
+      <h3 style="margin:0"><span class="tag now">9단계</span> &nbsp; Router + RequestPipeline 스왑 루프</h3>
+      <span class="meta">다음 차례. ClflProxy 5개 파일</span>
     </div>
     <p class="note" style="margin-top:10px">
       401 분기가 자격증명 종류에 따라 갈린다. oauth 이고 이번 요청에서 아직 갱신하지
