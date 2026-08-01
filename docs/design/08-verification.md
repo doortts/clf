@@ -75,7 +75,7 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 | 6d | 선택 판정 | `clflctl runtime simulate` + `select` | 표가 예상과 같다 | 됨 |
 | 6e | 응답 분류 | `clflctl classify` | 네 경로가 갈린다 | 됨 |
 | 6f | SSE 경계 | `clflctl sse-peek` | 주석 프레임을 건너뛴다 | 됨 |
-| 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 아직 |
+| 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 도구는 됨 |
 | 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **Claude Code 데스크톱 앱으로 대화 성공** | 아직 |
 | 9 | 스왑 | `clflctl serve` + `runtime simulate` | 스왑 발생, 트레일에 기록 | 아직 |
 | 10 | 컨트롤 플레인 | `clflctl watch` | 스왑이 실시간으로 흐른다 | 아직 |
@@ -228,6 +228,40 @@ pbpaste | clflctl accounts add team1 --plan team
 
 ---
 
+## 7-1. 7단계에서 실제로 나온 것
+
+TDD 로 진행했다. 테스트를 먼저 쓰고 빨간 것을 확인한 뒤 구현했다. 그 순서가
+아니었으면 놓쳤을 것 넷이 나왔다.
+
+**스캐폴딩 enum 이 릴레이를 불가능하게 만들고 있었다.** `UpstreamAttempt.streaming`
+이 첫 프레임과 잔여 바이트만 들고 남은 스트림을 들지 않았다. peek 이 끝난 뒤
+이어서 읽을 방법이 타입에 없었다는 뜻이다. `rest: UpstreamByteStream` 을 케이스
+안에 넣었다. 밖에 두면 스트림 없이 릴레이를 부르는 조합이 타입상 가능해지고,
+그 경우 클라이언트는 첫 프레임만 받고 대화가 멈춘 것처럼 본다.
+
+**연결 타임아웃 기본값이 10초였다.** 닿지 않는 조직 하나가 요청을 10초씩 붙잡는다.
+조직 셋이면 30초라 풀 grace 예산 15초를 훌쩍 넘겨 스왑이 의미를 잃는다. 5초로
+내렸다. 테스트가 10초 걸리는 것을 보고 알았다.
+
+**peek 은 필요한 만큼만 읽는다.** 1바이트씩 들어오는 스트림에서 경계를 완성한
+청크가 마지막으로 읽은 것이므로 tail 이 비고 나머지는 iterator 에 남는다.
+미리 읽어두면 그만큼 첫 바이트가 늦는다. 처음에는 이걸 버그로 착각하고 테스트를
+잘못 썼다.
+
+**가짜 업스트림이 헤더 경계를 문자 수로 세고 있었다.** 본문이 별도 세그먼트로
+오면 부분 디코딩이 대체 문자를 만들어 경계가 어긋나고, 본문이 도착하기 전에
+응답해버린다. 드물게 실패하는 테스트로 나타났다. 바이트로 세도록 고쳤다.
+이 fixture 는 8, 9단계에서도 쓰므로 여기서 잡는 편이 싸다.
+
+### 압축 자동 해제를 어떻게 잠갔나
+
+문서가 경고만 하고 있으면 언젠가 누가 끈다. mtime 을 0 으로 고정한 gzip 바이트를
+fixture 에 박아두고, 가짜 업스트림이 그것을 `content-encoding: gzip` 으로 보낸다.
+해제가 꺼지면 peek 이 gzip 바이트를 읽어 `parseFirstSSEEvent` 가 nil 을 내므로
+테스트가 즉시 빨개진다.
+
+---
+
 ## 8. 열린 질문
 
 ### tier 1 안에서 무엇을 먼저 쓸 것인가
@@ -253,7 +287,6 @@ pbpaste | clflctl accounts add team1 --plan team
 
 | 항목 | 언제 |
 |---|---|
-| `clflctl upstream probe` | 7단계. 실제 api.anthropic.com 왕복 |
 | `clflctl serve` | 8단계. 프록시를 앱 없이 띄운다 |
 | `clflctl watch` | 10단계. 컨트롤 플레인 구독 |
 | 컨트롤 플레인 본체 | 프록시가 생긴 뒤. 붙일 상태가 있어야 한다 |

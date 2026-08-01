@@ -51,7 +51,16 @@ let package = Package(
 
         .testTarget(name: "ClflCoreTests",  dependencies: ["ClflCore"]),
         .testTarget(name: "ClflStoreTests", dependencies: ["ClflStore"]),
-        .testTarget(name: "ClflProxyTests", dependencies: ["ClflProxy"]),
+        // 가짜 업스트림을 소켓 수준에서 세운다. 프레이밍을 우리가 정해야
+        // 청크 경계와 content-encoding 을 시험할 수 있다.
+        .testTarget(
+            name: "ClflProxyTests",
+            dependencies: [
+                "ClflProxy",
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
+            ]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )

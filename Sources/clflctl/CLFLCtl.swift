@@ -23,6 +23,7 @@ struct CLFLCtl: AsyncParsableCommand {
             Select.self,
             Classify.self,
             SSEPeek.self,
+            Upstream.self,
         ]
     )
 }

@@ -23,12 +23,13 @@ public protocol ClientResponseWriting: AnyObject, Sendable {
 ///   - 중간 실패는 end() 가 아니라 abort()
 ///   - 클라이언트 중단 시 업스트림까지 즉시 취소
 /// docs/porting/03-sse-streaming.md 7절, 8절
-public func relayStreaming<I: AsyncIteratorProtocol>(
+/// 남은 스트림은 attempt 의 streaming 케이스가 들고 온다. 밖에서 따로 받으면
+/// 스트림 없이 부르는 조합이 타입상 가능해진다.
+public func relayStreaming(
     _ attempt: UpstreamAttempt,
-    iterator: inout I,
     to client: any ClientResponseWriting,
     sniffer: inout UsageSniffer
-) async throws -> ParsedUsage? where I.Element == ByteBuffer {
-    _ = (attempt, iterator, client, sniffer)
-    fatalError("TODO")
+) async throws -> ParsedUsage? {
+    _ = (attempt, client, sniffer)
+    throw NotImplemented(what: "relayStreaming")
 }
