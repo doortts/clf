@@ -199,8 +199,13 @@ code {
   font-family: var(--mono); font-size: 8px; line-height: 1.14;
   font-variant-numeric: tabular-nums; letter-spacing: -.01em;
 }
-.mb-acct.warn .mb-stack .h5 { color: #f0c05a; }
-.mb-acct.crit .mb-stack .d7 { color: #ff8a7d; }
+/* 색은 계정이 아니라 줄마다 따로 붙는다. 5시간과 7일은 서로 독립이다.
+   숫자는 남은 양이므로 클수록 좋다 */
+.mb-stack .ok   { color: #6fd18a; }   /* 50% 이상 남음 */
+.mb-stack .warn { color: #f0c05a; }   /* 15% 미만 남음 */
+.mb-stack .crit { color: #ff8a7d; }   /* 0% 남음 */
+/* 15 이상 50 미만은 클래스 없이 기본색 */
+
 /* 직전에 쓰던 계정. 활성 계정보다 확실히 뒤로 물러나야 한다.
    분리선 대신 여백만으로 가른다 */
 .mb-acct.alt  { opacity: .52; margin-left: 7px; }
@@ -267,6 +272,7 @@ code {
 .fill.ok   { background: var(--ok); }
 .fill.warn { background: var(--warn); }
 .fill.crit { background: var(--crit); }
+.fill.mid  { background: var(--accent); }   /* 15 이상 50 미만 남음 */
 .gauge-note { font-size: 11px; color: var(--faint); margin: 2px 0 0 51px; }
 
 /* priority list */
@@ -620,12 +626,12 @@ footer a { color: var(--muted); }
 
   <div class="stage">
     <div class="specimen">
-      <span class="lbl">정상. 위가 5시간, 아래가 7일. 왼쪽이 사용 중</span>
+      <span class="lbl">위가 5시간, 아래가 7일 잔여. 줄마다 따로 색이 붙는다</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">T1</span><span class="mb-stack"><span class="h5">44%</span><span class="d7">91%</span></span></span>
-          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5">12%</span><span class="d7">31%</span></span></span>
+          <span class="mb-acct "><span class="code">T1</span><span class="mb-stack"><span class="h5 ok">56%</span><span class="d7 warn">9%</span></span></span>
+          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5 ok">88%</span><span class="d7 ok">69%</span></span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys">
@@ -637,12 +643,12 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">임계값 근접. 걸린 줄만 색이 바뀐다</span>
+      <span class="lbl">5시간이 얼마 안 남음. 걸린 줄만 색이 바뀐다</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct warn"><span class="code">T1</span><span class="mb-stack"><span class="h5">88%</span><span class="d7">94%</span></span></span>
-          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5">12%</span><span class="d7">31%</span></span></span>
+          <span class="mb-acct "><span class="code">T1</span><span class="mb-stack"><span class="h5 warn">12%</span><span class="d7 ok">58%</span></span></span>
+          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5 ok">88%</span><span class="d7 ok">69%</span></span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -650,12 +656,12 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">전환 직후. 떠나온 계정은 7일 한도가 차 있다</span>
+      <span class="lbl">전환 직후. 떠나온 계정의 7일이 0% 라 넘어왔다</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">EN</span><span class="mb-stack"><span class="h5">12%</span><span class="d7">31%</span></span></span>
-          <span class="mb-acct alt crit"><span class="code">T1</span><span class="mb-stack"><span class="h5">47%</span><span class="d7">100%</span></span></span>
+          <span class="mb-acct "><span class="code">EN</span><span class="mb-stack"><span class="h5 ok">88%</span><span class="d7 ok">69%</span></span></span>
+          <span class="mb-acct alt"><span class="code">T1</span><span class="mb-stack"><span class="h5 ok">53%</span><span class="d7 crit">0%</span></span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -663,11 +669,11 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">떠나온 계정이 인증 실패. 숫자 없이 코드만 흐리게</span>
+      <span class="lbl">기본색 구간(15-49%). 떠나온 계정은 인증 실패라 숫자를 뺀다</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">T2</span><span class="mb-stack"><span class="h5">31%</span><span class="d7">44%</span></span></span>
+          <span class="mb-acct "><span class="code">T2</span><span class="mb-stack"><span class="h5">38%</span><span class="d7">26%</span></span></span>
           <span class="mb-acct alt dead"><span class="code">T3</span></span>
         </span>
         <span class="spacer"></span>
@@ -720,11 +726,33 @@ footer a { color: var(--muted); }
       원래 계정으로 언제 돌아갈 수 있는가.
     </p>
     <p>
-      두 계정 모두 숫자를 <strong>두 줄</strong>로 쌓는다. 위가 5시간 사용률, 아래가 7일
-      사용률이다. 전환은 둘 중 어느 쪽이 찼느냐에 따라 일어나므로 하나만 보여주면 이유의
-      절반이 가려진다. 위 세 번째 예시에서 떠나온 계정의 5시간은 47% 로 여유가 있는데
-      7일이 100% 다. 두 줄이라야 왜 넘어왔는지가 읽힌다.
+      숫자는 <strong>남은 양</strong>이다. 쓴 양이 아니라 앞으로 쓸 수 있는 양을 보여준다.
+      메뉴바를 흘깃 보는 이유가 "아직 돌려도 되나"를 확인하는 것이므로, 남은 쪽이 바로
+      답이 되는 숫자다. 클수록 좋다.
     </p>
+    <p>
+      두 계정 모두 숫자를 <strong>두 줄</strong>로 쌓는다. 위가 5시간 잔여, 아래가 7일
+      잔여다. 전환은 둘 중 어느 쪽이 먼저 바닥나느냐에 따라 일어나므로 하나만 보여주면
+      이유의 절반이 가려진다. 위 세 번째 예시에서 떠나온 계정의 5시간은 53% 나 남았는데
+      7일이 0% 다. 두 줄이라야 왜 넘어왔는지가 읽힌다.
+    </p>
+    <p>
+      그래서 색도 계정이 아니라 <strong>줄마다 따로</strong> 붙는다. 5시간과 7일은 서로
+      독립적으로 바닥나기 때문이다.
+    </p>
+
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>남은 양</th><th>색</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr><td>50% 이상</td><td><span class="pill ok">녹색</span></td><td>여유. 계속 써도 되고 넘어올 곳으로도 좋다</td></tr>
+          <tr><td>15% 이상 50% 미만</td><td><span class="pill">기본</span></td><td>정상 범위. 굳이 눈길을 끌지 않는다</td></tr>
+          <tr><td>15% 미만</td><td><span class="pill warn">노랑</span></td><td>곧 넘어가게 된다</td></tr>
+          <tr><td>0%</td><td><span class="pill crit">빨강</span></td><td>이 창은 바닥났다</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <p>
       코드와 숫자 사이는 붙인다. 두 줄로 쌓인 형태 자체가 이미 구분이 되므로 공백이 필요없고,
       계정 사이도 선을 긋지 않고 여백만으로 가른다. 메뉴바에서 1픽셀은 비싸다.
@@ -765,7 +793,7 @@ footer a { color: var(--muted); }
       </div>
 
       <div class="pop-sec">
-        <p class="sec-label">사용 중</p>
+        <p class="sec-label">사용 중 / 남은 양</p>
         <div class="acct-active">
           <span class="acct-name">ent1</span>
           <span class="pill plan">enterprise</span>
@@ -773,13 +801,13 @@ footer a { color: var(--muted); }
         </div>
         <div class="gauge">
           <span class="g-lbl">5시간</span>
-          <span class="track"><span class="fill ok" style="width:12%"></span></span>
-          <span class="g-val">12%</span>
+          <span class="track"><span class="fill ok" style="width:88%"></span></span>
+          <span class="g-val">88%</span>
         </div>
         <div class="gauge">
           <span class="g-lbl">7일</span>
-          <span class="track"><span class="fill ok" style="width:31%"></span></span>
-          <span class="g-val">31%</span>
+          <span class="track"><span class="fill ok" style="width:69%"></span></span>
+          <span class="g-val">69%</span>
         </div>
         <p class="gauge-note">5시간 한도는 오후 2시 15분에 초기화됩니다</p>
       </div>
@@ -790,12 +818,12 @@ footer a { color: var(--muted); }
           <div class="prow">
             <span class="ord">1</span>
             <span class="who"><span class="id">team1</span><span class="meta">fable 쿨다운, 6일 4시간 남음</span></span>
-            <span class="minitrack"><span class="fill crit" style="width:100%;display:block;height:100%"></span></span>
+            <span class="minitrack"><span class="fill crit" style="width:2%;display:block;height:100%"></span></span>
           </div>
           <div class="prow">
             <span class="ord">2</span>
             <span class="who"><span class="id">team2</span><span class="meta">대기</span></span>
-            <span class="minitrack"><span class="fill warn" style="width:76%;display:block;height:100%"></span></span>
+            <span class="minitrack"><span class="fill mid" style="width:24%;display:block;height:100%"></span></span>
           </div>
           <div class="prow">
             <span class="ord">3</span>
@@ -805,7 +833,7 @@ footer a { color: var(--muted); }
           <div class="prow is-active">
             <span class="ord">4</span>
             <span class="who"><span class="id">ent1</span><span class="meta">사용 중</span></span>
-            <span class="minitrack"><span class="fill ok" style="width:12%;display:block;height:100%"></span></span>
+            <span class="minitrack"><span class="fill ok" style="width:88%;display:block;height:100%"></span></span>
           </div>
         </div>
       </div>
@@ -952,10 +980,10 @@ footer a { color: var(--muted); }
           <div class="ctl">
             <div class="row">
               <span class="switch on"></span>
-              <span>5시간 사용량이</span>
-              <div class="slider" style="max-width:130px"><span class="done" style="width:85%"></span><span class="knob" style="left:85%"></span></div>
-              <span class="input mono" style="padding:2px 7px">85%</span>
-              <span>를 넘으면</span>
+              <span>5시간 잔여가</span>
+              <div class="slider" style="max-width:130px"><span class="done" style="width:15%"></span><span class="knob" style="left:15%"></span></div>
+              <span class="input mono" style="padding:2px 7px">15%</span>
+              <span>아래로 내려가면</span>
             </div>
             <div class="hint">
               한도에 걸리기 전에 여유 있는 계정으로 먼저 옮깁니다. 대화를 새로 시작할 때만
