@@ -187,15 +187,24 @@ code {
   padding: 2px 6px; border-radius: 5px; white-space: nowrap;
 }
 .mb-item.on { background: rgba(255,255,255,.16); }
-.mb-item .pct { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
 .mb-item .code { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; }
-.mb-item.warn .pct { color: #f0c05a; }
 .mb-item.crit { color: #ff8a7d; }
 .mb-item.off  { opacity: .45; }
-/* 직전에 쓰던 계정. 활성 계정보다 확실히 뒤로 물러나야 한다 */
-.mb-alt { display: inline-flex; align-items: center; gap: 4px; opacity: .52; }
-.mb-alt.dead { opacity: .32; }
-.mb-sep { width: 1px; height: 11px; background: rgba(255,255,255,.26); margin: 0 2px; }
+
+/* 코드와 숫자는 붙인다. 두 줄 스택 자체가 시각적 구분이 되므로 사이 공백이 필요없다 */
+.mb-acct { display: inline-flex; align-items: center; gap: 0; }
+/* 위가 5시간, 아래가 7일 */
+.mb-stack {
+  display: inline-flex; flex-direction: column; text-align: right;
+  font-family: var(--mono); font-size: 8px; line-height: 1.14;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.mb-acct.warn .mb-stack .h5 { color: #f0c05a; }
+.mb-acct.crit .mb-stack .d7 { color: #ff8a7d; }
+/* 직전에 쓰던 계정. 활성 계정보다 확실히 뒤로 물러나야 한다.
+   분리선 대신 여백만으로 가른다 */
+.mb-acct.alt  { opacity: .52; margin-left: 7px; }
+.mb-acct.dead { opacity: .32; }
 .mb-sys { display: flex; align-items: center; gap: 11px; opacity: .8; font-size: 11px; }
 .glyph { width: 13px; height: 13px; flex: none; }
 
@@ -611,13 +620,12 @@ footer a { color: var(--muted); }
 
   <div class="stage">
     <div class="specimen">
-      <span class="lbl">정상. 왼쪽이 사용 중, 오른쪽이 직전에 쓰던 계정</span>
+      <span class="lbl">정상. 위가 5시간, 아래가 7일. 왼쪽이 사용 중</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="code">T1</span> <span class="pct">44%</span>
-          <span class="mb-sep"></span>
-          <span class="mb-alt"><span class="code">T2</span> <span class="pct">12%</span></span>
+          <span class="mb-acct "><span class="code">T1</span><span class="mb-stack"><span class="h5">44%</span><span class="d7">91%</span></span></span>
+          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5">12%</span><span class="d7">31%</span></span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys">
@@ -629,13 +637,12 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">임계값 근접. 사용 중인 계정만 색이 바뀐다</span>
+      <span class="lbl">임계값 근접. 걸린 줄만 색이 바뀐다</span>
       <div class="menubar">
-        <span class="mb-item on warn">
+        <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="code">T1</span> <span class="pct">88%</span>
-          <span class="mb-sep"></span>
-          <span class="mb-alt"><span class="code">T2</span> <span class="pct">12%</span></span>
+          <span class="mb-acct warn"><span class="code">T1</span><span class="mb-stack"><span class="h5">88%</span><span class="d7">94%</span></span></span>
+          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5">12%</span><span class="d7">31%</span></span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -643,13 +650,12 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">전환 직후. 떠나온 계정은 남은 시간을 보여준다</span>
+      <span class="lbl">전환 직후. 떠나온 계정은 7일 한도가 차 있다</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="code">EN</span> <span class="pct">12%</span>
-          <span class="mb-sep"></span>
-          <span class="mb-alt"><span class="code">T1</span> <span class="pct">6일</span></span>
+          <span class="mb-acct "><span class="code">EN</span><span class="mb-stack"><span class="h5">12%</span><span class="d7">31%</span></span></span>
+          <span class="mb-acct alt crit"><span class="code">T1</span><span class="mb-stack"><span class="h5">47%</span><span class="d7">100%</span></span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -661,9 +667,8 @@ footer a { color: var(--muted); }
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="code">T2</span> <span class="pct">31%</span>
-          <span class="mb-sep"></span>
-          <span class="mb-alt dead"><span class="code">T3</span></span>
+          <span class="mb-acct "><span class="code">T2</span><span class="mb-stack"><span class="h5">31%</span><span class="d7">44%</span></span></span>
+          <span class="mb-acct alt dead"><span class="code">T3</span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -715,9 +720,15 @@ footer a { color: var(--muted); }
       원래 계정으로 언제 돌아갈 수 있는가.
     </p>
     <p>
-      그래서 표시하는 값이 상태에 따라 갈린다. 쓸 수 있는 계정이면 사용률을, 쿨다운 중이면
-      남은 시간을 보여준다. 쿨다운 중인 계정의 사용률은 이미 한도라서 알려주는 것이 없다.
-      인증 실패는 시간으로 풀리지 않으므로 숫자를 빼고 코드만 흐리게 남긴다.
+      두 계정 모두 숫자를 <strong>두 줄</strong>로 쌓는다. 위가 5시간 사용률, 아래가 7일
+      사용률이다. 전환은 둘 중 어느 쪽이 찼느냐에 따라 일어나므로 하나만 보여주면 이유의
+      절반이 가려진다. 위 세 번째 예시에서 떠나온 계정의 5시간은 47% 로 여유가 있는데
+      7일이 100% 다. 두 줄이라야 왜 넘어왔는지가 읽힌다.
+    </p>
+    <p>
+      코드와 숫자 사이는 붙인다. 두 줄로 쌓인 형태 자체가 이미 구분이 되므로 공백이 필요없고,
+      계정 사이도 선을 긋지 않고 여백만으로 가른다. 메뉴바에서 1픽셀은 비싸다.
+      인증 실패한 계정은 시간으로 풀리지 않으므로 숫자를 빼고 코드만 흐리게 남긴다.
     </p>
 
     <div class="note">
