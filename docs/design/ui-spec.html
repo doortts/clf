@@ -398,6 +398,48 @@ code {
 .check .st { display: flex; }
 .check .det { color: var(--muted); font-size: 11.5px; }
 
+/* ---------- 등록 시트 ---------- */
+.sheet {
+  width: min(460px, 100%); background: var(--surface); border: 1px solid var(--hair);
+  border-radius: 11px; box-shadow: var(--shadow); overflow: hidden; font-size: 13px;
+}
+.sheet-head { padding: 13px 17px 0; }
+.sheet-head .st { font-weight: 640; font-size: 14px; }
+.sheet-head .sd { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.sheet-body { padding: 15px 17px; display: flex; flex-direction: column; gap: 13px; }
+.sheet-foot {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding: 11px 17px; border-top: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--ground) 55%, var(--surface));
+}
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld > .lb { font-size: 11.5px; color: var(--muted); }
+.codehint {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent);
+  background: var(--accent-soft); padding: 2px 7px; border-radius: 5px;
+}
+.radios { display: flex; gap: 16px; }
+.radio { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.radio i {
+  width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--hair);
+  display: block; flex: none; background: var(--ground);
+}
+.radio.on i { border-color: var(--accent); border-width: 4px; background: var(--surface); }
+.cmdline {
+  display: flex; align-items: center; gap: 8px; background: var(--ground);
+  border: 1px solid var(--hair); border-radius: 6px; padding: 5px 6px 5px 10px;
+}
+.cmdline code { background: none; padding: 0; flex: 1; font-size: 11.5px; }
+.orline { display: flex; align-items: center; gap: 9px; color: var(--faint); font-size: 11px; }
+.orline::before, .orline::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+.verify {
+  display: flex; flex-direction: column; gap: 7px;
+  border: 1px solid var(--hair); border-left: 2.5px solid var(--ok);
+  border-radius: 0 8px 8px 0; padding: 10px 13px; background: var(--ok-bg);
+}
+.verify .vt { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 560; }
+.verify .vt .glyph { color: var(--ok); }
+
 /* ---------- diagram ---------- */
 .diagram { display: flex; flex-direction: column; align-items: center; gap: 0; width: min(560px, 100%); }
 .dbox {
@@ -1023,6 +1065,100 @@ footer a { color: var(--muted); }
       <p>
         전부 빼면 모든 요청이 실패한다. 마지막 자동 전환 대상을 끄려 하면 확인을 받고,
         그래도 0개가 되면 배너와 점검 항목에 띄운다.
+      </p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="st">계정 추가</div>
+        <div class="sd">토큰은 Keychain 에 저장되고 화면에 다시 나오지 않습니다.</div>
+      </div>
+      <div class="sheet-body">
+        <div class="fld">
+          <span class="lb">이름</span>
+          <div class="row">
+            <input class="input" value="team4" style="width:150px" readonly>
+            <span class="codehint">T4</span>
+            <span class="hint" style="margin:0">메뉴바에 이렇게 표시됩니다</span>
+          </div>
+        </div>
+
+        <div class="fld">
+          <span class="lb">요금제</span>
+          <div class="radios">
+            <span class="radio on"><i></i>team</span>
+            <span class="radio"><i></i>enterprise</span>
+          </div>
+          <span class="hint">다른 요금제로 넘어갈 때 알려주는 데만 씁니다. 전환 순서에는 영향이 없습니다.</span>
+        </div>
+
+        <div class="fld">
+          <span class="lb">토큰</span>
+          <button class="btn primary" type="button" style="align-self:flex-start">claude setup-token 실행</button>
+          <span class="hint">앱이 대신 실행하고 결과를 바로 받습니다. 새 브라우저 세션으로 열리므로 다른 계정에서 로그아웃할 필요가 없습니다.</span>
+        </div>
+
+        <div class="orline">직접 실행하려면</div>
+
+        <div class="fld">
+          <div class="cmdline">
+            <code>claude setup-token</code>
+            <button class="btn" type="button">복사</button>
+          </div>
+          <input class="input mono" value="sk-ant-oat01-" placeholder="받은 값을 붙여넣으세요" style="margin-top:5px" readonly>
+        </div>
+
+        <div class="verify">
+          <div class="vt">
+            <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
+            토큰 확인됨
+          </div>
+          <div class="gauge">
+            <span class="g-lbl">5시간</span>
+            <span class="track"><span class="fill ok" style="width:97%"></span></span>
+            <span class="g-val">97%</span>
+          </div>
+          <div class="gauge">
+            <span class="g-lbl">7일</span>
+            <span class="track"><span class="fill ok" style="width:84%"></span></span>
+            <span class="g-val">84%</span>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-foot">
+        <button class="btn" type="button">취소</button>
+        <button class="btn primary" type="button">추가</button>
+      </div>
+    </div>
+    <p class="caption">계정 추가. 저장 전에 최소 요청 한 번으로 검증하고 그 응답으로 게이지를 채운다</p>
+  </div>
+
+  <div class="col">
+    <h3>토큰은 우리가 만들 수 없다</h3>
+    <p>
+      Anthropic 계정 토큰을 얻는 지원되는 경로는 <code>claude setup-token</code> 하나뿐이다.
+      OAuth 를 직접 구현하려면 문서화되지 않은 엔드포인트와 남의 클라이언트 식별자를 써야
+      하고, 그쪽이 바꾸면 조용히 깨진다. 그래서 목표는 토큰을 만드는 것이 아니라
+      <strong>얻어 넣는 과정을 짧고 안전하게</strong> 만드는 것이다.
+    </p>
+    <p>
+      앱이 명령을 대신 실행하면 <strong>토큰이 화면에도 클립보드에도 나타나지 않는다.</strong>
+      복사 실수도 어깨너머로 보이는 일도 없다. 붙여넣기 칸은 그래도 남겨둔다. 자동 실행이
+      막히는 환경이 있을 수 있고, 막혔을 때 등록 자체가 불가능해지면 안 된다.
+    </p>
+    <p>
+      계정마다 새 브라우저 세션을 여는 것이 실제로 가장 큰 개선이다. 기본 브라우저에 계정
+      A 로 로그인되어 있으면 몇 번을 실행해도 A 의 토큰만 나온다. 터미널에서는 사용자가
+      로그아웃하거나 시크릿 창을 열어야 했다.
+    </p>
+    <div class="note">
+      <span class="nt">저장 전에 한 번 써본다</span>
+      <p>
+        최소 요청을 한 번 보내 401 이면 저장하지 않는다. 성공하면 그 응답 헤더의 잔여량을
+        첫 스냅샷으로 쓴다. 등록 직후부터 게이지에 실제 숫자가 차 있으므로, 우선순위를
+        어떻게 잡을지 바로 판단할 수 있다. 비용은 토큰 한두 개다.
       </p>
     </div>
   </div>
