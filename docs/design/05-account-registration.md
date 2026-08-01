@@ -80,6 +80,52 @@ Store this token securely. You won't be able to see it again.
 Use this token by setting: export CLAUDE_CODE_OAUTH_TOKEN=<token>
 ```
 
+### 파이프로 붙였을 때
+
+`claude setup-token | cat` 으로 실측했다. 자동 캡처가 가능한지 판별하는 시험이었다.
+
+```
+Welcome to Claude Code v2.1.220
+Welcome to Claude Code v2.1.220
+
+ . Opening browser to sign in...Welcome to Claude Code v2.1.220
+
+ * Opening browser to sign in...Welcome to Claude Code v2.1.220
+
+   (스피너 프레임마다 전체 화면을 다시 출력. 20회 반복)
+
+ Browser didn't open? Use the url below to sign in (c to copy)
+
+https://claude.com/cai/oauth/authorize?...&state=zR6uvVKmg5rR9USOORdXFXtBbmXxeVPkXzLFjhrXeR
+0
+
+ Paste code here if prompted >Welcome to Claude Code v2.1.220
+
+ v Long-lived authentication token created successfully!
+
+ Your OAuth token (valid for 1 year):
+
+ sk-ant-oat01-pgMLy84_Cy1lyuVJz-hnYFf4m54YyHqcw-...
+
+ Store this token securely. You won't be able to see it again.
+```
+
+**결론: TTY 없이도 토큰이 나온다. 자동 캡처는 가능하다.** PTY 를 붙일 필요가 없다.
+
+다만 출력이 깨끗하지 않다. 세 가지를 알아냈다.
+
+| 관측 | 의미 |
+|---|---|
+| 스피너 프레임마다 화면 전체를 다시 출력 | 커서 이동을 못 하니 전체 재출력으로 대신한다. `Welcome to Claude Code` 가 20번 넘게 나온다 |
+| **URL 끝이 잘려 다음 줄에 `0` 하나만 남았다** | 긴 줄이 어딘가에서 접힌다. **URL 을 줄 단위로 파싱하면 깨진다** |
+| 브라우저는 파이프여도 그대로 열린다 | 우리가 URL 을 가로채 열어줄 필요가 없다 |
+
+세 번째가 두 번째를 무해하게 만든다. [3-2 절](#3-2-브라우저-세션을-격리할-필요가-없다)에서
+세션 격리가 불필요하다고 결론냈으므로 **URL 을 파싱할 이유가 애초에 없다.** 명령이
+알아서 브라우저를 열게 두고, 우리는 토큰 줄 하나만 본다.
+
+---
+
 ### 확정된 사실
 
 | 사실 | 설계에 미치는 영향 |
@@ -90,41 +136,63 @@ Use this token by setting: export CLAUDE_CODE_OAUTH_TOKEN=<token>
 | 토큰 유효기간 1년 | 만료 추적이 필요하다. 6절 |
 | `scope=user:inference` | Usage API 도 신원 조회도 불가능. 5절의 한계가 확정됐다 |
 | 다시 볼 수 없다 | 수동 복사 실패 시 처음부터. 자동 캡처의 근거가 하나 더 |
-| `CLAUDE_CODE_OAUTH_TOKEN` 환경변수 존재 | 단일 조직만 쓸 거면 clfl 없이도 된다. 7절 |
+| `CLAUDE_CODE_OAUTH_TOKEN` 환경변수 존재 | 단일 조직만 쓸 거면 clfl 없이도 된다. 11절 |
+| 파이프로도 토큰이 나온다 | PTY 불필요 |
+| 출력이 재출력 스팸이고 긴 줄이 접힌다 | 파싱을 방어적으로. 3-1 절 |
 
 ---
 
 ## 3. 세 가지 개선
 
-### 3-1. 명령을 대신 실행하고 출력을 받는다
+### 3-1. 명령을 대신 실행하고 토큰 줄만 집는다
 
-터미널을 열어 붙여넣기하는 대신, 앱이 `claude setup-token` 을 자식 프로세스로 띄우고
-표준 출력에서 토큰을 직접 집는다.
+붙여넣기가 **기본 경로**이고, 자동 캡처는 그 위에 얹는 가속기다. 순서를 이렇게 두는
+이유는 자동 캡처가 Claude Code 의 TUI 출력 모양에 의존하기 때문이다. 그쪽이 렌더링을
+바꾸면 파싱이 깨지는데, 그때 **등록 자체가 불가능해지면 안 된다.**
 
 ```
-앱이 claude setup-token 실행
-  -> stdout 에서 authorize URL 을 찾아 원하는 방식으로 연다
-  -> 진행 상황을 시트에 보여준다
-  -> 조직 선택이 끝나면 stdout 에 sk-ant-oat01- 로 시작하는 줄이 나온다
-  -> 앱이 그 줄을 집어 곧바로 Keychain 에 넣는다
+앱이 claude setup-token 실행 (COLUMNS 를 크게 준다)
+  -> 명령이 알아서 브라우저를 연다. 우리는 URL 을 건드리지 않는다
+  -> 사용자가 브라우저에서 조직을 고른다
+  -> 누적 버퍼에서 sk-ant-oat01- 로 시작하는 조각을 찾는다
+  -> 찾으면 곧바로 Keychain 으로. 못 찾고 시간이 지나면 붙여넣기 화면으로 전환
 ```
 
-**토큰이 화면에도 클립보드에도 나타나지 않는다.** 복사 실수도, 어깨너머로 보이는 일도
-없다. "다시 볼 수 없다" 는 경고가 무의미해진다 - 애초에 사람 손을 거치지 않는다.
+성공하면 **토큰이 화면에도 클립보드에도 나타나지 않는다.** "다시 볼 수 없습니다" 라는
+경고가 무의미해진다. 애초에 사람 손을 거치지 않는다.
 
-파싱 대상은 두 줄뿐이다.
+#### 파싱을 방어적으로
+
+파이프 출력이 재출력 스팸이고 긴 줄이 접히므로 순진한 줄 단위 매칭으로는 부족하다.
 
 ```swift
-// authorize URL: https://claude.com/cai/oauth/authorize?... 로 시작하는 줄
-// 토큰:          sk-ant-oat01- 로 시작하는 줄
+// 1. 자식 환경을 정리해 노이즈와 줄바꿈을 줄인다
+env["COLUMNS"]     = "400"   // Ink 가 줄을 접지 않게. 토큰은 약 108자
+env["NO_COLOR"]    = "1"
+env["FORCE_COLOR"] = "0"
+env["CI"]          = ""      // CI 로 오인해 다른 경로를 타지 않도록 비워둔다
+
+// 2. stdin 은 열어둔 채 아무것도 쓰지 않는다.
+//    "Paste code here if prompted >" 에서 EOF 를 만나면 중단될 수 있다
+//
+// 3. 누적 버퍼 전체에서 찾는다. 줄 단위로 자르지 않는다
+let pattern = /sk-ant-oat01-[A-Za-z0-9_\-]{40,}/
 ```
 
-ASCII 배너와 색상 이스케이프가 섞여 나오므로 화면에 그대로 보여줄 때는 ANSI 시퀀스를
-걸러낸다. 토큰 줄 추출 자체는 접두사 매칭이라 영향을 받지 않는다.
+`COLUMNS` 를 크게 주는 것이 가장 확실한 대비다. 접히지만 않으면 토큰은 한 덩어리로
+나온다. 그래도 접혔을 경우를 대비해 매칭은 버퍼 전체를 대상으로 한다.
 
-> 남은 검증: 색상 출력이 있다는 것은 TTY 를 확인한다는 뜻일 수 있다. 파이프로 붙였을
-> 때 동작이 달라지면 의사 터미널(PTY)을 붙인다. 그것도 막히면 3-3 의 붙여넣기로
-> 떨어진다. **붙여넣기 경로는 어떤 경우에도 남겨둔다.**
+**URL 은 파싱하지 않는다.** 실측에서 URL 끝이 잘려 다음 줄에 `0` 만 남은 것을 봤고,
+어차피 명령이 브라우저를 직접 열어주므로 가로챌 이유가 없다.
+
+#### 실패하면 조용히 붙여넣기로
+
+- 지정 시간(예: 3분) 안에 토큰이 안 나오면 중단하고 붙여넣기 화면을 연다
+- `claude` 실행 파일이 없으면 자동 경로를 아예 제시하지 않는다
+- 종료 코드가 0 이 아니면 수집한 출력을 접힌 영역에 보여준다. 사용자가 무슨 일이
+  있었는지 볼 수 있어야 한다
+
+어떤 실패든 **붙여넣기로 이어진다.** 막다른 길이 없다.
 
 ### 3-2. 브라우저 세션을 격리할 필요가 없다
 
