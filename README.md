@@ -73,6 +73,7 @@ Flutter/Electron을 쓰지 않는 이유는 [docs/porting/README.md](docs/portin
 | [03. 요청 흐름과 실패 모드](docs/design/03-request-flow.md) | 요청 생애, 시작/종료 시퀀스, 실패 대응, 구현 순서 |
 | [04. 구현 설계](docs/design/04-implementation.md) | 패키지 구성, 의존성, 타겟별 API, 동시성 주석, 테스트, 배포 |
 | [05. 계정 등록](docs/design/05-account-registration.md) | 토큰 발급 경로, 등록 마법사, 검증, claulay 에서 가져오기 |
+| [06. CCSwitcher 비교](docs/design/06-ccswitcher-comparison.md) | 자격증명 스왑 방식과의 대조, 전환 전략 비교, 우리 설계의 구멍 |
 | [UI 시안](docs/design/ui-spec.html) | 동작 원리와 화면 시안 (HTML) |
 
 ## 포팅 문서
