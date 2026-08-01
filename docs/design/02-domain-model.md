@@ -22,6 +22,13 @@ struct Account: Codable, Identifiable, Sendable {
     /// false 면 자동 전환 후보에서 뺀다. 계정과 토큰은 그대로 남는다.
     /// 기본값이 true 라 기존 계정의 동작은 바뀌지 않는다. 자세한 것은 3-3절.
     var autoSwitch: Bool = true
+
+    /// 토큰 등록 시각. setup-token 이 주는 토큰은 1년짜리라 만료를 미리 알려야 한다.
+    var tokenCreatedAt: Date
+
+    /// 토큰 문자열의 SHA-256 앞 8바이트. 같은 토큰을 두 번 등록하는 실수를 막는다.
+    /// 신원 확인용이 아니다. 토큰 자체는 Keychain 에만 있다. [05 문서](05-account-registration.md) 6절
+    var tokenFingerprint: String
 }
 ```
 
@@ -301,6 +308,8 @@ enum Condition: Hashable, Sendable {
     case poolExhausted
     /// 자동 전환 대상이 0개다. 모든 요청이 실패한다.
     case autoSwitchAllDisabled
+    /// 토큰 만료가 7일 이내. 여러 계정을 비슷한 시기에 등록했다면 함께 만료된다.
+    case tokenExpiringSoon(AccountID, daysLeft: Int)
     case proxyDetached          // settings.json 에 우리 값이 없다
 }
 

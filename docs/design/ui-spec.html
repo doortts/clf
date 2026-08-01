@@ -1073,16 +1073,31 @@ footer a { color: var(--muted); }
     <div class="sheet">
       <div class="sheet-head">
         <div class="st">계정 추가</div>
-        <div class="sd">토큰은 Keychain 에 저장되고 화면에 다시 나오지 않습니다.</div>
+        <div class="sd">토큰을 먼저 받고 이름을 붙입니다. 조직은 브라우저에서 고릅니다.</div>
       </div>
       <div class="sheet-body">
         <div class="fld">
-          <span class="lb">이름</span>
+          <span class="lb">1. 토큰 받기</span>
+          <div class="verify">
+            <div class="vt">
+              <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
+              토큰을 받았습니다
+            </div>
+            <div class="hint" style="margin:0">
+              브라우저에서 고른 조직의 토큰입니다. 유효기간 1년.
+              화면에 표시하지 않고 바로 Keychain 에 넣습니다.
+            </div>
+          </div>
+        </div>
+
+        <div class="fld">
+          <span class="lb">2. 이름</span>
           <div class="row">
-            <input class="input" value="team4" style="width:150px" readonly>
-            <span class="codehint">T4</span>
+            <input class="input" value="team40" style="width:150px" readonly>
+            <span class="codehint">T1</span>
             <span class="hint" style="margin:0">메뉴바에 이렇게 표시됩니다</span>
           </div>
+          <span class="hint">방금 고른 조직 이름을 쓰면 나중에 헷갈리지 않습니다. NAVER_TEAM_40 이면 team40 정도로 줄여도 됩니다.</span>
         </div>
 
         <div class="fld">
@@ -1095,35 +1110,22 @@ footer a { color: var(--muted); }
         </div>
 
         <div class="fld">
-          <span class="lb">토큰</span>
-          <button class="btn primary" type="button" style="align-self:flex-start">claude setup-token 실행</button>
-          <span class="hint">앱이 대신 실행하고 결과를 바로 받습니다. 새 브라우저 세션으로 열리므로 다른 계정에서 로그아웃할 필요가 없습니다.</span>
-        </div>
-
-        <div class="orline">직접 실행하려면</div>
-
-        <div class="fld">
-          <div class="cmdline">
-            <code>claude setup-token</code>
-            <button class="btn" type="button">복사</button>
-          </div>
-          <input class="input mono" value="sk-ant-oat01-" placeholder="받은 값을 붙여넣으세요" style="margin-top:5px" readonly>
-        </div>
-
-        <div class="verify">
-          <div class="vt">
-            <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
-            토큰 확인됨
-          </div>
-          <div class="gauge">
-            <span class="g-lbl">5시간</span>
-            <span class="track"><span class="fill ok" style="width:97%"></span></span>
-            <span class="g-val">97%</span>
-          </div>
-          <div class="gauge">
-            <span class="g-lbl">7일</span>
-            <span class="track"><span class="fill ok" style="width:84%"></span></span>
-            <span class="g-val">84%</span>
+          <span class="lb">3. 확인</span>
+          <div class="verify">
+            <div class="vt">
+              <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
+              연결됨
+            </div>
+            <div class="gauge">
+              <span class="g-lbl">5시간</span>
+              <span class="track"><span class="fill ok" style="width:97%"></span></span>
+              <span class="g-val">97%</span>
+            </div>
+            <div class="gauge">
+              <span class="g-lbl">7일</span>
+              <span class="track"><span class="fill ok" style="width:84%"></span></span>
+              <span class="g-val">84%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1132,7 +1134,7 @@ footer a { color: var(--muted); }
         <button class="btn primary" type="button">추가</button>
       </div>
     </div>
-    <p class="caption">계정 추가. 저장 전에 최소 요청 한 번으로 검증하고 그 응답으로 게이지를 채운다</p>
+    <p class="caption">계정 추가. 토큰이 먼저, 이름이 나중</p>
   </div>
 
   <div class="col">
@@ -1144,15 +1146,30 @@ footer a { color: var(--muted); }
       <strong>얻어 넣는 과정을 짧고 안전하게</strong> 만드는 것이다.
     </p>
     <p>
-      앱이 명령을 대신 실행하면 <strong>토큰이 화면에도 클립보드에도 나타나지 않는다.</strong>
-      복사 실수도 어깨너머로 보이는 일도 없다. 붙여넣기 칸은 그래도 남겨둔다. 자동 실행이
-      막히는 환경이 있을 수 있고, 막혔을 때 등록 자체가 불가능해지면 안 된다.
+      명령을 실행하면 authorize URL 과 토큰이 모두 표준 출력에 찍힌다. 앱이 자식 프로세스로
+      띄워 두 줄만 집으면 <strong>토큰이 화면에도 클립보드에도 나타나지 않는다.</strong>
+      "다시 볼 수 없습니다" 라는 경고 자체가 무의미해진다. 애초에 사람 손을 거치지 않는다.
+      붙여넣기 칸은 그래도 남긴다. 자동 실행이 막히는 환경에서 등록이 아예 불가능해지면
+      안 된다.
+    </p>
+
+    <h3>바꾸는 것은 계정이 아니라 조직이다</h3>
+    <p>
+      브라우저 로그인을 통과하면 <strong>조직 선택</strong> 화면이 뜬다. 한 로그인 아래
+      여러 조직이 나란히 있고 그중 하나를 골라 토큰을 만든다. clfl 이 전환하는 대상이
+      바로 이 조직들이다.
     </p>
     <p>
-      계정마다 새 브라우저 세션을 여는 것이 실제로 가장 큰 개선이다. 기본 브라우저에 계정
-      A 로 로그인되어 있으면 몇 번을 실행해도 A 의 토큰만 나온다. 터미널에서는 사용자가
-      로그아웃하거나 시크릿 창을 열어야 했다.
+      그래서 등록할 때 로그아웃할 일이 없다. 조직 여섯 개를 연달아 등록해도 로그인은 한
+      번이다. 브라우저 세션을 계정마다 격리하려던 초기 구상은 폐기했다. 격리하면 SSO
+      쿠키를 버리게 되어 오히려 매번 다시 로그인해야 한다.
     </p>
+    <p>
+      다만 <strong>앱은 사용자가 어느 조직을 골랐는지 알 수 없다.</strong> 그 화면은
+      브라우저 안에 있고 토큰에는 신원 정보가 없다. 그래서 이름은 사용자가 붙이고,
+      순서도 토큰을 먼저 받은 뒤에 이름을 묻는 쪽이 맞다.
+    </p>
+
     <div class="note">
       <span class="nt">저장 전에 한 번 써본다</span>
       <p>
@@ -1161,6 +1178,16 @@ footer a { color: var(--muted); }
         어떻게 잡을지 바로 판단할 수 있다. 비용은 토큰 한두 개다.
       </p>
     </div>
+
+    <div class="note">
+      <span class="nt">토큰은 1년 뒤 만료된다</span>
+      <p>
+        여섯 조직을 같은 날 등록했다면 1년 뒤 같은 주에 한꺼번에 만료된다. 그냥 두면 어느
+        날 계정이 하나씩 인증 실패로 떨어지고 사용자는 401 만 보고 원인을 모른다. 남은
+        기간이 30일 이하면 점검 화면에, 7일 이하면 배너로 미리 알린다.
+      </p>
+    </div>
+  </div>
   </div>
 
   <div class="stage">

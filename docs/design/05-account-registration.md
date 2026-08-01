@@ -28,47 +28,125 @@ claude setup-token
 
 ---
 
-## 2. 그래도 세 가지는 개선할 수 있다
+## 2. 실제로 관측된 흐름
 
-### 2-1. 명령을 대신 실행하고 출력을 받는다
+Claude Code v2.1.220 에서 확인한 것. 추측이 아니라 실측이다.
+
+### 1단계 - 명령 실행
+
+```
+$ claude setup-token
+Welcome to Claude Code v2.1.220
+  (ASCII 배너)
+
+Browser didn't open? Use the url below to sign in (c to copy)
+
+https://claude.com/cai/oauth/authorize?code=true&client_id=...
+  &response_type=code&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback
+  &scope=user%3Ainference&code_challenge=...&code_challenge_method=S256&state=...
+
+Paste code here if prompted >
+```
+
+- 기본 브라우저를 **직접 연다**
+- 동시에 **authorize URL 을 표준 출력에 찍는다** (`c` 로 복사 가능)
+- 콜백이 자동으로 안 돌아오는 경우를 대비해 stdin 으로 코드를 받을 준비를 한다.
+  정상 경로에서는 입력이 필요없다
+- `scope=user:inference`
+
+### 2단계 - 브라우저에서 조직 선택
+
+로그인을 통과하면 **"조직 선택"** 화면이 뜬다.
+
+```
+조직 선택
+Claude Code와 연결할 조직을 선택하세요
+
+  Naver            >
+  NAVER_TEAM_52    >
+  NAVER_TEAM_40    >
+```
+
+### 3단계 - 토큰 출력
+
+```
+O Long-lived authentication token created successfully!
+
+Your OAuth token (valid for 1 year):
+
+sk-ant-oat01-...
+
+Store this token securely. You won't be able to see it again.
+Use this token by setting: export CLAUDE_CODE_OAUTH_TOKEN=<token>
+```
+
+### 확정된 사실
+
+| 사실 | 설계에 미치는 영향 |
+|---|---|
+| authorize URL 이 stdout 에 찍힌다 | 앱이 URL 을 가로채 원하는 곳에서 열 수 있다 |
+| 토큰이 stdout 에 찍힌다 | 자동 캡처가 가능하다. 3-1 절 |
+| **한 로그인에 조직이 여럿이고 그중 하나를 고른다** | **로그아웃 절차가 필요없다. 3-2 절에서 가정을 뒤집는다** |
+| 토큰 유효기간 1년 | 만료 추적이 필요하다. 6절 |
+| `scope=user:inference` | Usage API 도 신원 조회도 불가능. 5절의 한계가 확정됐다 |
+| 다시 볼 수 없다 | 수동 복사 실패 시 처음부터. 자동 캡처의 근거가 하나 더 |
+| `CLAUDE_CODE_OAUTH_TOKEN` 환경변수 존재 | 단일 조직만 쓸 거면 clfl 없이도 된다. 7절 |
+
+---
+
+## 3. 세 가지 개선
+
+### 3-1. 명령을 대신 실행하고 출력을 받는다
 
 터미널을 열어 붙여넣기하는 대신, 앱이 `claude setup-token` 을 자식 프로세스로 띄우고
 표준 출력에서 토큰을 직접 집는다.
 
 ```
 앱이 claude setup-token 실행
-  -> 진행 상황을 시트에 그대로 보여준다
-  -> 브라우저 로그인이 끝나면 stdout 에 토큰이 나온다
-  -> 앱이 곧바로 Keychain 에 넣는다
+  -> stdout 에서 authorize URL 을 찾아 원하는 방식으로 연다
+  -> 진행 상황을 시트에 보여준다
+  -> 조직 선택이 끝나면 stdout 에 sk-ant-oat01- 로 시작하는 줄이 나온다
+  -> 앱이 그 줄을 집어 곧바로 Keychain 에 넣는다
 ```
 
 **토큰이 화면에도 클립보드에도 나타나지 않는다.** 복사 실수도, 어깨너머로 보이는 일도
-없다. 붙여넣기 방식보다 안전하다.
+없다. "다시 볼 수 없다" 는 경고가 무의미해진다 - 애초에 사람 손을 거치지 않는다.
 
-> 검증 필요: `claude setup-token` 이 TTY 를 요구하는지 확인해야 한다. 요구하면
-> 의사 터미널(PTY)을 붙여야 하고, 그것도 안 되면 2-3 의 붙여넣기로 떨어진다.
-> **붙여넣기 경로는 어떤 경우에도 남겨둔다.**
-
-### 2-2. 계정마다 깨끗한 브라우저 세션
-
-여기가 진짜 병목이다. 기본 브라우저에 계정 A 로 로그인되어 있으면 `setup-token` 을
-다시 실행해도 또 A 의 토큰이 나온다. B 를 등록하려면 로그아웃하거나 시크릿 창을 써야
-한다. 터미널에서는 이걸 사용자가 손으로 한다.
-
-앱은 **계정마다 새 쿠키 저장소를 가진 웹뷰**를 띄울 수 있다.
+파싱 대상은 두 줄뿐이다.
 
 ```swift
-let config = WKWebViewConfiguration()
-config.websiteDataStore = .nonPersistent()   // 매번 빈 세션
+// authorize URL: https://claude.com/cai/oauth/authorize?... 로 시작하는 줄
+// 토큰:          sk-ant-oat01- 로 시작하는 줄
 ```
 
-로그아웃 절차 자체가 사라진다. 여섯 계정을 연달아 등록해도 서로 간섭하지 않는다.
+ASCII 배너와 색상 이스케이프가 섞여 나오므로 화면에 그대로 보여줄 때는 ANSI 시퀀스를
+걸러낸다. 토큰 줄 추출 자체는 접두사 매칭이라 영향을 받지 않는다.
 
-> 검증 필요: `setup-token` 이 authorize URL 을 출력에 내보내는지, 아니면 곧바로
-> 기본 브라우저를 여는지 확인해야 한다. 후자면 URL 을 가로챌 수 없으므로
-> "시크릿 창에서 여세요" 안내와 URL 복사 버튼으로 대신한다.
+> 남은 검증: 색상 출력이 있다는 것은 TTY 를 확인한다는 뜻일 수 있다. 파이프로 붙였을
+> 때 동작이 달라지면 의사 터미널(PTY)을 붙인다. 그것도 막히면 3-3 의 붙여넣기로
+> 떨어진다. **붙여넣기 경로는 어떤 경우에도 남겨둔다.**
 
-### 2-3. 등록하는 김에 검증하고 게이지를 채운다
+### 3-2. 브라우저 세션을 격리할 필요가 없다
+
+**앞선 판단을 뒤집는다.** 계정마다 새 쿠키 저장소를 가진 웹뷰를 띄워야 한다고 썼는데,
+실제 흐름을 보니 필요없다.
+
+전제가 틀렸다. "계정을 바꾸려면 다른 Anthropic 로그인이 필요하다" 고 봤지만, 실제로는
+**한 번 로그인한 뒤 조직을 고르는 구조**다. `Naver`, `NAVER_TEAM_52`, `NAVER_TEAM_40`
+이 한 로그인 아래 나란히 있고 매번 어느 것에 연결할지 선택한다.
+
+그래서:
+
+- 로그아웃 절차가 애초에 없다. 여섯 조직을 연달아 등록해도 로그인은 한 번이다
+- **세션을 격리하면 오히려 손해다.** 비영속 웹뷰는 SSO 쿠키를 버리므로 조직을 등록할
+  때마다 다시 로그인해야 한다. 있던 편의를 없애는 셈이다
+- 기본 브라우저를 그대로 쓰는 것이 맞다
+
+정말로 별개 로그인이 필요한 경우(개인 계정과 회사 계정을 함께 쓴다든지)에만 격리가
+의미 있다. 그때는 앱이 URL 을 쥐고 있으므로 "다른 계정으로 로그인" 옵션에서만 비영속
+웹뷰를 열면 된다. **기본값은 격리하지 않는 것이다.**
+
+### 3-3. 등록하는 김에 검증하고 게이지를 채운다
 
 저장하기 전에 최소 요청을 한 번 보낸다.
 
@@ -93,30 +171,36 @@ POST /v1/messages
 
 ---
 
-## 3. 등록 마법사
+## 4. 등록 마법사
+
+**토큰을 먼저 받고 이름을 나중에 짓는다.** 순서가 중요하다. 조직은 브라우저에서 고르므로,
+이름을 먼저 물으면 "team4 라고 지었는데 브라우저에서 TEAM_52 를 골랐네" 가 된다.
+토큰을 받은 뒤에는 사용자가 방금 무엇을 골랐는지 알고 있다.
 
 ```
 [계정 추가] 누름
    |
    v
-1단계  이름과 요금제
-   |     - 이름: 메뉴바 코드의 근거가 된다 (02 문서 7절)
+1단계  토큰 받기
+   |     +-- 자동: claude setup-token 실행
+   |     |          -> 앱이 authorize URL 을 열어준다
+   |     |          -> 사용자가 브라우저에서 조직을 고른다
+   |     |          -> 앱이 stdout 에서 토큰을 집는다
+   |     +-- 수동: 명령 복사 버튼 + 붙여넣기 필드
+   |               sk-ant-oat01- 접두사, 공백/줄바꿈 제거, 한 줄만
+   v
+2단계  이름과 요금제
+   |     - "방금 브라우저에서 고른 조직 이름을 쓰면 나중에 헷갈리지 않습니다"
+   |     - 입력하는 동안 생길 메뉴바 코드를 옆에 보여준다
    |     - 요금제: team / enterprise. 기본 team
    |     - (접힘) 고급: base_url
    v
-2단계  토큰 받기
-   |     +-- 자동: claude setup-token 실행, 출력을 시트에 흘림
-   |     +-- 수동: 명령 복사 버튼 + 붙여넣기 필드
-   |
-   |     붙여넣기 값은 즉시 형식 검사
-   |       sk-ant-oat01- 접두사, 공백/줄바꿈 제거, 한 줄만
-   v
 3단계  검증
-   |     최소 요청 1회. 실패하면 2단계로 되돌리고 이유를 말한다
+   |     최소 요청 1회. 실패하면 이유를 말하고 1단계로 되돌린다
    v
 4단계  저장
          Keychain <- 토큰
-         accounts.json <- Account + priority 맨 뒤에 추가
+         accounts.json <- Account + 지문 + 발급 시각 + priority 맨 뒤
          runtime.json <- 검증 응답에서 얻은 첫 RateLimitSnapshot
 ```
 
@@ -124,16 +208,51 @@ POST /v1/messages
 
 `[A-Za-z0-9_-]+` 만 받는다. 메뉴바 축약 코드가 이름에서 나오므로
 ([02 도메인 모델](02-domain-model.md) 7절), 입력하는 동안 **생길 코드를 미리
-보여준다**. `team4` 를 치면 옆에 `T4` 가 뜨는 식이다. 이름을 정하는 순간 결과를 알
+보여준다**. `team40` 을 치면 옆에 `T1` 이 뜨는 식이다. 이름을 정하는 순간 결과를 알
 수 있어야 나중에 놀라지 않는다.
+
+조직 이름을 그대로 쓰면 길다(`NAVER_TEAM_40`). 짧게 줄이도록 권하되 강제하지 않는다.
+`team40` 이면 충분하다.
 
 이미 있는 이름은 거부한다.
 
 ---
 
-## 4. 같은 계정을 두 번 등록하는 문제
+## 5. 토큰 만료
 
-**우리는 토큰이 어느 Anthropic 계정 것인지 알 수 없다.** `setup-token` 이 주는 토큰은
+`setup-token` 이 주는 토큰은 **1년짜리**다. 발급 시각을 `accounts.json` 에 남기고
+만료를 추적한다.
+
+```swift
+struct Account {
+    // ...
+    var tokenCreatedAt: Date        // 등록 시각. 발급 시각의 근사치
+    var tokenFingerprint: String    // 6절의 중복 탐지용
+}
+
+var expiresAt: Date { tokenCreatedAt.addingTimeInterval(365 * 24 * 3600) }
+```
+
+정확한 발급 시각은 알 수 없다. `setup-token` 출력이 "valid for 1 year" 라고만 말하고
+발급 타임스탬프를 주지 않는다. 등록 시각을 대신 쓰는데, 자동 캡처 경로에서는 몇 초
+차이라 문제없고 붙여넣기 경로에서도 며칠 이내다. 1년 기준에서는 무시할 만하다.
+
+| 남은 기간 | 처리 |
+|---|---|
+| 30일 초과 | 아무것도 하지 않는다 |
+| 30일 이하 | 점검 화면에 표시. 계정 카드에 조용한 표식 |
+| 7일 이하 | `tokenExpiringSoon` 조건. 배너와 알림 |
+| 만료 | 요청이 401 을 맞고 `invalid` 로 떨어진다. 재등록 안내 |
+
+**만료를 미리 잡는 것이 중요하다.** 그냥 두면 어느 날 갑자기 계정이 하나씩 `invalid`
+로 떨어지고, 사용자는 401 만 보고 원인을 모른다. 여섯 계정을 비슷한 시기에 등록했다면
+비슷한 시기에 한꺼번에 만료된다.
+
+---
+
+## 6. 같은 계정을 두 번 등록하는 문제
+
+**우리는 토큰이 어느 조직 것인지 알 수 없다.** 사용자는 브라우저에서 골랐지만 앱은 그 화면을 보지 못한다. `setup-token` 이 주는 토큰은
 추론 전용 스코프라 신원을 물어볼 엔드포인트가 없다
 ([01 아키텍처](01-architecture.md) 의 Usage API 제약과 같은 이유).
 
@@ -165,7 +284,7 @@ func fingerprint(_ token: String) -> String {
 
 ---
 
-## 5. claulay 에서 가져오기
+## 7. claulay 에서 가져오기
 
 이미 claulay 를 쓰고 있으면 계정, 토큰, 우선순위가 전부 준비되어 있다. 스무 번의 등록
 과정을 한 번으로 줄일 수 있다.
@@ -246,7 +365,7 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 
 ---
 
-## 6. 재등록 (401 복구)
+## 8. 재등록 (401 복구)
 
 계정이 `invalid` 가 되면 카드에 재등록 버튼이 뜬다. 흐름은 등록 마법사와 같되
 1단계를 건너뛴다. 이름, 요금제, base_url, 우선순위 자리는 그대로 두고 토큰만 바꾼다.
@@ -256,7 +375,7 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 
 ---
 
-## 7. 삭제와 잠시 빼기
+## 9. 삭제와 잠시 빼기
 
 | 동작 | 남는 것 | 사라지는 것 |
 |---|---|---|
@@ -271,7 +390,7 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 
 ---
 
-## 8. 구현 메모
+## 10. 구현 메모
 
 - 토큰 문자열을 `Account` 나 `RouterSnapshot` 에 절대 싣지 않는다. UI 로 넘어가는
   값에는 지문만 있다
@@ -279,3 +398,23 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 - 검증 요청에도 `rewriteAuth` 를 쓴다. OAuth 토큰의 `anthropic-beta` 플래그가 빠지면
   멀쩡한 토큰이 401 로 보인다 ([포팅 01](../porting/01-headers-and-auth.md) 2절)
 - 마법사 도중 취소하면 아무것도 남기지 않는다. Keychain 쓰기는 마지막 단계에서 한 번
+
+---
+
+## 11. clfl 없이 쓰는 경우
+
+`setup-token` 출력이 알려주는 대로, 조직 하나만 쓸 거라면 clfl 이 필요없다.
+
+```json
+// ~/.claude/settings.json
+{ "env": { "CLAUDE_CODE_OAUTH_TOKEN": "sk-ant-oat01-..." } }
+```
+
+이것으로 데스크톱 앱이 그 조직으로 붙는다. 프록시도 메뉴바 앱도 없이 동작한다.
+
+**clfl 이 필요한 지점은 정확히 하나다. 조직을 실행 중에 바꾸는 것.** 환경변수는
+프로세스 시작 시점에 고정되므로 한도에 걸려도 그 자리에서 다른 조직으로 넘어갈 수 없다.
+같은 턴 안에서 조용히 넘기려면 HTTP 경계에 개입하는 수밖에 없고, 그것이 이 프로젝트
+전체의 존재 이유다.
+
+이 사실을 README 에 적어두면 사용자가 자기에게 clfl 이 필요한지 스스로 판단할 수 있다.
