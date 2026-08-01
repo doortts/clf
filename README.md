@@ -62,6 +62,16 @@ Flutter/Electron을 쓰지 않는 이유는 [docs/porting/README.md](docs/portin
 
 ---
 
+## 설계 문서
+
+앱 전체의 구조와 동작.
+
+| 문서 | 내용 |
+|---|---|
+| [01. 아키텍처](docs/design/01-architecture.md) | 시스템 경계, 모듈 분해, 동시성 모델, settings.json 소유권 |
+| [02. 도메인 모델과 계정 선택](docs/design/02-domain-model.md) | 타입, 계정 상태, 선택 알고리즘, 선제 전환, 영속화 |
+| [03. 요청 흐름과 실패 모드](docs/design/03-request-flow.md) | 요청 생애, 시작/종료 시퀀스, 실패 대응, 구현 순서 |
+
 ## 포팅 문서
 
 claulay의 프록시 코어를 Swift로 옮기기 위한 규칙 명세.
