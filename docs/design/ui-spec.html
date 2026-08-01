@@ -188,9 +188,14 @@ code {
 }
 .mb-item.on { background: rgba(255,255,255,.16); }
 .mb-item .pct { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.mb-item .code { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; }
 .mb-item.warn .pct { color: #f0c05a; }
 .mb-item.crit { color: #ff8a7d; }
 .mb-item.off  { opacity: .45; }
+/* 직전에 쓰던 계정. 활성 계정보다 확실히 뒤로 물러나야 한다 */
+.mb-alt { display: inline-flex; align-items: center; gap: 4px; opacity: .52; }
+.mb-alt.dead { opacity: .32; }
+.mb-sep { width: 1px; height: 11px; background: rgba(255,255,255,.26); margin: 0 2px; }
 .mb-sys { display: flex; align-items: center; gap: 11px; opacity: .8; font-size: 11px; }
 .glyph { width: 13px; height: 13px; flex: none; }
 
@@ -347,9 +352,13 @@ code {
 /* account table inside settings */
 .atable { border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; }
 .arow {
-  display: grid; grid-template-columns: 20px 1fr 90px 118px 26px;
+  display: grid; grid-template-columns: 20px 30px 1fr 90px 118px 26px;
   align-items: center; gap: 10px; padding: 8px 11px;
   border-bottom: 1px solid var(--hair); font-size: 12.5px;
+}
+.arow .code {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--accent); letter-spacing: .03em;
 }
 .arow:last-child { border-bottom: none; }
 .arow.head {
@@ -444,7 +453,8 @@ footer a { color: var(--muted); }
   .stage { padding: 26px 14px; }
   .field { grid-template-columns: 1fr; }
   .field > label { text-align: left; padding-top: 0; }
-  .arow { grid-template-columns: 18px 1fr 70px; }
+  /* 상태 셀은 숨기므로 남는 5개에 맞춰 열을 다시 센다 */
+  .arow { grid-template-columns: 18px 26px 1fr 74px 24px; gap: 8px; }
   .arow .hide-s { display: none; }
   .snum { font-size: 26px; }
 }
@@ -601,11 +611,13 @@ footer a { color: var(--muted); }
 
   <div class="stage">
     <div class="specimen">
-      <span class="lbl">정상</span>
+      <span class="lbl">정상. 왼쪽이 사용 중, 오른쪽이 직전에 쓰던 계정</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          team1 <span class="pct">44%</span>
+          <span class="code">T1</span> <span class="pct">44%</span>
+          <span class="mb-sep"></span>
+          <span class="mb-alt"><span class="code">T2</span> <span class="pct">12%</span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys">
@@ -617,11 +629,13 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">임계값 근접</span>
+      <span class="lbl">임계값 근접. 사용 중인 계정만 색이 바뀐다</span>
       <div class="menubar">
         <span class="mb-item on warn">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          team1 <span class="pct">88%</span>
+          <span class="code">T1</span> <span class="pct">88%</span>
+          <span class="mb-sep"></span>
+          <span class="mb-alt"><span class="code">T2</span> <span class="pct">12%</span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -629,11 +643,27 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="specimen">
-      <span class="lbl">전환 직후. 계정 이름이 바뀐다</span>
+      <span class="lbl">전환 직후. 떠나온 계정은 남은 시간을 보여준다</span>
       <div class="menubar">
         <span class="mb-item on">
           <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          ent1 <span class="pct">12%</span>
+          <span class="code">EN</span> <span class="pct">12%</span>
+          <span class="mb-sep"></span>
+          <span class="mb-alt"><span class="code">T1</span> <span class="pct">6일</span></span>
+        </span>
+        <span class="spacer"></span>
+        <span class="mb-sys"><span>목 9:41</span></span>
+      </div>
+    </div>
+
+    <div class="specimen">
+      <span class="lbl">떠나온 계정이 인증 실패. 숫자 없이 코드만 흐리게</span>
+      <div class="menubar">
+        <span class="mb-item on">
+          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
+          <span class="code">T2</span> <span class="pct">31%</span>
+          <span class="mb-sep"></span>
+          <span class="mb-alt dead"><span class="code">T3</span></span>
         </span>
         <span class="spacer"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
@@ -656,6 +686,50 @@ footer a { color: var(--muted); }
       </div>
     </div>
     <p class="caption">메뉴바 라벨 상태별 변형</p>
+  </div>
+
+  <div class="col">
+    <h3>계정 이름 대신 두 글자 코드를 쓴다</h3>
+    <p>
+      메뉴바는 폭이 귀하다. 계정 이름을 그대로 쓰면 시계와 다른 메뉴 항목을 밀어낸다.
+      메뉴바에서만 축약 코드를 쓰고, 팝오버와 설정 창은 원래 이름을 그대로 쓴다.
+    </p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>계정 이름</th><th>코드</th><th>규칙</th></tr></thead>
+        <tbody>
+          <tr><td><code>team1</code></td><td><code>T1</code></td><td>이름에 team 포함. 알파벳순 1번째</td></tr>
+          <tr><td><code>team2</code></td><td><code>T2</code></td><td>알파벳순 2번째</td></tr>
+          <tr><td><code>team3</code></td><td><code>T3</code></td><td>알파벳순 3번째</td></tr>
+          <tr><td><code>ent1</code></td><td><code>EN</code></td><td>team 이 없으면 앞 2글자</td></tr>
+          <tr><td><code>personal</code></td><td><code>PE</code></td><td>앞 2글자</td></tr>
+          <tr><td><code>ent1</code> 과 <code>ent2</code> 가 함께</td><td><code>E1</code> <code>E2</code></td><td>앞 2글자가 겹치면 첫 글자에 순번</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>옆자리는 직전에 쓰던 계정이다</h3>
+    <p>
+      전환이 일어난 직후 이 자리에 잡히는 것은 <strong>방금 한도에 걸려 떠나온 계정</strong>이다.
+      드문 경우를 위한 장식이 아니라, 전환 뒤 가장 궁금한 것 하나를 담는 자리다.
+      원래 계정으로 언제 돌아갈 수 있는가.
+    </p>
+    <p>
+      그래서 표시하는 값이 상태에 따라 갈린다. 쓸 수 있는 계정이면 사용률을, 쿨다운 중이면
+      남은 시간을 보여준다. 쿨다운 중인 계정의 사용률은 이미 한도라서 알려주는 것이 없다.
+      인증 실패는 시간으로 풀리지 않으므로 숫자를 빼고 코드만 흐리게 남긴다.
+    </p>
+
+    <div class="note">
+      <span class="nt">확인이 필요한 부분</span>
+      <p>
+        번호가 알파벳 정렬 순서에서 나오므로 계정을 추가하면 기존 코드가 밀린다.
+        <code>team1</code>, <code>team3</code> 이 <code>T1</code>, <code>T2</code> 였다가
+        <code>team2</code> 를 넣으면 <code>team3</code> 이 <code>T3</code> 이 된다.
+        외운 코드가 조용히 바뀌는 셈이라, 설정 창의 계정 목록에 코드를 함께 표시해
+        언제든 확인할 수 있게 한다.
+      </p>
+    </div>
   </div>
 
   <div class="stage">
@@ -799,10 +873,11 @@ footer a { color: var(--muted); }
         <div class="hint">위에서부터 먼저 사용합니다. 끌어서 순서를 바꾸세요.</div>
         <div class="atable">
           <div class="arow head">
-            <span></span><span>계정</span><span>요금제</span><span class="hide-s">상태</span><span></span>
+            <span></span><span>코드</span><span>계정</span><span>요금제</span><span class="hide-s">상태</span><span></span>
           </div>
           <div class="arow">
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
+            <span class="code">T1</span>
             <span class="id">team1</span>
             <span class="pill plan">team</span>
             <span class="hide-s"><span class="pill warn">쿨다운 6일</span></span>
@@ -810,6 +885,7 @@ footer a { color: var(--muted); }
           </div>
           <div class="arow">
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
+            <span class="code">T2</span>
             <span class="id">team2</span>
             <span class="pill plan">team</span>
             <span class="hide-s"><span class="pill ok">대기</span></span>
@@ -817,6 +893,7 @@ footer a { color: var(--muted); }
           </div>
           <div class="arow">
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
+            <span class="code">T3</span>
             <span class="id">team3</span>
             <span class="pill plan">team</span>
             <span class="hide-s"><span class="pill crit">인증 실패</span></span>
@@ -824,6 +901,7 @@ footer a { color: var(--muted); }
           </div>
           <div class="arow">
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
+            <span class="code">EN</span>
             <span class="id">ent1</span>
             <span class="pill plan">enterprise</span>
             <span class="hide-s"><span class="pill ok">사용 중</span></span>

@@ -347,7 +347,107 @@ claulay 가 `model-cooldowns.json` 을 도입한 이유와 같다. 다만 claula
 
 ---
 
-## 7. claulay 에서 가져오지 않는 것
+## 7. 메뉴바 표시 코드
+
+메뉴바는 폭이 귀하다. 계정 이름을 그대로 쓰면 시계와 다른 메뉴 항목을 밀어낸다.
+그래서 계정마다 짧은 코드를 만들어 메뉴바에서만 쓴다. 팝오버와 설정 창은 원래 이름을
+그대로 쓴다.
+
+### 규칙
+
+- 이름에 `team` 이 들어간 계정 (대소문자 무시): 그들끼리 **알파벳순으로 정렬해**
+  `T1`, `T2`, ... 를 준다. 번호는 이름 안의 숫자가 아니라 **정렬 순서**에서 나온다
+- 나머지 계정: 이름 **앞 2글자를 대문자로**
+- 앞 2글자가 겹치면 첫 글자 + 정렬 순서로 바꾼다
+
+```swift
+/// 메뉴바 전용 축약 코드. 순수 함수이므로 계정 집합이 같으면 결과가 항상 같다.
+func shortCodes(for ids: [AccountID]) -> [AccountID: String] {
+    var out: [AccountID: String] = [:]
+
+    let isTeam = { (id: AccountID) in id.lowercased().contains("team") }
+    let teams  = ids.filter(isTeam).sorted()
+    let others = ids.filter { !isTeam($0) }.sorted()
+
+    for (i, id) in teams.enumerated() { out[id] = "T\(i + 1)" }
+
+    // 앞 2글자로 묶고, 겹치는 묶음만 첫 글자 + 순번으로 대체한다.
+    var byPrefix: [String: [AccountID]] = [:]
+    for id in others {
+        byPrefix[id.prefix(2).uppercased(), default: []].append(id)
+    }
+    for (prefix, group) in byPrefix {
+        if group.count == 1 {
+            out[group[0]] = prefix
+        } else {
+            let head = prefix.prefix(1)
+            for (i, id) in group.enumerated() { out[id] = "\(head)\(i + 1)" }
+        }
+    }
+    return out
+}
+```
+
+`others` 가 이미 정렬돼 있으므로 묶음 안의 순번도 결정적이다. `byPrefix` 의 순회 순서는
+보장되지 않지만 묶음끼리는 서로 영향을 주지 않는다.
+
+### 예시
+
+| 계정 이름 | 코드 | 근거 |
+|---|---|---|
+| `team1` | `T1` | team 포함. 알파벳순 1번째 |
+| `team2` | `T2` | team 포함. 알파벳순 2번째 |
+| `team3` | `T3` | team 포함. 알파벳순 3번째 |
+| `ent1` | `EN` | 앞 2글자 |
+| `personal` | `PE` | 앞 2글자 |
+| `ent1`, `ent2` 가 함께 있으면 | `E1`, `E2` | 앞 2글자가 겹쳐 순번으로 대체 |
+
+### 두 가지 주의
+
+**재번호 문제.** 번호가 정렬 순서에서 나오므로 계정을 추가하면 기존 코드가 바뀐다.
+`team1`, `team3` 이 `T1`, `T2` 였다가 `team2` 를 추가하면 `team3` 이 `T3` 으로 밀린다.
+사용자가 외운 코드가 조용히 바뀌는 셈이다.
+
+대안은 이름 안의 숫자를 그대로 쓰는 것(`team3` -> `T3`)인데, 숫자가 없는 이름
+(`team-alpha`)을 다룰 수 없고 두 자리 숫자면 코드가 길어진다. 현재 규칙을 쓰되
+**설정 창의 계정 목록에 코드를 함께 표시**해서 확인할 수 있게 한다.
+
+**team 계정 10개 이상.** `T10` 은 3글자가 된다. 메뉴바 폭이 조금 늘어날 뿐 동작에는
+문제가 없다.
+
+### 최근 사용한 다른 계정
+
+메뉴바는 활성 계정 옆에 **직전에 쓰던 계정** 하나를 함께 보여준다.
+
+```swift
+/// 활성 계정을 뺀 나머지 중 가장 최근에 쓴 계정.
+func mostRecentOther(
+    runtime: [AccountID: AccountRuntime], activeID: AccountID?
+) -> AccountID? {
+    runtime
+        .filter { $0.key != activeID && $0.value.lastUsedAt != nil }
+        .max { ($0.value.lastUsedAt ?? .distantPast) < ($1.value.lastUsedAt ?? .distantPast) }?
+        .key
+}
+```
+
+**전환 직후에는 여기 잡히는 것이 방금 한도에 걸려 떠나온 계정이다.** 그래서 이 자리는
+드문 경우를 위한 장식이 아니라 전환 후 가장 궁금한 정보 하나를 담는다. 원래 계정으로
+언제 돌아갈 수 있는지가 그것이다.
+
+표시 값은 그 계정의 현재 상태에 따라 갈린다.
+
+| 상태 | 표시 | 이유 |
+|---|---|---|
+| 대기 | 5시간 사용률 (`44%`) | 얼마나 여유가 있는지 |
+| 쿨다운 | 남은 시간 (`6일`, `2시간`) | 사용률은 이미 100% 라 알려주는 것이 없다 |
+| 인증 실패 | `!` 대신 코드만 흐리게 | 시간으로 풀리지 않으므로 숫자가 무의미 |
+
+기록된 계정이 하나도 없으면 (첫 실행) 이 자리는 비운다.
+
+---
+
+## 8. claulay 에서 가져오지 않는 것
 
 | claulay | 왜 안 가져오나 |
 |---|---|
