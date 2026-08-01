@@ -71,6 +71,8 @@ Flutter/Electron을 쓰지 않는 이유는 [docs/porting/README.md](docs/portin
 | [01. 아키텍처](docs/design/01-architecture.md) | 시스템 경계, 모듈 분해, 동시성 모델, settings.json 소유권 |
 | [02. 도메인 모델과 계정 선택](docs/design/02-domain-model.md) | 타입, 계정 상태, 선택 알고리즘, 선제 전환, 영속화 |
 | [03. 요청 흐름과 실패 모드](docs/design/03-request-flow.md) | 요청 생애, 시작/종료 시퀀스, 실패 대응, 구현 순서 |
+| [04. 구현 설계](docs/design/04-implementation.md) | 패키지 구성, 의존성, 타겟별 API, 동시성 주석, 테스트, 배포 |
+| [UI 시안](docs/design/ui-spec.html) | 동작 원리와 화면 시안 (HTML) |
 
 ## 포팅 문서
 

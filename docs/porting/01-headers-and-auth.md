@@ -206,15 +206,26 @@ extension ProxyHeaders {
 해제해서 평문 body를 주기 때문**이다. 헤더만 남기면 클라이언트가 두 번째 해제를 시도해
 `ZlibError`가 난다.
 
-Swift에서는 HTTP 클라이언트에 따라 갈린다:
+**Swift 에서도 결론은 같다. 다만 이유가 하나 더 있다.**
 
-| 클라이언트 | 자동 해제 | `content-encoding` |
-|---|---|---|
-| `URLSession` | 함 | **제거** (`clientDecodedBody = true`) |
-| `AsyncHTTPClient` / raw NIO 릴레이 | 안 함 | **유지** (`clientDecodedBody = false`) |
+[03. SSE peek](03-sse-streaming.md) 의 첫 프레임 판별은 평문 바이트를 전제한다. 응답이
+gzip 인 채로 오면 `\n\n` 경계도 없고 `error.type` JSON 도 없다. 즉 압축을 풀지 않으면
+**스왑 판정 자체가 불가능**하다.
 
-스트리밍 패스스루를 NIO로 짜면 후자일 가능성이 높다. 잘못 제거하면 클라이언트가
-압축 바이트를 평문으로 파싱한다.
+따라서 선택지가 아니라 의무다.
+
+| 단계 | 해야 하는 것 |
+|---|---|
+| 업스트림 클라이언트 | 자동 해제를 **켠다**. `AsyncHTTPClient` 는 기본이 `.disabled` 이므로 명시적으로 켜야 한다 |
+| 응답 헤더 | `content-encoding` 을 **제거한다**. 평문을 내보내므로 |
+
+`pickResponseHeaders` 의 `clientDecodedBody` 인자는 남겨두되 프로덕션 경로는 항상
+`true` 로 부른다. 인자를 유지하는 이유는 테스트에서 "해제하지 않은 경로" 를 재현해
+회귀를 잡기 위해서다.
+
+> 대안으로 클라이언트 요청의 `accept-encoding` 을 지워 업스트림이 애초에 압축하지 않게
+> 할 수도 있다. 해제 비용이 사라지는 대신 인터넷 구간 대역폭을 버린다. SSE 본문은
+> 텍스트라 압축률이 높아 이쪽을 택하지 않았다.
 
 ---
 
@@ -225,7 +236,7 @@ Swift에서는 HTTP 클라이언트에 따라 갈린다:
 | 1 | OAuth 토큰을 `x-api-key`로 전송 | 전 계정 invalid, 체인 즉시 소진 |
 | 2 | `anthropic-beta`에 oauth 플래그 누락 | `401 "OAuth authentication is currently not supported."` |
 | 3 | `anthropic-beta`를 병합 대신 덮어쓰기 | Claude Code 기능 소실 |
-| 4 | `content-encoding`을 무조건 제거 | NIO raw 릴레이 시 클라이언트가 압축 바이트를 평문 파싱 |
+| 4 | 업스트림 자동 해제를 켜지 않음 | SSE peek 이 압축 바이트를 읽어 스왑 판정 자체가 죽는다 |
 | 5 | URL 조립에 `URLComponents` | enterprise gateway path prefix, query 손상 |
 
 ---
@@ -263,4 +274,5 @@ Swift에서는 HTTP 클라이언트에 따라 갈린다:
 
 ### `pickResponseHeaders`
 - hop-by-hop 응답 헤더와 `content-length`를 제거하고 키를 소문자화한다
-- **(추가)** `clientDecodedBody = false`일 때 `content-encoding`을 **유지**한다 <- Swift 전용
+- `clientDecodedBody = true`(프로덕션 경로)일 때 `content-encoding`을 제거한다
+- **(추가)** `clientDecodedBody = false`일 때는 유지한다 <- 해제하지 않은 경로의 회귀 가드
