@@ -34,7 +34,11 @@ struct BarOrgView: View {
     /// 걸린 창의 숫자만 색이 바뀐다. 라벨은 그대로 둔다.
     private func number(_ kind: LimitKind, _ tag: String) -> some View {
         let limit = org.limits[kind]
-        return HStack(spacing: 3) {
+        // 라벨과 숫자 사이는 5pt = 10px 다. 숫자를 오른쪽 정렬 상자에 넣으면
+        // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
+        // 상자를 걷어내고 간격만 남긴다. 오른쪽 끝이 들쭉날쭉해지지만
+        // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
+        return HStack(spacing: 5) {
             Text(tag)
                 .font(.system(size: 8, weight: .medium))
                 .foregroundStyle(.tertiary)
@@ -44,7 +48,6 @@ struct BarOrgView: View {
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .frame(width: 26, alignment: .trailing)
         }
     }
 }
