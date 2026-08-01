@@ -1,9 +1,9 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// ClflApp 은 여기 없다. 앱 번들, Info.plist, 서명, 리소스가 필요해 SPM 실행 타겟으로
-// 만들 수 없다. Xcode 프로젝트가 이 패키지를 로컬 의존성으로 참조한다.
-// docs/design/04-implementation.md 2절
+// ClflApp 은 SPM 실행 타겟이다. 앱 번들과 Info.plist 는 scripts/make-app.sh 가
+// 손으로 조립한다. Xcode 프로젝트를 두면 타겟 정의가 두 곳으로 갈라지고
+// 커맨드라인에서 빌드가 안 된다. docs/design/11-menubar-app.md
 
 let package = Package(
     name: "clfl",
@@ -18,6 +18,8 @@ let package = Package(
         // 앱 없이 단계별로 실행하고 내부 상태를 들여다보는 도구.
         // docs/design/08-verification.md
         .executable(name: "clflctl", targets: ["clflctl"]),
+        // 메뉴바 앱. scripts/make-app.sh 가 번들로 감싼다
+        .executable(name: "ClflApp", targets: ["ClflApp"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
@@ -53,6 +55,8 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
+
+        .executableTarget(name: "ClflApp", dependencies: ["ClflDesktop"]),
 
         .testTarget(name: "ClflCoreTests",  dependencies: ["ClflCore"]),
         .testTarget(name: "ClflStoreTests", dependencies: ["ClflStore"]),
