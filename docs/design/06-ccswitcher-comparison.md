@@ -384,3 +384,70 @@ claulay 가 `model-cooldowns.json` 을 도입하며 배운 바로 그 문제다.
   따라온다
 - CCSwitcher 의 `AutoSwitchEngine.swift` 주석은 계속 참고할 가치가 있다. 왜 그 가드가
   있는지가 전부 실패 경험으로 적혀 있다
+
+---
+
+## 실측 후기: CCSwitcher 는 어떻게 전환하나
+
+앞의 대조는 코드를 훑어 쓴 것이고, 8단계에서 데스크톱 앱의 실제 동작을 확인한
+뒤 다시 읽었다. 두 가지가 확정됐다.
+
+### 자격증명 자리를 통째로 덮어쓴다
+
+`ClaudeService.switchAccount` 가 하는 일은 네 단계다.
+
+```
+1. 현재 계정 백업 (토큰 + oauthAccount 를 자기 Keychain 항목에)
+2. 대상 계정 백업을 꺼낸다
+3. Keychain "Claude Code-credentials" 슬롯에 대상 토큰을 쓴다
+   ~/.claude.json 의 oauthAccount 블록도 대상 것으로 쓴다
+4. claude auth status 로 검증. 이메일이 대상과 다르면 실패 처리
+```
+
+프록시가 없다. **저장소를 바꾸고 CLI 가 다음에 읽게 한다.**
+
+### 대상은 터미널 CLI 뿐이다
+
+`ARCHITECTURE.md` 에 `desktop`, `Claude.app`, `electron` 언급이 하나도 없다.
+`AGENTS.md` 는 `ClaudeService` 를 "Wraps `claude` CLI (auth/status)" 라고 적는다.
+검증 단계가 `claude auth status` 인 것도 같은 말이다.
+
+이는 우리가 8단계에서 확인한 사실과 맞물린다. `Claude Code-credentials` 슬롯과
+`~/.claude.json` 은 **터미널 `claude` 가 읽는 자리**다. 데스크톱 앱은 그 자리를
+읽지 않는다. 앱은 claude.ai 세션 쿠키로 인증하고 조직은 암호화된 `lastActiveOrg`
+쿠키로 정한다. [08 검증](08-verification.md) 7-4절.
+
+**즉 CCSwitcher 방식으로는 데스크톱 앱을 전환할 수 없다.** 우리가 못 하는 것이
+아니라 그 접근 자체가 CLI 전용이다.
+
+### 왜 이 저장소 사용자의 조직을 못 넣었나
+
+`AppState.swift:226` 이 계정을 이메일로 중복 제거한다.
+
+```swift
+if accounts.contains(where: { $0.email == email }) {
+```
+
+이 저장소 사용자의 세 조직은 전부 같은 이메일 아래에 있다. 조직 목록 API 로
+확인했다.
+
+| 조직 | 플랜 |
+|---|---|
+| NAVER_TEAM_40 | Team |
+| NAVER_TEAM_52 | Team |
+| Naver | Enterprise |
+
+CCSwitcher 는 이 셋을 계정 하나로 본다. 그래서 둘째부터 추가가 거부된다.
+
+더 근본적으로, 이 셋은 **토큰이 따로 있는 것이 아니라 같은 로그인 안에서 조직만
+다르다.** 토큰 슬롯을 갈아끼우는 방식은 애초에 표현할 수 있는 대상이 아니다.
+
+| | CCSwitcher | 이 저장소가 다루는 것 |
+|---|---|---|
+| 전환 단위 | 계정 (이메일별) | 조직 (한 이메일 아래 여럿) |
+| 전환 방법 | 토큰 슬롯 덮어쓰기 | 요청 헤더로 조직별 토큰 라우팅 |
+| 대상 | 터미널 CLI | 터미널 CLI |
+| 진행 중 요청 | 구제 못 함 | 스왑으로 구제 |
+
+세 번째 줄이 같아진 것이 8단계의 소득이다. 처음에는 데스크톱 앱을 대상으로 적었는데
+틀렸다.
