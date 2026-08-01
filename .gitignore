@@ -1,0 +1,12 @@
+# Claude Code local settings (per-machine permissions cache)
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
