@@ -23,7 +23,11 @@ struct Account: Codable, Identifiable, Sendable {
     /// 기본값이 true 라 기존 계정의 동작은 바뀌지 않는다. 자세한 것은 3-3절.
     var autoSwitch: Bool = true
 
-    /// 토큰 등록 시각. setup-token 이 주는 토큰은 1년짜리라 만료를 미리 알려야 한다.
+    /// 자격증명 종류. oauth 는 갱신 가능하고 모델별 한도를 볼 수 있다.
+    /// [07 문서](07-oauth-credentials.md) 8절
+    var credentialKind: CredentialKind
+
+    /// 토큰 등록 시각. longLived 는 1년짜리라 만료를 미리 알려야 한다.
     var tokenCreatedAt: Date
 
     /// 토큰 문자열의 SHA-256 앞 8바이트. 같은 토큰을 두 번 등록하는 실수를 막는다.

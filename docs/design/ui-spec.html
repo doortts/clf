@@ -1258,26 +1258,26 @@ footer a { color: var(--muted); }
   <div class="stage">
     <div class="sheet">
       <div class="sheet-head">
-        <div class="st">계정 추가</div>
-        <div class="sd">토큰을 먼저 받고 이름을 붙입니다. 조직은 브라우저에서 고릅니다.</div>
+        <div class="st">조직 추가</div>
+        <div class="sd">브라우저에서 조직을 고르면 나머지는 앱이 처리합니다.</div>
       </div>
       <div class="sheet-body">
         <div class="fld">
-          <span class="lb">1. 토큰 받기</span>
-          <div class="cmdline">
-            <code>claude setup-token</code>
-            <button class="btn" type="button">복사</button>
-          </div>
-          <input class="input mono" value="" placeholder="받은 값을 붙여넣으세요" readonly>
-          <div class="orline">또는</div>
-          <button class="btn primary" type="button" style="align-self:flex-start">앱이 대신 실행</button>
-          <span class="hint">앱이 실행하면 토큰이 화면에도 클립보드에도 나타나지 않습니다. 실패하면 위 붙여넣기로 돌아옵니다.</span>
+          <span class="lb">1. 로그인</span>
+          <button class="btn primary" type="button" style="align-self:flex-start">브라우저에서 조직 선택</button>
+          <span class="hint">
+            이미 로그인되어 있으면 조직 선택 화면만 뜹니다. 조직을 여러 개 추가해도
+            로그인은 한 번입니다.
+          </span>
           <div class="verify">
             <div class="vt">
               <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
-              토큰을 받았습니다
+              NAVER_TEAM_40 연결됨
             </div>
-            <div class="hint" style="margin:0">브라우저에서 고른 조직의 토큰입니다. 유효기간 1년.</div>
+            <div class="hint" style="margin:0">
+              자격증명을 가져왔습니다. 만료 전에 앱이 알아서 갱신하므로 다시 로그인할 일이
+              없습니다.
+            </div>
           </div>
         </div>
 
@@ -1288,7 +1288,7 @@ footer a { color: var(--muted); }
             <span class="codehint">T1</span>
             <span class="hint" style="margin:0">메뉴바에 이렇게 표시됩니다</span>
           </div>
-          <span class="hint">방금 고른 조직 이름을 쓰면 나중에 헷갈리지 않습니다. NAVER_TEAM_40 이면 team40 정도로 줄여도 됩니다.</span>
+          <span class="hint">조직 이름에서 자동으로 채웠습니다. 그대로 두어도 됩니다.</span>
         </div>
 
         <div class="fld">
@@ -1305,7 +1305,7 @@ footer a { color: var(--muted); }
           <div class="verify">
             <div class="vt">
               <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
-              연결됨
+              사용 가능
             </div>
             <div class="gauge">
               <span class="g-lbl">5시간</span>
@@ -1313,10 +1313,16 @@ footer a { color: var(--muted); }
               <span class="g-val">97%</span>
             </div>
             <div class="gauge">
-              <span class="g-lbl">7일</span>
+              <span class="g-lbl">주간</span>
               <span class="track"><span class="fill ok" style="width:84%"></span></span>
               <span class="g-val">84%</span>
             </div>
+            <div class="gauge">
+              <span class="g-lbl">Fable</span>
+              <span class="track"><span class="fill ok" style="width:100%"></span></span>
+              <span class="g-val">100%</span>
+            </div>
+            <div class="hint" style="margin:0">모델별 한도까지 보입니다</div>
           </div>
         </div>
       </div>
@@ -1325,11 +1331,11 @@ footer a { color: var(--muted); }
         <button class="btn primary" type="button">추가</button>
       </div>
     </div>
-    <p class="caption">계정 추가. 토큰이 먼저, 이름이 나중</p>
+    <p class="caption">조직 추가. 로그인이 먼저, 이름은 자동</p>
   </div>
 
   <div class="col">
-    <h3>토큰은 우리가 만들 수 없다</h3>
+    <h3>자격증명은 우리가 만들 수 없다</h3>
     <p>
       Anthropic 계정 토큰을 얻는 지원되는 경로는 <code>claude setup-token</code> 하나뿐이다.
       OAuth 를 직접 구현하려면 문서화되지 않은 엔드포인트와 남의 클라이언트 식별자를 써야
