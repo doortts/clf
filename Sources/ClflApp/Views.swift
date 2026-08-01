@@ -37,8 +37,11 @@ struct OrgCard: View {
                 }
             }
 
-            if org.limits.isEmpty, let error = org.error {
+            if !org.hasUsage, let error = org.error {
                 Text(error).font(.system(size: 11)).foregroundStyle(.secondary)
+            } else if let spend = org.spend, org.limits.isEmpty {
+                // Enterprise 는 시간 창이 없다. 없는 창 셋을 억지로 그리지 않는다
+                budgetRow(spend)
             } else {
                 VStack(alignment: .leading, spacing: 7) {
                     ForEach(LimitKind.allCases, id: \.self) { kind in
@@ -64,6 +67,21 @@ struct OrgCard: View {
             .foregroundStyle(tint)
             .padding(.horizontal, 5).padding(.vertical, 1)
             .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 4))
+    }
+
+    /// 월 예산 한 줄. 리셋 자리에는 쓴 금액과 한도를 적는다.
+    private func budgetRow(_ spend: SpendUsage) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 7) {
+                Text("월 예산")
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .frame(width: 58, alignment: .leading)
+                UsageGauge(spend: spend)
+            }
+            Text("\(spend.usedText) / \(spend.limitText) 사용")
+                .font(.system(size: 10)).foregroundStyle(.tertiary)
+                .padding(.leading, 65)
+        }
     }
 
     private func row(_ kind: LimitKind, _ limit: UsageLimit?) -> some View {

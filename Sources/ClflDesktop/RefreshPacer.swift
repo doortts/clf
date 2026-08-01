@@ -56,13 +56,16 @@ public struct RefreshPacer: Sendable {
     static func fingerprint(of snapshot: DesktopSnapshot) -> String? {
         let active = snapshot.active?.uuid ?? "-"
         let parts = snapshot.orgs
-            .filter { !$0.limits.isEmpty }
+            .filter(\.hasUsage)
             .sorted { $0.uuid < $1.uuid }
             .map { org in
-                org.uuid + "=" + org.limits
+                let windows = org.limits
                     .sorted { $0.key.rawValue < $1.key.rawValue }
                     .map { "\($0.key.rawValue):\($0.value.percentUsed)" }
                     .joined(separator: ",")
+                // 예산도 활동이다. 시간 창이 없는 조직은 이것만 움직인다
+                let money = org.spend.map { ",$:\($0.usedMinor)" } ?? ""
+                return org.uuid + "=" + windows + money
             }
         return parts.isEmpty ? nil : (active + "#" + parts.joined(separator: "|"))
     }

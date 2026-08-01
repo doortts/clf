@@ -20,12 +20,17 @@ struct BarOrgView: View {
                 // 세 창인데 숫자는 두 줄이 한계다. 어느 창인지 라벨로 못박는다.
                 // 셋째 줄은 자리가 없어 게이지만 남는다
                 VStack(alignment: .leading, spacing: -1) {
-                    number(.session, "5h")
-                    number(.weeklyAll, "1w")
+                    if let spend = org.spend, org.limits.isEmpty {
+                        // Enterprise 는 창이 없다. 예산 한 줄이 전부다
+                        value("예산", "\(spend.percentRemaining)%", spend.band)
+                    } else {
+                        number(.session, "5h")
+                        number(.weeklyAll, "1w")
+                    }
                 }
             }
             if detail.showsDots {
-                SegmentBlock(limits: org.limits, dark: dark)
+                SegmentBlock(org: org, dark: dark)
             }
         }
         .fixedSize()
@@ -34,17 +39,22 @@ struct BarOrgView: View {
     /// 걸린 창의 숫자만 색이 바뀐다. 라벨은 그대로 둔다.
     private func number(_ kind: LimitKind, _ tag: String) -> some View {
         let limit = org.limits[kind]
+        return value(tag, limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown,
+                     limit?.band)
+    }
+
+    private func value(_ tag: String, _ text: String, _ band: UsageBand?) -> some View {
         // 라벨과 숫자 사이는 2.5pt = 5px 다. 숫자를 오른쪽 정렬 상자에 넣으면
         // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
         // 상자를 걷어내고 간격만 남긴다. 오른쪽 끝이 들쭉날쭉해지지만
         // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
-        return HStack(spacing: 2.5) {
+        HStack(spacing: 2.5) {
             Text(tag)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundStyle(.tertiary)
-            Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
+            Text(text)
                 .font(.system(size: 9, weight: .medium).monospacedDigit())
-                .foregroundStyle(limit?.band.fillColor ?? .secondary)
+                .foregroundStyle(band?.fillColor ?? .secondary)
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)

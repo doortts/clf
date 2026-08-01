@@ -82,8 +82,21 @@ extension Color {
 /// 테두리를 등급색으로 두르고 안쪽을 그만큼 채운다. 테두리가 100% 의 끝을
 /// 알려주므로 안쪽은 이어진 막대로 두고 칸을 갈라 그리지 않는다.
 struct SegmentGauge: View {
-    let limit: UsageLimit?
+    let remaining: Int?
+    let band: UsageBand?
     var dark = true
+
+    init(limit: UsageLimit?, dark: Bool = true) {
+        self.remaining = limit?.percentRemaining
+        self.band = limit?.band
+        self.dark = dark
+    }
+
+    init(remaining: Int?, band: UsageBand?, dark: Bool = true) {
+        self.remaining = remaining
+        self.band = band
+        self.dark = dark
+    }
 
     static var totalSteps: Int { Metrics.segSteps }
     /// 한 칸이 몇 퍼센트인가. 스무 칸이면 5% 다.
@@ -100,9 +113,9 @@ struct SegmentGauge: View {
     static var height: CGFloat { Metrics.segRowHeight + Metrics.segBorder * 2 }
 
     var body: some View {
-        let tint = limit?.band.dotColor(dark: dark) ?? Color.secondary
+        let tint = band?.dotColor(dark: dark) ?? Color.secondary
         let off = Color.primary.opacity(dark ? 0.22 : 0.16)
-        let lit = Self.steps(for: limit?.percentRemaining ?? 0)
+        let lit = Self.steps(for: remaining ?? 0)
         Canvas { ctx, size in
             let b = Metrics.segBorder
             ctx.stroke(Path(CGRect(origin: .zero, size: size).insetBy(dx: b / 2, dy: b / 2)),
@@ -130,13 +143,18 @@ struct SegmentGauge: View {
 /// 줄 사이를 벌린다. 붙여 두면 세 줄이 한 덩어리로 보여 어느 창이 어느
 /// 줄인지 못 읽는다.
 struct SegmentBlock: View {
-    let limits: [LimitKind: UsageLimit]
+    let org: OrgUsage
     var dark = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.segRowGap) {
-            ForEach(LimitKind.allCases, id: \.self) { kind in
-                SegmentGauge(limit: limits[kind], dark: dark)
+            if let spend = org.spend, org.limits.isEmpty {
+                // Enterprise 는 창이 없다. 예산 한 줄만 그린다
+                SegmentGauge(remaining: spend.percentRemaining, band: spend.band, dark: dark)
+            } else {
+                ForEach(LimitKind.allCases, id: \.self) { kind in
+                    SegmentGauge(limit: org.limits[kind], dark: dark)
+                }
             }
         }
         .fixedSize()
@@ -203,7 +221,9 @@ struct RetroBar: View {
 /// 파낸 자리를 배경색으로 칠하지 않고 `destinationOut` 으로 뚫는다. 팝오버
 /// 배경은 단색이 아니라 vibrancy 재질이라 색으로 흉내내면 어긋난다.
 struct UsageGauge: View {
-    let limit: UsageLimit?
+    /// 잔여. 모르면 nil.
+    let remaining: Int?
+    let band: UsageBand?
     var height: CGFloat = 18
     /// 숫자가 앉는 왼쪽 자리.
     var numberArea: CGFloat = 44
@@ -213,8 +233,18 @@ struct UsageGauge: View {
     /// 100% 와 그냥 칠한 막대가 구별이 안 된다.
     var fillInset: CGFloat = 1.5
 
+    init(limit: UsageLimit?) {
+        self.remaining = limit?.percentRemaining
+        self.band = limit?.band
+    }
+
+    init(spend: SpendUsage) {
+        self.remaining = spend.percentRemaining
+        self.band = spend.band
+    }
+
     var body: some View {
-        let tint = limit?.band.gaugeTint ?? Color.secondary.opacity(0.5)
+        let tint = band?.gaugeTint ?? Color.secondary.opacity(0.5)
         GeometryReader { geo in
             let trackWidth = max(0, geo.size.width - numberArea - trackInset)
             let trackHeight = height - trackInset * 2
@@ -231,18 +261,17 @@ struct UsageGauge: View {
                 }
                 .compositingGroup()
 
-                if let limit, limit.percentRemaining > 0 {
+                if let remaining, remaining > 0 {
                     // 1% 라도 남았으면 보이게 최소 폭을 준다
                     Capsule()
                         .fill(tint)
-                        .frame(width: max(boxHeight,
-                                          boxWidth * Double(limit.percentRemaining) / 100),
+                        .frame(width: max(boxHeight, boxWidth * Double(remaining) / 100),
                                height: boxHeight)
                         .offset(x: numberArea + fillInset)
                 }
 
                 // 글자는 전부 검정. 노랑 위 흰 글자가 안 보인다
-                Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
+                Text(remaining.map { "\($0)%" } ?? BarText.unknown)
                     .font(.system(size: 12, weight: .bold).monospacedDigit())
                     .foregroundStyle(.black)
                     .frame(width: numberArea, height: height)

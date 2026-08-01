@@ -114,7 +114,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     /// 알려주는 것이 없다. 팝오버와 설정에는 그대로 남는다. 거기서는 왜 못
     /// 읽는지까지 말할 수 있다.
     public func barOrgs(from orgs: [OrgUsage]) -> [OrgUsage] {
-        let shown = apply(to: orgs).filter { !$0.limits.isEmpty }
+        let shown = apply(to: orgs).filter(\.hasUsage)
         guard barContent == .activeOnly else { return shown }
         // 활성 조직을 숨겨뒀거나 활성이 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다
         if let active = shown.first(where: \.isActive) { return [active] }

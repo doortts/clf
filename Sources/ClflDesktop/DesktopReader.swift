@@ -7,6 +7,8 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
     public let isActive: Bool
     public let plan: String?
     public let limits: [LimitKind: UsageLimit]
+    /// Enterprise 는 시간 창 대신 월 예산이 온다.
+    public let spend: SpendUsage?
     /// 못 읽었으면 이유. `isStale` 이면 값이 있으면서 이유도 있다.
     public let error: String?
     /// 이번에 못 읽어서 지난번 값을 그대로 보여주는 중이다.
@@ -14,19 +16,23 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
 
     public var id: String { uuid }
 
+    /// 보여줄 것이 하나라도 있나. 시간 창이든 월 예산이든.
+    public var hasUsage: Bool { !limits.isEmpty || spend != nil }
+
     /// 셋 중 가장 좁은 창. 메뉴바가 한 조직을 한 숫자로 말해야 할 때 쓴다.
     public var binding: UsageLimit? {
         limits.values.min { $0.percentRemaining < $1.percentRemaining }
     }
 
     public init(uuid: String, name: String, isActive: Bool, plan: String?,
-                limits: [LimitKind: UsageLimit], error: String? = nil,
-                isStale: Bool = false) {
+                limits: [LimitKind: UsageLimit], spend: SpendUsage? = nil,
+                error: String? = nil, isStale: Bool = false) {
         self.uuid = uuid
         self.name = name
         self.isActive = isActive
         self.plan = plan
         self.limits = limits
+        self.spend = spend
         self.error = error
         self.isStale = isStale
     }
@@ -116,9 +122,10 @@ public struct DesktopReader: Sendable {
                 continue
             }
             do {
-                let limits = try await session.usage(token: token.token)
+                let report = try await session.usage(token: token.token)
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
-                                     plan: token.subscriptionType, limits: limits))
+                                     plan: token.subscriptionType,
+                                     limits: report.limits, spend: report.spend))
             } catch {
                 if (error as? UsageFetchError)?.throttled == true { throttled = true }
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,

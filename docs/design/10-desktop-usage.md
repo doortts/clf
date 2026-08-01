@@ -33,6 +33,9 @@ Weekly - Fable                                0%
 `percent` 는 **사용률**이다. 잔여는 `100 - percent` 로 파생시킨다.
 `limits` 배열이 세 줄을 그대로 담으므로 그것만 읽으면 된다.
 
+단 팀 조직에 한한다. Enterprise 는 `limits` 가 비어 있고 `spend` 로 월 예산이
+온다. [12 문서](12-enterprise-spend.md)
+
 ---
 
 ## 2. 스코프 문제와 그 해법

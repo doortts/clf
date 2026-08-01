@@ -55,12 +55,10 @@ public struct ReadGate: Sendable {
 public func mergeKeepingLastGood(fresh: [OrgUsage], previous: [OrgUsage]) -> [OrgUsage] {
     let old = Dictionary(previous.map { ($0.uuid, $0) }, uniquingKeysWith: { a, _ in a })
     return fresh.map { org in
-        guard org.limits.isEmpty,
-              let last = old[org.uuid], !last.limits.isEmpty
-        else { return org }
+        guard !org.hasUsage, let last = old[org.uuid], last.hasUsage else { return org }
         return OrgUsage(uuid: org.uuid, name: org.name, isActive: org.isActive,
                         plan: org.plan ?? last.plan, limits: last.limits,
-                        error: org.error, isStale: true)
+                        spend: last.spend, error: org.error, isStale: true)
     }
 }
 
@@ -75,7 +73,7 @@ public func reassignActive(to uuid: String?, in orgs: [OrgUsage]) -> [OrgUsage] 
     orgs.map { org in
         guard org.isActive != (org.uuid == uuid) else { return org }
         return OrgUsage(uuid: org.uuid, name: org.name, isActive: org.uuid == uuid,
-                        plan: org.plan, limits: org.limits, error: org.error,
-                        isStale: org.isStale)
+                        plan: org.plan, limits: org.limits, spend: org.spend,
+                        error: org.error, isStale: org.isStale)
     }
 }

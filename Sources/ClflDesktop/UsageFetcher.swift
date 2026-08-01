@@ -4,7 +4,7 @@ import SQLite3
 /// 네트워크 경계. 테스트가 가짜로 갈아끼운다.
 public protocol UsageFetching: Sendable {
     /// 추론 요청이 아니다. 읽기 전용이라 토큰을 소모하지 않는다.
-    func usage(token: String) async throws -> [LimitKind: UsageLimit]
+    func usage(token: String) async throws -> UsageReport
     /// 조직 이름은 토큰 캐시에 없다. claude.ai 세션으로만 얻는다.
     func orgNames(sessionKey: String) async throws -> [String: String]
 }
@@ -30,7 +30,7 @@ public struct LiveUsageFetcher: UsageFetching {
 
     public init(timeout: TimeInterval = 15) { self.timeout = timeout }
 
-    public func usage(token: String) async throws -> [LimitKind: UsageLimit] {
+    public func usage(token: String) async throws -> UsageReport {
         var request = URLRequest(url: Self.usageURL, timeoutInterval: timeout)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "authorization")
         request.setValue(Self.oauthBeta, forHTTPHeaderField: "anthropic-beta")
@@ -50,7 +50,7 @@ public struct LiveUsageFetcher: UsageFetching {
         default:
             throw UsageFetchError(description: "Usage API HTTP \(status)")
         }
-        return try parseUsage(data)
+        return parseReport(data)
     }
 
     public func orgNames(sessionKey: String) async throws -> [String: String] {

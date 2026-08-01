@@ -79,6 +79,79 @@ public enum UsageBand: Sendable, Equatable, CaseIterable {
     public var isNoteworthy: Bool { self != .normal }
 }
 
+/// Enterprise 구독의 월 예산.
+///
+/// 시간 창 대신 이것이 온다. `limits` 는 빈 배열이고 `five_hour` 와
+/// `seven_day` 는 전부 `null` 이다. docs/design/12-enterprise-spend.md
+public struct SpendUsage: Sendable, Equatable {
+    /// 최소 단위 정수. 달러면 센트다.
+    public let usedMinor: Int
+    public let limitMinor: Int
+    public let currency: String
+    /// 소수 자리 수. 달러는 2, 원은 0.
+    public let exponent: Int
+    /// 서버가 주는 것은 사용률이다. 잔여는 파생시킨다.
+    public let percentUsed: Int
+    public let severity: String
+
+    public init(usedMinor: Int, limitMinor: Int, currency: String, exponent: Int,
+                percentUsed: Int, severity: String) {
+        self.usedMinor = usedMinor
+        self.limitMinor = limitMinor
+        self.currency = currency
+        self.exponent = exponent
+        self.percentUsed = percentUsed
+        self.severity = severity
+    }
+
+    public var percentRemaining: Int { 100 - percentUsed }
+
+    /// 등급 경계는 시간 창과 같다. 돈이라고 다르게 볼 이유가 없다.
+    public var band: UsageBand {
+        switch percentRemaining {
+        case ..<5:   return .empty
+        case ..<15:  return .low
+        case ..<50:  return .normal
+        default:     return .ample
+        }
+    }
+
+    public var usedText: String { Money.text(usedMinor, self) }
+    public var limitText: String { Money.text(limitMinor, self) }
+}
+
+/// 통화 기호를 우리가 정하지 않는다. 응답이 준 코드로 시스템에 맡긴다.
+/// 소스에 기호를 박으면 통화가 늘 때마다 손대야 하고, 저장소 문자 규칙에도
+/// 걸린다.
+enum Money {
+    static func text(_ minor: Int, _ spend: SpendUsage) -> String {
+        let divisor = pow(10.0, Double(spend.exponent))
+        let value = Double(minor) / divisor
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencyCode = spend.currency
+        // 돈 표기는 en_US 로 통일한다. ko_KR 로 USD 를 그리면 US$ 가 붙는다
+        f.locale = Locale(identifier: "en_US")
+        f.minimumFractionDigits = spend.exponent
+        f.maximumFractionDigits = spend.exponent
+        return f.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+}
+
+/// 한 조직의 사용량 전부. 플랜에 따라 한쪽만 채워진다.
+public struct UsageReport: Sendable, Equatable {
+    public let limits: [LimitKind: UsageLimit]
+    /// Enterprise 만 있다.
+    public let spend: SpendUsage?
+
+    public init(limits: [LimitKind: UsageLimit], spend: SpendUsage? = nil) {
+        self.limits = limits
+        self.spend = spend
+    }
+
+    public var isEmpty: Bool { limits.isEmpty && spend == nil }
+}
+
 public struct UsageParseError: Error, CustomStringConvertible {
     public let description: String
 }
@@ -136,4 +209,26 @@ private final class ISOParsers: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         return fractional.date(from: text) ?? plain.date(from: text)
     }
+}
+
+/// 시간 창과 월 예산을 함께 읽는다. 플랜에 따라 한쪽만 채워진다.
+public func parseReport(_ data: Data) -> UsageReport {
+    let limits = (try? parseUsage(data)) ?? [:]
+    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let spend = root["spend"] as? [String: Any],
+          let used = spend["used"] as? [String: Any],
+          let limit = spend["limit"] as? [String: Any],
+          let usedMinor = used["amount_minor"] as? Int,
+          let limitMinor = limit["amount_minor"] as? Int,
+          // 한도가 0 이면 예산이 없는 것이다. 0 으로 나누지 않는다
+          limitMinor > 0
+    else { return UsageReport(limits: limits) }
+
+    return UsageReport(limits: limits, spend: SpendUsage(
+        usedMinor: usedMinor,
+        limitMinor: limitMinor,
+        currency: limit["currency"] as? String ?? used["currency"] as? String ?? "USD",
+        exponent: limit["exponent"] as? Int ?? 2,
+        percentUsed: spend["percent"] as? Int ?? 0,
+        severity: spend["severity"] as? String ?? "normal"))
 }

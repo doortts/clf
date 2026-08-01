@@ -81,6 +81,7 @@
 | [09 조직 전환](09-desktop-org-switch.md) | 데스크톱 | 전환 조사와 안 하기로 한 결론 |
 | [10 사용량 읽기](10-desktop-usage.md) | 데스크톱 | 토큰 캐시, 스코프, 설정, 갱신 주기 |
 | [11 메뉴바 앱](11-menubar-app.md) | 데스크톱 | 번들, 화면, 로그인 항목, 429 |
+| [12 Enterprise](12-enterprise-spend.md) | 데스크톱 | 시간 창이 없는 플랜과 월 예산 |
 
 ---
 

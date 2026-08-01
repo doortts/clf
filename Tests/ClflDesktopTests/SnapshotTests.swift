@@ -36,14 +36,15 @@ final class OrgUsageTests: XCTestCase {
 /// 정해진 답을 내는 가짜 네트워크.
 final class StubFetcher: UsageFetching, @unchecked Sendable {
     var usageByToken: [String: [LimitKind: UsageLimit]] = [:]
+    var spendByToken: [String: SpendUsage] = [:]
     var failFor: Set<String> = []
     var names: [String: String] = [:]
 
-    func usage(token: String) async throws -> [LimitKind: UsageLimit] {
+    func usage(token: String) async throws -> UsageReport {
         if failFor.contains(token) {
             throw UsageFetchError(description: "토큰 만료. 앱에서 이 조직을 한 번 열면 갱신된다")
         }
-        return usageByToken[token] ?? [:]
+        return UsageReport(limits: usageByToken[token] ?? [:], spend: spendByToken[token])
     }
     func orgNames(sessionKey: String) async throws -> [String: String] { names }
 }
@@ -63,9 +64,10 @@ final class SnapshotAssemblyTests: XCTestCase {
                 continue
             }
             do {
-                let limits = try await fetcher.usage(token: token.token)
+                let report = try await fetcher.usage(token: token.token)
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == active,
-                                     plan: token.subscriptionType, limits: limits))
+                                     plan: token.subscriptionType,
+                                     limits: report.limits, spend: report.spend))
             } catch {
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == active,
                                      plan: token.subscriptionType, limits: [:],
