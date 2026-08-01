@@ -154,6 +154,13 @@ public struct DesktopReader: Sendable {
         throw SafeStorageError(description: "config.json 에 oauth 토큰 캐시가 없다")
     }
 
+    /// 지금 앱이 쓰는 조직. **로컬 파일만 읽는다.** 네트워크를 안 타므로
+    /// 자주 물어도 된다. 사용량과 달리 이건 공짜다.
+    public func activeOrgUUID() -> String? {
+        guard let key = try? safeStorageKeyFromKeychain() else { return nil }
+        return try? activeOrg(key: key)
+    }
+
     private func activeOrg(key: Data) throws -> String {
         String(decoding: stripDomainHash(try cookie("lastActiveOrg", key: key)), as: UTF8.self)
     }

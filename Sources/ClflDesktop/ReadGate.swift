@@ -63,3 +63,19 @@ public func mergeKeepingLastGood(fresh: [OrgUsage], previous: [OrgUsage]) -> [Or
                         error: org.error, isStale: true)
     }
 }
+
+/// `사용 중` 표시를 옮긴다. 숫자는 손대지 않는다.
+///
+/// 어느 조직이 활성인지는 로컬 쿠키에 있어 네트워크 없이 알 수 있다.
+/// 사용량을 다시 읽기 전에 표시부터 옮겨야 화면이 곧바로 사실을 말한다.
+///
+/// 모르는 조직으로 옮겨갔으면 아무것도 활성이 아니다. 엉뚱한 곳에 표시를
+/// 남기느니 없는 편이 낫다.
+public func reassignActive(to uuid: String?, in orgs: [OrgUsage]) -> [OrgUsage] {
+    orgs.map { org in
+        guard org.isActive != (org.uuid == uuid) else { return org }
+        return OrgUsage(uuid: org.uuid, name: org.name, isActive: org.uuid == uuid,
+                        plan: org.plan, limits: org.limits, error: org.error,
+                        isStale: org.isStale)
+    }
+}

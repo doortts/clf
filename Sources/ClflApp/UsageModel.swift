@@ -28,7 +28,9 @@ final class UsageModel: ObservableObject {
     /// 조직 이름은 안 바뀐다. 매번 물으면 읽기당 요청이 하나씩 더 는다.
     private var cachedNames: [String: String] = [:]
     private var loop: Task<Void, Never>?
+    private var orgWatch: Task<Void, Never>?
     private var appearanceWatch: (any NSObjectProtocol)?
+    private var activeUUID: String?
     /// 설정 화면이 보는 목록. 사용량을 못 읽는 조직도 들어간다.
     private(set) var known: [OrgUsage] = []
 
@@ -42,6 +44,7 @@ final class UsageModel: ObservableObject {
     /// 켜자마자 한 번 읽고, 그다음은 사용량이 정하는 주기로.
     func start() {
         watchAppearance()
+        watchActiveOrg()
         guard loop == nil else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -55,6 +58,44 @@ final class UsageModel: ObservableObject {
     func stop() {
         loop?.cancel()
         loop = nil
+        orgWatch?.cancel()
+        orgWatch = nil
+    }
+
+    /// 앱에서 조직을 바꾸면 곧바로 따라간다.
+    ///
+    /// 활성 조직은 로컬 쿠키에 있어 **네트워크를 안 타므로 자주 물어도 된다.**
+    /// 사용량 주기(5분)를 기다리면 메뉴바가 한참 옛 조직을 가리킨다.
+    ///
+    /// 바뀌면 표시부터 옮기고 숫자는 나중에 맞춘다. 표시는 공짜고 숫자는
+    /// 요청이 조직 수만큼 나가기 때문이다.
+    private func watchActiveOrg() {
+        guard orgWatch == nil else { return }
+        let reader = self.reader
+        orgWatch = Task { [weak self] in
+            while !Task.isCancelled {
+                let uuid = await Task.detached(priority: .utility) {
+                    reader.activeOrgUUID()
+                }.value
+                await self?.applyActiveOrg(uuid)
+                do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            }
+        }
+    }
+
+    private func applyActiveOrg(_ uuid: String?) async {
+        guard uuid != activeUUID else { return }
+        let first = activeUUID == nil
+        activeUUID = uuid
+
+        known = reassignActive(to: uuid, in: known)
+        orgs = prefs.apply(to: known)
+        barOrgs = prefs.barOrgs(from: known)
+        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
+
+        // 첫 관측은 전환이 아니다. 시작할 때 도는 읽기와 겹치면 요청만 두 배다
+        guard !first else { return }
+        await refresh(scheduled: true)
     }
 
     /// 라이트와 다크를 오가면 막대 그림을 다시 구워야 한다. 색이 구울 때
