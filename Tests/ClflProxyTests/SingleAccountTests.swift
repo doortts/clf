@@ -32,6 +32,13 @@ final class FakeExecutor: UpstreamExecuting, @unchecked Sendable {
     }
 }
 
+final class CapturingTraces: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _items: [RequestTrace] = []
+    var items: [RequestTrace] { lock.lock(); defer { lock.unlock() }; return _items }
+    func record(_ trace: RequestTrace) { lock.lock(); _items.append(trace); lock.unlock() }
+}
+
 final class CapturingSink: EventSinking, @unchecked Sendable {
     private let lock = NSLock()
     private var _usage: [UsageRecord] = []
@@ -50,21 +57,25 @@ final class SingleAccountHandlerTests: XCTestCase {
     var store: InMemoryCredentialStore!
     var sink: CapturingSink!
     var client: RecordingClient!
+    var traces: CapturingTraces!
 
     override func setUp() {
         executor = FakeExecutor()
         store = InMemoryCredentialStore()
         sink = CapturingSink()
         client = RecordingClient()
+        traces = CapturingTraces()
     }
 
     func handler(_ account: Account = acct(),
                  token: String = "sk-ant-oat01-abc") -> SingleAccountHandler {
         try? store.store(.longLived(token: token), for: account.id)
+        let recorder = traces!
         return SingleAccountHandler(
             account: account,
             tokens: StoredTokenProvider(store: store),
-            executor: executor, events: sink)
+            executor: executor, events: sink,
+            trace: { recorder.record($0) })
     }
 
     func send(_ h: SingleAccountHandler,
@@ -196,9 +207,10 @@ final class SingleAccountHandlerTests: XCTestCase {
     }
 
     func test_missingCredentialBecomesReadableError() async {
+        let recorder = traces!
         let handler = SingleAccountHandler(
             account: acct(), tokens: StoredTokenProvider(store: InMemoryCredentialStore()),
-            executor: executor, events: sink)
+            executor: executor, events: sink, trace: { recorder.record($0) })
         await send(handler)
 
         guard case .head(let status) = client.calls.first else { return XCTFail() }
@@ -252,6 +264,111 @@ final class SingleAccountHandlerTests: XCTestCase {
     func test_noUsageNoRecord() async {
         await send(handler())
         XCTAssertTrue(sink.usage.isEmpty)
+    }
+}
+
+/// docs/design/08-verification.md 5절
+final class SingleAccountTraceTests: XCTestCase {
+
+    var executor: FakeExecutor!
+    var traces: CapturingTraces!
+    var client: RecordingClient!
+
+    override func setUp() {
+        executor = FakeExecutor()
+        traces = CapturingTraces()
+        client = RecordingClient()
+    }
+
+    func handler() -> SingleAccountHandler {
+        let store = InMemoryCredentialStore()
+        try? store.store(.longLived(token: "sk-ant-oat01-abc"), for: "team1")
+        let recorder = traces!
+        return SingleAccountHandler(
+            account: acct(), tokens: StoredTokenProvider(store: store),
+            executor: executor, events: NullEventSink(),
+            trace: { recorder.record($0) })
+    }
+
+    func send(headers: HeaderBag = HeaderBag(),
+              body: [UInt8] = Array(#"{"model":"claude-opus-4-5"}"#.utf8)) async {
+        await handler().handle(method: "POST", uri: "/v1/messages",
+                               headers: headers, body: body, client: client)
+    }
+
+    /// 요청마다 정확히 하나. 없으면 관측이 비고 둘이면 세는 것이 틀어진다.
+    func test_oneTracePerRequest() async {
+        await send()
+        XCTAssertEqual(traces.items.count, 1)
+    }
+
+    func test_carriesModelSessionAndAccount() async {
+        var headers = HeaderBag()
+        headers["x-claude-session-id"] = "sess-9"
+        await send(headers: headers)
+
+        let trace = traces.items.first
+        XCTAssertEqual(trace?.account, "team1")
+        XCTAssertEqual(trace?.model, "claude-opus-4-5")
+        XCTAssertEqual(trace?.sessionID, "sess-9")
+        XCTAssertEqual(trace?.status, 200)
+        XCTAssertEqual(trace?.outcome, .ok)
+    }
+
+    /// 세션 id 가 오는지가 8단계에서 확인할 항목이다.
+    func test_recordsMissingSessionId() async {
+        await send()
+        XCTAssertNil(traces.items.first?.sessionID)
+    }
+
+    func test_countsRelayedBytes() async {
+        executor.reply = {
+            .streaming(status: 200, headers: HeaderBag(),
+                       firstFrameBytes: Array("event: a\ndata: 1\n\n".utf8),
+                       tail: Array("xy".utf8), rest: .empty)
+        }
+        await send()
+        XCTAssertEqual(traces.items.first?.bytes, 20)
+        XCTAssertTrue(traces.items.first?.isStreaming ?? false)
+    }
+
+    /// 클라이언트에 한 바이트도 안 나갔으면 스왑이 가능한 지점이다.
+    func test_upstreamFailureIsFailedNotAborted() async {
+        struct Down: Error {}
+        executor.reply = { throw Down() }
+        await send()
+
+        guard case .failed(let reason) = traces.items.first?.outcome else {
+            return XCTFail("failed 여야 한다: \(String(describing: traces.items.first?.outcome))")
+        }
+        XCTAssertTrue(reason.contains("업스트림"))
+    }
+
+    /// 첫 바이트가 나간 뒤 끊긴 것은 되돌릴 수 없다. 실패와 구분한다.
+    func test_midStreamFailureIsAborted() async {
+        executor.reply = {
+            let box = OneShotFailure()
+            return .streaming(status: 200, headers: HeaderBag(),
+                              firstFrameBytes: Array("event: a\ndata: 1\n\n".utf8),
+                              tail: [], rest: UpstreamByteStream { try box.next() })
+        }
+        await send()
+        XCTAssertEqual(traces.items.first?.outcome, .aborted)
+    }
+
+    func test_credentialFailureIsRecorded() async {
+        let recorder = traces!
+        let handler = SingleAccountHandler(
+            account: acct(), tokens: StoredTokenProvider(store: InMemoryCredentialStore()),
+            executor: executor, events: NullEventSink(), trace: { recorder.record($0) })
+        await handler.handle(method: "POST", uri: "/v1/messages",
+                             headers: HeaderBag(), body: [], client: client)
+
+        guard case .failed(let reason) = traces.items.first?.outcome else {
+            return XCTFail("failed 여야 한다")
+        }
+        XCTAssertTrue(reason.contains("자격증명"))
+        XCTAssertNil(traces.items.first?.status, "업스트림을 부르지도 않았다")
     }
 }
 

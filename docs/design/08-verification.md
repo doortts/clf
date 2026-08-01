@@ -323,6 +323,87 @@ clflctl serve --single <id> --install
 
 ---
 
+## 7-3. 8단계 실기기 확인 절차
+
+도구가 도는 것과 Claude Code 데스크톱 앱으로 대화가 성립하는 것은 다르다.
+이 절이 그 사이를 잇는다.
+
+### 준비
+
+```bash
+./scripts/install-clflctl.sh      # 릴리스로 빌드해 ~/.local/bin 에 링크
+clflctl doctor                    # 무엇이 빠졌는지
+```
+
+`doctor` 가 조직 없음이라고 하면 등록한다. 토큰은 stdin 으로만 받는다.
+ANSI 제어 문자와 프롬프트 장식은 도구가 걷어낸다.
+
+```bash
+claude setup-token | clflctl accounts add naver_team_40 --plan team
+```
+
+### 7칸 먼저
+
+프록시를 띄우기 전에 왕복 한 번으로 자격증명과 헤더를 확인한다. 여기서
+막히면 프록시 문제가 아니다.
+
+```bash
+clflctl upstream probe naver_team_40 --stream --save
+```
+
+- `평문 예` 라야 압축 자동 해제가 살아 있는 것이다
+- 사용량 표가 나오면 헤더 편승 관측이 되는 것이다
+- 401 이면 자격증명 문제다. 프록시로 넘어가지 않는다
+
+### 8칸
+
+```bash
+clflctl serve --single naver_team_40 --install
+```
+
+`--install` 은 **바인딩에 성공한 뒤에** `settings.json` 을 고친다. 순서를
+뒤집으면 앱 없이 설정만 남아 Claude Code 가 통째로 고장 난 것처럼 보인다.
+Ctrl-C 가 되돌린다.
+
+그 다음 **Claude Code 데스크톱 앱을 완전히 종료하고 다시 연다.** `env` 는
+프로세스가 뜰 때 읽히므로 켜둔 채로는 새 설정을 보지 못한다.
+
+### 무엇을 보는가
+
+요청마다 한 줄이 나온다.
+
+```
+  21:41:28  POST  /v1/messages  team1  opus-4-5  SSE  s:sess-abc  200  278B  첫바이트 25ms  총 26ms
+```
+
+이 한 줄이 8단계 관측의 전부다. 확인할 것은 넷이다.
+
+| 보는 것 | 통과 | 아니면 |
+|---|---|---|
+| 대화가 되는가 | 응답이 흐른다 | 줄의 `실패:` 뒤에 이유가 있다 |
+| 세션 id 가 오는가 | `s:` 로 시작하는 값 | `세션없음`. 대화 시작 판정이 불가능해진다 |
+| 스트리밍인가 | `SSE` 표시 | 없으면 버퍼 응답이다 |
+| 체감이 느린가 | 첫바이트 수백 ms | 초 단위면 어딘가 막힌다 |
+
+MCP 도구 검색은 로그가 아니라 앱에서 본다. 도구 목록이 평소대로 뜨는지,
+`ENABLE_TOOL_SEARCH` 복구가 실제로 먹히는지 확인한다.
+
+원격 제어는 되살릴 방법이 없다. `api.anthropic.com` 이 아니면 동작하지 않는
+것이 클라이언트 정책이다.
+
+### 되돌리기
+
+Ctrl-C 가 정상 경로다. 강제 종료로 죽였거나 설정이 남았으면 직접 되돌린다.
+
+```bash
+clflctl settings uninstall
+```
+
+`settings.json` 을 열어 `env` 에 `ANTHROPIC_BASE_URL` 이 없으면 복구된 것이다.
+설치 전 원본은 `settings.json.clfl.bak` 에도 있다.
+
+---
+
 ## 8. 열린 질문
 
 ### tier 1 안에서 무엇을 먼저 쓸 것인가

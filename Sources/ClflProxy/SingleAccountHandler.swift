@@ -59,25 +59,37 @@ public struct SingleAccountHandler: RequestHandling {
     private let executor: any UpstreamExecuting
     private let events: any EventSinking
     private let now: @Sendable () -> Date
+    private let trace: @Sendable (RequestTrace) -> Void
 
     public init(account: Account, tokens: any AccessTokenProviding,
                 executor: any UpstreamExecuting, events: any EventSinking,
-                now: @escaping @Sendable () -> Date = { Date() }) {
+                now: @escaping @Sendable () -> Date = { Date() },
+                trace: @escaping @Sendable (RequestTrace) -> Void = { _ in }) {
         self.account = account
         self.tokens = tokens
         self.executor = executor
         self.events = events
         self.now = now
+        self.trace = trace
     }
 
     public func handle(method: String, uri: String, headers: HeaderBag, body: [UInt8],
                        client: any ClientResponseWriting) async {
         let sessionID = headers["x-claude-session-id"]
+        let model = modelName(body)
+        let started = now()
+
+        // 요청마다 정확히 하나를 남긴다. 어느 경로로 나가든 여기를 지난다
+        var report = TraceBuilder(
+            at: started, method: method, uri: uri, model: model,
+            sessionID: sessionID, account: account.id, now: now, emit: trace)
+        defer { report.finish() }
 
         let token: String
         do {
             token = try await tokens.accessToken(for: account.id)
         } catch {
+            report.failed("자격증명을 쓸 수 없다: \(error)")
             return await fail(client, "자격증명을 쓸 수 없다: \(error)")
         }
 
@@ -95,15 +107,19 @@ public struct SingleAccountHandler: RequestHandling {
             attempt = try await executor.execute(UpstreamRequest(
                 url: url, method: method, headers: upstreamHeaders, body: body))
         } catch {
+            report.failed("업스트림에 닿지 못했다: \(error)")
             return await fail(client, "업스트림에 닿지 못했다: \(error)")
         }
+        report.received(attempt)
 
         var sniffer = UsageSniffer()
         do {
             let usage = try await relay(attempt, to: client, sniffer: &sniffer)
             record(usage, sessionID: sessionID, body: body)
+            report.completed()
         } catch {
             // relay 가 이미 abort 했다. 첫 바이트가 나간 뒤라 덧쓸 것이 없다
+            report.aborted()
         }
     }
 
@@ -139,5 +155,74 @@ public struct SingleAccountHandler: RequestHandling {
         guard let object = try? JSONSerialization.jsonObject(with: Data(body)),
               let root = object as? [String: Any] else { return nil }
         return root["model"] as? String
+    }
+}
+
+
+/// 요청이 흐르는 동안 관측을 모은다.
+///
+/// 경로가 여럿이라 각 분기에서 손으로 만들면 언젠가 하나가 빠진다.
+/// defer 로 한 번만 내보낸다.
+private struct TraceBuilder {
+    let at: Date
+    let method: String
+    let uri: String
+    let model: ModelID?
+    let sessionID: SessionID?
+    let account: AccountID?
+    let now: @Sendable () -> Date
+    let emit: @Sendable (RequestTrace) -> Void
+
+    private var status: Int?
+    private var isStreaming = false
+    private var bytes = 0
+    private var firstByteMillis: Int?
+    private var outcome: RequestTrace.Outcome = .failed(reason: "끝나지 않았다")
+    private var sent = false
+
+    init(at: Date, method: String, uri: String, model: ModelID?,
+         sessionID: SessionID?, account: AccountID?,
+         now: @escaping @Sendable () -> Date,
+         emit: @escaping @Sendable (RequestTrace) -> Void) {
+        self.at = at
+        self.method = method
+        self.uri = uri
+        self.model = model
+        self.sessionID = sessionID
+        self.account = account
+        self.now = now
+        self.emit = emit
+    }
+
+    mutating func received(_ attempt: UpstreamAttempt) {
+        firstByteMillis = millis(since: at)
+        switch attempt {
+        case .buffered(let code, _, let body, _):
+            status = code
+            bytes = body.count
+        case .streaming(let code, _, let first, let tail, _):
+            status = code
+            isStreaming = true
+            bytes = first.count + tail.count
+        }
+    }
+
+    /// 릴레이가 끝난 뒤라야 스트림 전체 크기를 안다. buffered 는 그대로다.
+    mutating func completed() { outcome = .ok }
+    mutating func aborted()   { outcome = .aborted }
+    mutating func failed(_ reason: String) { outcome = .failed(reason: reason) }
+
+    mutating func finish() {
+        guard !sent else { return }
+        sent = true
+        emit(RequestTrace(
+            at: at, method: method, uri: uri, model: model, sessionID: sessionID,
+            account: account, status: status, isStreaming: isStreaming, bytes: bytes,
+            firstByteMillis: firstByteMillis, totalMillis: millis(since: at),
+            outcome: outcome))
+    }
+
+    private func millis(since start: Date) -> Int {
+        Int(now().timeIntervalSince(start) * 1000)
     }
 }

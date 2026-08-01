@@ -29,8 +29,13 @@ struct Serve: AsyncParsableCommand {
     @Flag(help: "뜬 뒤 settings.json 에 주입하고 끝날 때 되돌린다") var install = false
     @Flag(name: .customLong("no-tool-search"), help: "MCP 도구 검색을 켜지 않는다")
     var noToolSearch = false
+    @Flag(help: "요청마다 찍지 않는다") var quiet = false
 
     func run() async throws {
+        // 파일이나 tee 로 넘기면 stdout 이 블록 버퍼가 된다. 그러면 요청 기록이
+        // 끝날 때까지 안 보여 실시간으로 지켜보는 의미가 사라진다
+        setvbuf(stdout, nil, _IOLBF, 0)
+
         let doc = try await paths.accountsFile().load()
         guard let account = doc.accounts[single] else {
             throw CheckFailed(description: "\(single) 는 등록돼 있지 않다. clflctl accounts list")
@@ -42,10 +47,17 @@ struct Serve: AsyncParsableCommand {
 
         let executor = HTTPUpstreamExecutor()
         let sink = JSONLSink(directory: try paths.data)
+        // 요청마다 한 줄. 실기기 확인에서 이것이 관측의 전부다
+        let ring = TraceRing()
+        let quiet = self.quiet
         let handler = SingleAccountHandler(
             account: account,
             tokens: StoredTokenProvider(store: credentials),
-            executor: executor, events: sink)
+            executor: executor, events: sink,
+            trace: { trace in
+                ring.append(trace)
+                if !quiet { print("  " + trace.line) }
+            })
 
         let server = ProxyServer(handler: handler)
         let bound: UInt16
@@ -85,10 +97,25 @@ struct Serve: AsyncParsableCommand {
             print()
         }
         print("  Ctrl-C 로 끝낸다")
+        if !quiet {
+            print()
+            print("  요청이 오면 한 줄씩 찍는다")
+            print("  " + String(repeating: "-", count: 60))
+        }
 
         await waitForInterrupt()
 
         print()
+        if !quiet, !ring.recent().isEmpty {
+            let all = ring.recent()
+            let ok = all.filter { $0.outcome == .ok }.count
+            print("  요청 \(all.count)개 중 \(ok)개 성공")
+            let sessions = Set(all.compactMap(\.sessionID))
+            print("  세션 id "
+                  + (sessions.isEmpty ? "없음. 대화 시작을 판정할 수 없다"
+                                       : "\(sessions.count)개 관측"))
+            print()
+        }
         print("  정리하는 중")
         if install { try? settings.uninstall() }
         await server.shutdown()
