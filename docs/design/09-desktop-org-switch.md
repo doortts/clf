@@ -10,7 +10,7 @@
 
 | 경로 | 결과 | 근거 |
 |---|---|---|
-| `ANTHROPIC_BASE_URL` 프록시 | 불가 | 앱이 자식 환경에 직접 꽂고 관리 대상 변수로 잠금 |
+| `ANTHROPIC_BASE_URL` 프록시 | 불가 | settings.json 도 프로세스 환경도 무시한다. 8절 |
 | 딥링크 `claude://claude.ai/code/?org=` | 불가 | 빈 코딩 창만 열림. 조직 안 바뀜 |
 | 딥링크 `claude://claude.ai/?org=` | 불가 | 창도 안 열리고 조직도 그대로 |
 | 쿠키 쓰기 (앱 실행 중 + 즉시 반영) | 불가 | 메모리의 값이 UI 를 지배한다 |
@@ -206,3 +206,63 @@ scripts/desktop-org.py switch NAVER_TEAM_52
 재시작이 끼므로 **진행 중인 요청을 구제하는 스왑은 여전히 불가능하다.** 그건
 프록시가 있어야 하고 프록시는 데스크톱 앱에서 막혔다. 터미널 CLI 에서만 된다.
 데스크톱 앱에서 할 수 있는 것은 "한도에 닿기 전에 미리 넘어가기" 다.
+
+---
+
+## 8. 프록시가 정말 막혔는지 (재검증)
+
+처음 "막혔다"고 적은 근거가 약했다. 자식 프로세스 env 에 값이 있는 것을 보고
+앱이 꽂았다고 단정했는데, 부모에서 물려받은 것일 수도 있었다. "managed by
+Claude Desktop" 목록도 앱 **설정 UI** 의 입력을 막는 코드지 부모 환경 전달과는
+다른 경로다. 그래서 다시 확인했다.
+
+### 코드가 애매했다
+
+app.asar 에서 자식 환경을 조립하는 곳은 이렇다.
+
+```js
+const u = this.provider.apiHostOverride()
+opt({ env: { ...c, CLAUDE_CODE_HOST_AUTH_ENV_VAR: l ?? r,
+             ...(u && { ANTHROPIC_BASE_URL: u }) } })
+```
+
+`apiHostOverride()` 구현이 둘이다.
+
+```js
+apiHostOverride() { return null }               // 이쪽이면 키를 안 넣는다
+apiHostOverride() { return this.creds.baseUrl }
+```
+
+`null` 경로면 앱이 그 키를 넣지 않으므로 부모 환경이 물려질 여지가 있었다.
+
+### 끝단에서 확인했다
+
+`settings.json` 이 아니라 **앱 프로세스 환경**에 직접 넣고 바이너리를 실행했다.
+
+```
+ANTHROPIC_BASE_URL=http://127.0.0.1:51799 /Applications/Claude.app/Contents/MacOS/Claude
+```
+
+같은 시각 프록시를 51799 에 띄워 두었다. 60초 뒤 결과는 **요청 0건**이었다.
+
+앱이 그동안 놀고 있던 것이 아니다. 같은 구간 로그에 updater 와 oauth lookup 이
+찍혀 있다. 그리고 결정적으로,
+
+```
+2026-08-02 00:15:20 [info] using oauth config {
+  apiHost: 'https://api.anthropic.com',
+  ...
+}
+```
+
+`51799` 는 `main.log` 와 `claude.ai-web.log` 어디에도 없다.
+
+**앱은 프로세스 환경의 `ANTHROPIC_BASE_URL` 을 무시하고 자기 `apiHost` 를 쓴다.**
+`settings.json` 경로와 프로세스 환경 경로 둘 다 막혔다. 프록시는 데스크톱 앱에
+끼울 수 없다.
+
+### 확인 방법을 남긴다
+
+같은 검증을 다시 하려면 프록시 로그만 보지 말고 **앱 로그의 `using oauth config`
+블록**을 봐야 한다. 프록시에 요청이 안 온 것만으로는 "앱이 무시했다"와 "앱이
+요청을 안 했다"를 못 가른다.
