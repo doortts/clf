@@ -9,9 +9,15 @@ Chromium safe storage 로 암호화돼 있지만 키가 Keychain 에 있으므�
   list              로그인된 조직 목록
   switch <이름|uuid>  조직을 바꾼다. 앱을 껐다 켠다
 
+실측으로 확인했다. 앱이 부팅하며 이 쿠키를 읽고 그 조직으로 시작하며,
+그대로 유지된다. ~/Library/Logs/Claude/main.log 에 이렇게 남는다.
+
+  Updated allowlist enabled state for org <uuid>: false
+  [LocalSessionManager] Org changed from <이전> to <이후>
+
 주의: switch 는 앱을 종료한다. 열려 있던 대화 창이 닫힌다.
-앱이 도는 동안에는 쿠키를 못 바꾼다. Chromium 이 메모리 값을 나중에
-디스크로 덮어쓰기 때문이다. 그래서 종료 -> 쓰기 -> 실행 순서다.
+앱이 도는 동안에는 쿠키를 바꿔도 UI 가 안 따라온다. 이미 메모리에 든 값으로
+그려져 있기 때문이다. 그래서 종료 -> 쓰기 -> 실행 순서다.
 """
 
 import hashlib
