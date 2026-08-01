@@ -1,0 +1,139 @@
+import Foundation
+
+/// 조직 하나의 현재 상태. UI 가 그대로 그린다.
+public struct OrgUsage: Sendable, Equatable, Identifiable {
+    public let uuid: String
+    public let name: String
+    public let isActive: Bool
+    public let plan: String?
+    public let limits: [LimitKind: UsageLimit]
+    /// 못 읽었으면 이유. 값이 있으면 limits 는 비어 있다.
+    public let error: String?
+
+    public var id: String { uuid }
+
+    /// 셋 중 가장 좁은 창. 메뉴바가 한 조직을 한 숫자로 말해야 할 때 쓴다.
+    public var binding: UsageLimit? {
+        limits.values.min { $0.percentRemaining < $1.percentRemaining }
+    }
+
+    public init(uuid: String, name: String, isActive: Bool, plan: String?,
+                limits: [LimitKind: UsageLimit], error: String? = nil) {
+        self.uuid = uuid
+        self.name = name
+        self.isActive = isActive
+        self.plan = plan
+        self.limits = limits
+        self.error = error
+    }
+}
+
+public struct DesktopSnapshot: Sendable, Equatable {
+    public let orgs: [OrgUsage]
+    /// 앱에서 한 번도 열지 않아 토큰이 없는 조직 이름. 없는 것을 숨기지 않는다.
+    public let unreadable: [String]
+    public let readAt: Date
+
+    public init(orgs: [OrgUsage], unreadable: [String], readAt: Date) {
+        self.orgs = orgs
+        self.unreadable = unreadable
+        self.readAt = readAt
+    }
+
+    public var active: OrgUsage? { orgs.first { $0.isActive } }
+}
+
+/// Claude 데스크톱 앱의 상태를 읽는다.
+///
+/// **읽기만 한다.** 앱의 파일을 고치지 않고, 추론 요청도 보내지 않는다.
+/// 토큰 갱신은 앱이 하게 두고 만료되면 그 사실만 말한다.
+/// docs/design/10-desktop-usage.md
+public struct DesktopReader: Sendable {
+    public static let defaultSupportDirectory =
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Claude", isDirectory: true)
+
+    private let support: URL
+    private let session: any UsageFetching
+
+    public init(supportDirectory: URL = DesktopReader.defaultSupportDirectory,
+                session: any UsageFetching = LiveUsageFetcher()) {
+        self.support = supportDirectory
+        self.session = session
+    }
+
+    public var isInstalled: Bool {
+        FileManager.default.fileExists(atPath: support.appendingPathComponent("config.json").path)
+    }
+
+    public func read(now: Date = Date()) async throws -> DesktopSnapshot {
+        let key = try safeStorageKeyFromKeychain()
+        let tokens = try parseTokenCache(
+            try decryptConfigValue(key: key, keys: ["oauth:tokenCacheV2", "oauth:tokenCache"]))
+        let current = try? activeOrg(key: key)
+        let names = (try? await session.orgNames(sessionKey: sessionKey(key: key))) ?? [:]
+
+        var orgs: [OrgUsage] = []
+        for (uuid, token) in tokens {
+            let name = names[uuid] ?? String(uuid.prefix(8))
+            guard token.canReadUsage else {
+                orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
+                                     plan: token.subscriptionType, limits: [:],
+                                     error: "이 토큰에는 user:profile 스코프가 없다"))
+                continue
+            }
+            do {
+                let limits = try await session.usage(token: token.token)
+                orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
+                                     plan: token.subscriptionType, limits: limits))
+            } catch {
+                orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
+                                     plan: token.subscriptionType, limits: [:],
+                                     error: "\(error)"))
+            }
+        }
+        // 활성 조직을 맨 위에. 나머지는 이름순
+        orgs.sort { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
+
+        let unreadable = names.filter { tokens[$0.key] == nil }.values.sorted()
+        return DesktopSnapshot(orgs: orgs, unreadable: Array(unreadable), readAt: now)
+    }
+
+    // MARK: 파일에서 읽기
+
+    private func decryptConfigValue(key: Data, keys: [String]) throws -> Data {
+        let path = support.appendingPathComponent("config.json")
+        guard let data = FileManager.default.contents(atPath: path.path),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { throw SafeStorageError(description: "config.json 을 읽지 못했다") }
+
+        for name in keys {
+            guard let encoded = root[name] as? String,
+                  let blob = Data(base64Encoded: encoded) else { continue }
+            return try decryptV10(blob, key: key)
+        }
+        throw SafeStorageError(description: "config.json 에 oauth 토큰 캐시가 없다")
+    }
+
+    private func activeOrg(key: Data) throws -> String {
+        String(decoding: stripDomainHash(try cookie("lastActiveOrg", key: key)), as: UTF8.self)
+    }
+
+    private func sessionKey(key: Data) throws -> String {
+        String(decoding: stripDomainHash(try cookie("sessionKey", key: key)), as: UTF8.self)
+    }
+
+    /// 앱이 쥐고 있는 파일을 직접 열지 않는다. 사본을 만들어 읽는다.
+    private func cookie(_ name: String, key: Data) throws -> Data {
+        let source = support.appendingPathComponent("Cookies")
+        let copy = FileManager.default.temporaryDirectory
+            .appendingPathComponent("clfl-cookies-\(UUID().uuidString)")
+        try FileManager.default.copyItem(at: source, to: copy)
+        defer { try? FileManager.default.removeItem(at: copy) }
+
+        guard let blob = try readCookieBlob(from: copy, name: name) else {
+            throw SafeStorageError(description: "\(name) 쿠키가 없다")
+        }
+        return try decryptV10(blob, key: key)
+    }
+}

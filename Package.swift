@@ -12,6 +12,9 @@ let package = Package(
         .library(name: "ClflCore",  targets: ["ClflCore"]),
         .library(name: "ClflStore", targets: ["ClflStore"]),
         .library(name: "ClflProxy", targets: ["ClflProxy"]),
+        // Claude 데스크톱 앱의 상태를 읽는다. 우리 저장소가 아니라 남의 것이라
+        // ClflStore 와 섞지 않는다. docs/design/10-desktop-usage.md
+        .library(name: "ClflDesktop", targets: ["ClflDesktop"]),
         // 앱 없이 단계별로 실행하고 내부 상태를 들여다보는 도구.
         // docs/design/08-verification.md
         .executable(name: "clflctl", targets: ["clflctl"]),
@@ -29,6 +32,8 @@ let package = Package(
 
         .target(name: "ClflStore", dependencies: ["ClflCore"]),
 
+        .target(name: "ClflDesktop", dependencies: ["ClflCore"]),
+
         .target(
             name: "ClflProxy",
             dependencies: [
@@ -44,13 +49,14 @@ let package = Package(
         .executableTarget(
             name: "clflctl",
             dependencies: [
-                "ClflCore", "ClflStore", "ClflProxy",
+                "ClflCore", "ClflStore", "ClflProxy", "ClflDesktop",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
         ),
 
         .testTarget(name: "ClflCoreTests",  dependencies: ["ClflCore"]),
         .testTarget(name: "ClflStoreTests", dependencies: ["ClflStore"]),
+        .testTarget(name: "ClflDesktopTests", dependencies: ["ClflDesktop"]),
         // 가짜 업스트림을 소켓 수준에서 세운다. 프레이밍을 우리가 정해야
         // 청크 경계와 content-encoding 을 시험할 수 있다.
         .testTarget(

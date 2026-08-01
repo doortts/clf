@@ -25,6 +25,7 @@ struct CLFLCtl: AsyncParsableCommand {
             SSEPeek.self,
             Upstream.self,
             Serve.self,
+            Desktop.self,
         ]
     )
 }

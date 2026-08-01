@@ -88,11 +88,30 @@ IV   = 0x20 * 16
 
 ## 4. 도구
 
+Swift 로 옮겼다. `ClflDesktop` 타겟이 본체이고 메뉴바 앱이 이걸 그대로 쓴다.
+
 ```
-scripts/desktop-usage.py            표로
-scripts/desktop-usage.py --json     기계가 읽을 형태로
-scripts/desktop-usage.py --active   활성 조직만
+clflctl desktop usage            표로
+clflctl desktop usage --json     기계가 읽을 형태로
+clflctl desktop usage --active   활성 조직만
 ```
+
+`scripts/desktop-usage.py` 는 먼저 만든 원형이다. 두 구현이 같은 숫자를 내는 것을
+확인했으므로 Swift 쪽을 정본으로 삼고, Python 은 대조용으로 남긴다.
+
+### 무엇을 테스트로 잠갔나
+
+파일과 Keychain 과 네트워크를 뺀 나머지가 전부 순수 함수다.
+
+| 테스트 | 잡는 것 |
+|---|---|
+| `parseUsage` | `limits` 배열 해석, 모르는 `kind` 무시, 마이크로초 타임스탬프 |
+| `safeStorageKey` | PBKDF2 파라미터. 하나만 틀려도 실제 데이터를 못 푼다 |
+| `decryptV10` / `encryptV10` | 왕복. 접두사 없는 값은 손대지 않는다 |
+| `parseTokenCache` | 캐시 키에서 조직 uuid 뽑기, `user:profile` 판정 |
+| 스냅샷 조립 | 활성 조직 우선, 한 조직 실패가 나머지를 죽이지 않음 |
+
+`UsageFetching` 프로토콜이 네트워크 경계다. 테스트는 가짜를 꽂는다.
 
 ```
 * NAVER_TEAM_40  (지금 앱에서 쓰는 조직)

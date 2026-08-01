@@ -1,0 +1,116 @@
+import Foundation
+
+/// Claude 데스크톱 앱이 보여주는 세 줄.
+///
+/// ```
+/// 5-hour limit          session
+/// Weekly - all models   weekly_all
+/// Weekly - Fable        weekly_scoped
+/// ```
+/// docs/design/10-desktop-usage.md 1절
+public enum LimitKind: String, Sendable, CaseIterable {
+    case session
+    case weeklyAll = "weekly_all"
+    case weeklyScoped = "weekly_scoped"
+
+    public var label: String {
+        switch self {
+        case .session:      return "5시간"
+        case .weeklyAll:    return "주간 전체"
+        case .weeklyScoped: return "주간 모델별"
+        }
+    }
+}
+
+/// 한 창의 상태.
+///
+/// 서버는 **사용률**을 준다. 화면에는 잔여를 그리므로 그쪽은 파생시킨다.
+public struct UsageLimit: Sendable, Equatable {
+    public let percentUsed: Int
+    /// 사용률 0 인 창은 아직 안 열려 리셋 시각이 없다. 없는 것은 nil 로 둔다.
+    /// 0 이나 현재 시각으로 채우면 UI 가 거짓말한다.
+    public let resetsAt: Date?
+    /// 서버가 직접 주는 경고 등급. 우리 임계값과 대조할 수 있다.
+    public let severity: String
+
+    public init(percentUsed: Int, resetsAt: Date?, severity: String) {
+        self.percentUsed = percentUsed
+        self.resetsAt = resetsAt
+        self.severity = severity
+    }
+
+    public var percentRemaining: Int { 100 - percentUsed }
+
+    public var band: UsageBand {
+        switch percentRemaining {
+        case ..<5:   return .empty
+        case ..<15:  return .low
+        case ..<50:  return .normal
+        default:     return .ample
+        }
+    }
+}
+
+/// 메뉴바 색을 정하는 구간. 잔여 기준이다.
+public enum UsageBand: Sendable, Equatable {
+    case empty, low, normal, ample
+}
+
+public struct UsageParseError: Error, CustomStringConvertible {
+    public let description: String
+}
+
+/// `limits` 배열만 읽는다.
+///
+/// 응답에는 `five_hour`, `seven_day` 같은 평평한 필드도 있지만 그쪽은 모델별
+/// 주간을 담지 못한다. `limits` 가 세 줄을 그대로 담으므로 그것만 쓴다.
+///
+/// 모르는 `kind` 는 조용히 건너뛴다. 서버가 종류를 늘려도 우리가 죽으면 안 된다.
+public func parseUsage(_ data: Data) throws -> [LimitKind: UsageLimit] {
+    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        throw UsageParseError(description: "Usage 응답이 JSON 객체가 아니다")
+    }
+    guard let rows = root["limits"] as? [[String: Any]] else { return [:] }
+
+    var out: [LimitKind: UsageLimit] = [:]
+    for row in rows {
+        guard let raw = row["kind"] as? String, let kind = LimitKind(rawValue: raw),
+              let percent = row["percent"] as? Int else { continue }
+        out[kind] = UsageLimit(
+            percentUsed: percent,
+            resetsAt: parseTimestamp(row["resets_at"] as? String),
+            severity: row["severity"] as? String ?? "")
+    }
+    return out
+}
+
+/// `2026-08-01T16:00:00.371815+00:00`
+///
+/// 마이크로초가 붙어 온다. `.withInternetDateTime` 만으로는 못 읽으므로
+/// 분수 초를 켠 파서를 먼저 쓰고 없는 경우를 위해 한 번 더 시도한다.
+func parseTimestamp(_ text: String?) -> Date? {
+    guard let text else { return nil }
+    return ISOParsers.shared.date(from: text)
+}
+
+/// ISO8601DateFormatter 는 Sendable 이 아니고 만드는 비용이 싸지 않다.
+/// 메뉴바가 주기적으로 갱신하며 여러 번 부르므로 하나를 락으로 공유한다.
+private final class ISOParsers: @unchecked Sendable {
+    static let shared = ISOParsers()
+
+    private let lock = NSLock()
+    private let fractional: ISO8601DateFormatter
+    private let plain: ISO8601DateFormatter
+
+    private init() {
+        fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+    }
+
+    func date(from text: String) -> Date? {
+        lock.lock(); defer { lock.unlock() }
+        return fractional.date(from: text) ?? plain.date(from: text)
+    }
+}
