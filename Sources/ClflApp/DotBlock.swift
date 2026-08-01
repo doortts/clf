@@ -14,10 +14,13 @@ enum Metrics {
     static let barGap: CGFloat = 1
     static let barColumns = 17
 
-    /// 팝오버 막대는 6pt. 칸 4x6, 간격 2pt, 29칸이면 폭 172pt.
-    static let popoverCell = CGSize(width: 4, height: 6)
-    static let popoverGap: CGFloat = 2
-    static let popoverColumns = 29
+    /// 팝오버 막대. 디더 격자 2pt, 네 줄이면 높이 8pt.
+    ///
+    /// 시안은 6pt 라고 적었는데 디더로 그리면 세 줄은 선처럼 얇아 보인다.
+    /// 질감이 보여야 게이지로 읽힌다. 85칸이면 폭 170pt.
+    static let ditherPitch: CGFloat = 2
+    static let ditherRows = 4
+    static let ditherColumns = 85
 }
 
 extension UsageBand {
@@ -107,5 +110,51 @@ struct DotBlock: View {
             }
         }
         .fixedSize()
+    }
+}
+
+/// 레트로 디더 게이지.
+///
+/// 칸을 떨어뜨려 놓지 않고 막대 하나 안에서 **점의 밀도**로 채움을 표현한다.
+/// 채운 쪽은 촘촘하고 빈 쪽은 성기다.
+///
+/// 격자는 2pt = 4px, 채운 점 1.5pt = 3px, 빈 점 0.5pt = 1px. 전부 2배 화면에서
+/// 정수 픽셀이라 번지지 않는다. 점을 칸 한가운데 두면 0.25pt 같은 값이 나와
+/// 다시 흐려지므로, 채운 점은 칸 왼쪽 위에 붙이고 빈 점만 안쪽 픽셀에 놓는다.
+struct RetroBar: View {
+    let limit: UsageLimit?
+    var pitch = Metrics.ditherPitch
+    var rows = Metrics.ditherRows
+    var columns = Metrics.ditherColumns
+    var dark = true
+
+    private var filled: Int {
+        guard let limit, limit.percentRemaining > 0 else { return 0 }
+        // 1% 라도 남았으면 한 칸은 켠다. 0 으로 그리면 소진과 구별이 안 된다
+        return max(1, Int((Double(columns) * Double(limit.percentRemaining) / 100).rounded()))
+    }
+
+    var body: some View {
+        let on = limit?.band.dotColor(dark: dark) ?? Color.secondary
+        let off = Color.primary.opacity(dark ? 0.20 : 0.15)
+        let cut = filled
+        Canvas { ctx, _ in
+            let big: CGFloat = 1.5, small: CGFloat = 0.5
+            for row in 0..<rows {
+                let y = CGFloat(row) * pitch
+                for col in 0..<columns {
+                    let x = CGFloat(col) * pitch
+                    if col < cut {
+                        ctx.fill(Path(CGRect(x: x, y: y, width: big, height: big)),
+                                 with: .color(on))
+                    } else {
+                        ctx.fill(Path(CGRect(x: x + small, y: y + small,
+                                             width: small, height: small)),
+                                 with: .color(off))
+                    }
+                }
+            }
+        }
+        .frame(width: pitch * CGFloat(columns), height: pitch * CGFloat(rows))
     }
 }

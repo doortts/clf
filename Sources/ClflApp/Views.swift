@@ -72,8 +72,7 @@ struct OrgCard: View {
                 Text(kind.label)
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .frame(width: 56, alignment: .leading)
-                DotRow(limit: limit, cell: Metrics.popoverCell, gap: Metrics.popoverGap,
-                       columns: Metrics.popoverColumns)
+                RetroBar(limit: limit)
                 Spacer(minLength: 0)
                 Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
                     .font(.system(size: 11, weight: .semibold).monospacedDigit())
