@@ -10,7 +10,7 @@ enum Metrics {
 
     /// 메뉴바 게이지. 스무 칸이라 한 칸이 5% 다.
     ///
-    /// 칸 1pt = 2px, 안쪽 높이 3pt = 6px, 테두리 0.5pt = 1px, 줄 사이 1pt = 2px.
+    /// 칸 1pt = 2px, 안쪽 높이 3pt = 6px, 테두리 0.5pt = 1px, 줄 사이 2pt = 4px.
     /// 2배 화면에서 전부 정수 픽셀이다.
     ///
     /// 테두리는 줄마다 따로 긋고 등급색으로 칠한다. 그래서 **여기까지가 100%**
@@ -21,7 +21,7 @@ enum Metrics {
     static let segRowHeight: CGFloat = 3
     static let segBorder: CGFloat = 0.5
     /// 줄 사이. 테두리를 각자 그으므로 그 사이를 띄운다.
-    static let segRowGap: CGFloat = 1
+    static let segRowGap: CGFloat = 2
 
     /// 팝오버 막대. 디더 격자 2pt, 네 줄이면 높이 8pt.
     ///
