@@ -17,14 +17,20 @@ public enum CooldownScope: Sendable, Equatable {
 /// 모델 범위 쿨다운이 이 모델의 핵심이다. 같은 조직이 한 모델에는 cooling 이고
 /// 다른 모델에는 ready 일 수 있다. 그래서 model 을 인자로 받는다.
 public func availability(
-    _ r: AccountRuntime,
+    _ runtime: AccountRuntime,
     for model: ModelID,
     now: Date,
     activeID: AccountID?,
     id: AccountID
 ) -> Availability {
-    _ = (r, model, now, activeID, id)
-    fatalError("TODO: invalid -> account cooling -> model cooling -> active/ready 순")
+    if let at = runtime.invalidatedAt { return .invalid(since: at) }
+    if let until = runtime.accountCooldownUntil, until > now {
+        return .cooling(until: until, scope: .account)
+    }
+    if let until = runtime.modelCooldowns[model], until > now {
+        return .cooling(until: until, scope: .model(model))
+    }
+    return id == activeID ? .active : .ready
 }
 
 /// 스왑 결과를 런타임 상태에 적용한다. docs/design/02-domain-model.md 4절
@@ -37,8 +43,27 @@ public enum RoutingOutcome: Sendable {
 }
 
 /// 동시 요청이 같은 조직에 쿨다운을 적용하면 나중 값으로 덮어쓴다.
-/// 최신 429 가 가장 신선한 reset_epoch 를 들고 있기 때문이다.
+/// 최신 429 가 가장 신선한 reset 을 들고 있기 때문이다.
 public func apply(_ outcome: RoutingOutcome, to runtime: inout AccountRuntime, now: Date) {
-    _ = (outcome, runtime, now)
-    fatalError("TODO")
+    switch outcome {
+    case .success(_, let rateLimit):
+        runtime.lastUsedAt = now
+        if let rateLimit { runtime.rateLimit = rateLimit }
+        // 성공했다는 것은 자격증명이 살아있다는 뜻이다
+        runtime.invalidatedAt = nil
+
+    case .rateLimited(let model, let until, let transient):
+        runtime.modelCooldowns[model] = transient
+            ? now.addingTimeInterval(TimeInterval(transientCooldownSeconds))
+            : until
+
+    case .sessionLimited(let until):
+        runtime.accountCooldownUntil = until
+
+    case .invalidated:
+        runtime.invalidatedAt = now
+
+    case .passthrough:
+        break
+    }
 }

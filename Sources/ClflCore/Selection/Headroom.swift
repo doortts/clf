@@ -9,11 +9,16 @@ public enum HeadroomBand: Sendable, Equatable {
     case empty      // 5% 미만. 빨강
 }
 
+public let emptyBandThreshold = 0.05
+public let ampleBandThreshold = 0.50
+
 /// lowThreshold 는 선제 전환 임계값과 같은 값을 넘겨받는다.
 /// 두 값이 어긋나면 "노란데 아직 새 대화가 이 조직으로 가네" 같은 모순이 생긴다.
 public func band(remaining: Double, lowThreshold: Double = 0.15) -> HeadroomBand {
-    _ = (remaining, lowThreshold)
-    fatalError("TODO")
+    if remaining < emptyBandThreshold { return .empty }
+    if remaining < lowThreshold       { return .low }
+    if remaining < ampleBandThreshold { return .normal }
+    return .ample
 }
 
 /// 이 요청을 묶는 창의 잔여 비율. 없으면 nil.
@@ -29,11 +34,22 @@ public func band(remaining: Double, lowThreshold: Double = 0.15) -> HeadroomBand
 ///   활성 조직 판단 -> true.  만료를 모르는 묵은 낮은 값이 강등을 유발하면 안 된다
 ///   후보 조직 판단 -> false. 묵은 낮은 값은 그 후보를 뒤로 밀 뿐이라 안전하다
 public func bindingHeadroom(
-    _ s: RateLimitSnapshot?,
+    _ snapshot: RateLimitSnapshot?,
     for model: ModelID,
     now: Date,
     requireKnownReset: Bool
 ) -> Double? {
-    _ = (s, model, now, requireKnownReset)
-    fatalError("TODO: 세 창의 usable 잔여 중 min")
+    guard let snapshot else { return nil }
+
+    func usable(_ window: Window?) -> Double? {
+        guard let window else { return nil }
+        guard let resetsAt = window.resetsAt else {
+            return requireKnownReset ? nil : window.remaining
+        }
+        return resetsAt < now ? nil : window.remaining
+    }
+
+    return [usable(snapshot.fiveHour),
+            usable(snapshot.sevenDayAll),
+            usable(snapshot.modelWeekly[model])].compactMap { $0 }.min()
 }

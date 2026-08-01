@@ -1,5 +1,7 @@
 import Foundation
 
+public let defaultAnthropicBaseURL = URL(string: "https://api.anthropic.com")!
+
 /// docs/design/02-domain-model.md 3절
 public struct Selection: Sendable, Equatable {
     public let accountID: AccountID
@@ -39,8 +41,8 @@ public struct SelectionInput: Sendable {
     public init(
         priority: [AccountID], accounts: [AccountID: Account],
         runtime: [AccountID: AccountRuntime], model: ModelID, now: Date,
-        tried: Set<AccountID>, activeID: AccountID?,
-        isConversationStart: Bool,
+        tried: Set<AccountID> = [], activeID: AccountID? = nil,
+        isConversationStart: Bool = false,
         proactiveThreshold: Double = 0.15,
         proactiveHysteresis: Double = 0.10
     ) {
@@ -76,6 +78,53 @@ public struct SelectionInput: Sendable {
 /// 그쪽은 선제 전환만 하므로 후보를 빼도 제자리에 있으면 그만이지만, 우리는 반응형
 /// 경로가 있어 후보를 풀에서 빼면 429 때 넘어갈 곳이 사라진다.
 public func select(_ input: SelectionInput) -> SelectionResult {
-    _ = input
-    fatalError("TODO")
+    var tier0: [AccountID] = []
+    var tier1: [AccountID] = []
+    var earliestRecovery: Date?
+    var unblockable: [AccountID] = []
+
+    for id in input.priority {
+        guard let account = input.accounts[id] else { continue }
+        if input.tried.contains(id) { continue }
+
+        let rt = input.runtime[id] ?? AccountRuntime()
+        let state = availability(rt, for: input.model, now: input.now,
+                                 activeID: input.activeID, id: id)
+
+        // 사용자가 뺀 조직. 지금 쓸 수 있는 상태면 "켜면 풀린다" 목록에 담는다
+        guard account.autoSwitch else {
+            if case .ready = state { unblockable.append(id) }
+            if case .active = state { unblockable.append(id) }
+            continue
+        }
+
+        switch state {
+        case .invalid:
+            continue
+        case .cooling(let until, _):
+            if earliestRecovery == nil || until < earliestRecovery! { earliestRecovery = until }
+            continue
+        case .ready, .active:
+            break
+        }
+
+        guard input.isConversationStart else { tier0.append(id); continue }
+
+        let ceiling = input.proactiveThreshold + input.proactiveHysteresis
+        let headroom = bindingHeadroom(rt.rateLimit, for: input.model, now: input.now,
+                                       requireKnownReset: id == input.activeID)
+        if let headroom, headroom >= ceiling { tier0.append(id) } else { tier1.append(id) }
+    }
+
+    if let pick = tier0.first ?? tier1.first, let account = input.accounts[pick] {
+        let activePlan = input.activeID.flatMap { input.accounts[$0]?.plan }
+        return .selected(Selection(
+            accountID: pick,
+            plan: account.plan,
+            baseURL: account.baseURL ?? defaultAnthropicBaseURL,
+            isCrossPlan: activePlan.map { $0 != account.plan } ?? false))
+    }
+
+    if let until = earliestRecovery { return .wait(until: until) }
+    return .exhausted(unblockable: unblockable)
 }

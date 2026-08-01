@@ -1,3 +1,5 @@
+public let transientCooldownSeconds = 5
+
 /// 진짜 quota 소진과 일시적 과부하 429 를 구분한다.
 /// docs/porting/02-response-classification.md 4절
 ///
@@ -11,8 +13,8 @@
 /// 이 구분이 없으면 시작 시 건강한 조직마다 과부하 429 를 연쇄로 맞고 각각 60초
 /// 벤치되어 풀 전체가 암전된다.
 public func isTransientOverload(headers: HeaderBag, trigger: SwapTrigger) -> Bool {
-    _ = (headers, trigger)
-    fatalError("TODO")
+    // sessionLimit(공유 5h 예산)과 authentication 은 절대 transient 가 아니다
+    guard case .rateLimit = trigger else { return false }
+    guard headers["x-should-retry"] == "true" else { return false }
+    return !headers.storage.keys.contains { $0.hasPrefix("anthropic-ratelimit-") }
 }
-
-public let transientCooldownSeconds = 5

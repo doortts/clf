@@ -24,18 +24,61 @@ public struct SSEParser: Sendable {
 
     /// 청크를 밀어 넣고 완성된 이벤트를 모두 받는다. 부분 줄/프레임은 버퍼링된다.
     public mutating func push(_ chunk: [UInt8]) -> [SSEEvent] {
-        _ = chunk
-        fatalError("TODO")
+        lineBuf.append(contentsOf: chunk)
+        var out: [SSEEvent] = []
+        while let nl = lineBuf.firstIndex(of: LF) {
+            var lineBytes = Array(lineBuf[..<nl])
+            if lineBytes.last == CR { lineBytes.removeLast() }   // CRLF 정규화
+            lineBuf.removeFirst(nl + 1)
+            if let event = handleLine(String(decoding: lineBytes, as: UTF8.self)) {
+                out.append(event)
+            }
+        }
+        return out
     }
 
     /// 종단 빈 줄 없이 업스트림이 깨끗하게 닫혔을 때 남은 이벤트를 흘려보낸다.
     public mutating func flush() -> [SSEEvent] {
-        fatalError("TODO")
+        var out: [SSEEvent] = []
+        if !lineBuf.isEmpty {
+            let line = String(decoding: lineBuf, as: UTF8.self)
+            lineBuf.removeAll()
+            if let event = handleLine(line) { out.append(event) }
+        }
+        if let trailing = emit() { out.append(trailing) }
+        return out
+    }
+
+    private mutating func handleLine(_ line: String) -> SSEEvent? {
+        if line.isEmpty { return emit() }           // 빈 줄 = 프레임 종단
+        if line.hasPrefix(":") { return nil }       // 주석
+
+        let colon = line.firstIndex(of: ":")
+        let field = colon.map { String(line[..<$0]) } ?? line
+        var value = colon.map { String(line[line.index(after: $0)...]) } ?? ""
+        if value.hasPrefix(" ") { value.removeFirst() }   // 선행 공백 1개만 제거
+
+        inFrame = true
+        switch field {
+        case "event": currentEvent = value
+        case "data":  currentData.append(value)
+        default:      break                         // id / retry / unknown: 수용하되 무시
+        }
+        return nil
+    }
+
+    private mutating func emit() -> SSEEvent? {
+        guard inFrame else { return nil }
+        let event = SSEEvent(event: currentEvent, data: currentData.joined(separator: "\n"))
+        currentEvent = ""
+        currentData.removeAll()
+        inFrame = false
+        return event
     }
 }
 
 /// 버퍼 하나에서 첫 완성 이벤트만 뽑는 편의 함수. peek 결과 판정에 쓴다.
 public func parseFirstSSEEvent(_ bytes: [UInt8]) -> SSEEvent? {
-    _ = bytes
-    fatalError("TODO")
+    var parser = SSEParser()
+    return parser.push(bytes).first
 }

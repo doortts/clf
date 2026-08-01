@@ -7,8 +7,8 @@ import Foundation
 public enum ProxyHeaders {
 
     /// 업스트림 전송 전 클라이언트 요청에서 제거.
-    /// authorization/x-api-key 는 우리 토큰으로 대체되므로 클라이언트 값은 오염된
-    /// 것으로 간주한다. host 는 업스트림 URL 이 자체 Host 를 정의.
+    /// authorization/x-api-key 는 우리 자격증명으로 대체되므로 클라이언트 값은
+    /// 오염된 것으로 간주한다. host 는 업스트림 URL 이 자체 Host 를 정의.
     /// 나머지는 RFC 7230 6.1 hop-by-hop.
     public static let requestBlocklist: Set<String> = [
         "authorization", "x-api-key", "host",
@@ -33,22 +33,40 @@ public enum ProxyHeaders {
     public static let defaultAnthropicVersion = "2023-06-01"
 
     public static func stripClientHopByHop(_ headers: HeaderBag) -> HeaderBag {
-        _ = headers
-        fatalError("TODO: requestBlocklist 를 제거하고 키를 소문자화한다")
+        var out = HeaderBag()
+        for (key, value) in headers.storage where !requestBlocklist.contains(key) {
+            out[key] = value
+        }
+        return out
     }
 
     /// 최우선 규칙. OAuth 토큰을 x-api-key 로 보내면 401 "invalid x-api-key" 가 나고
     /// 모든 조직이 차례로 invalid 처리되어 체인이 즉시 소진된다.
     /// docs/porting/01-headers-and-auth.md 2절
     public static func rewriteAuth(_ headers: HeaderBag, token: String) -> HeaderBag {
-        _ = (headers, token)
-        fatalError("TODO: oat01 이면 Bearer + anthropic-beta 병합, 아니면 x-api-key")
+        var out = headers
+        guard token.hasPrefix(oauthTokenPrefix) else {
+            // 클래식 API 키 분기. anthropic-beta 는 건드리지 않는다
+            out["x-api-key"] = token
+            return out
+        }
+        let existingBeta = out["anthropic-beta"]
+        out["authorization"] = "Bearer \(token)"
+        out["anthropic-beta"] = mergeBetaFlag(existing: existingBeta, flag: oauthBetaFlag)
+        return out
     }
 
     /// 기존 값 순서를 보존하며 플래그를 병합. 이미 있으면 중복 추가하지 않음(멱등).
+    /// Claude Code 가 claude-code-* 플래그를 이미 보내므로 덮어쓰면 안 된다.
     public static func mergeBetaFlag(existing: String?, flag: String) -> String {
-        _ = (existing, flag)
-        fatalError("TODO")
+        guard let existing, !existing.isEmpty else { return flag }
+        var parts = existing
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if parts.isEmpty { return flag }
+        if !parts.contains(flag) { parts.append(flag) }
+        return parts.joined(separator: ", ")
     }
 
     /// 클라이언트가 보낸 값이 있으면 그대로 보존하고, 없을 때만 기본값 주입.
@@ -56,8 +74,9 @@ public enum ProxyHeaders {
         _ headers: HeaderBag,
         default version: String = defaultAnthropicVersion
     ) -> HeaderBag {
-        _ = (headers, version)
-        fatalError("TODO")
+        var out = headers
+        if out["anthropic-version"] == nil { out["anthropic-version"] = version }
+        return out
     }
 
     /// 프로덕션 경로는 항상 clientDecodedBody: true 로 부른다. 업스트림 자동 해제를
@@ -68,14 +87,21 @@ public enum ProxyHeaders {
         _ upstream: HeaderBag,
         clientDecodedBody: Bool
     ) -> HeaderBag {
-        _ = (upstream, clientDecodedBody)
-        fatalError("TODO: responseBlocklist + content-length + (조건부) content-encoding 제거")
+        var out = HeaderBag()
+        for (key, value) in upstream.storage {
+            if responseBlocklist.contains(key) { continue }
+            if key == "content-length" { continue }          // 프레이밍은 우리가 소유
+            if key == "content-encoding", clientDecodedBody { continue }
+            out[key] = value
+        }
+        return out
     }
 
     /// URLComponents 를 쓰지 말 것. 정규화가 기업 게이트웨이의 path prefix 를
     /// 망가뜨리고 query 를 재인코딩한다. 문자열 결합이 의도된 구현.
     public static func buildUpstreamURL(baseURL: String, requestURI: String) -> String {
-        _ = (baseURL, requestURI)
-        fatalError("TODO")
+        let base = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
+        let path = requestURI.hasPrefix("/") ? requestURI : "/" + requestURI
+        return base + path
     }
 }
