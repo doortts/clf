@@ -10,22 +10,30 @@ import Foundation
 public struct RefreshPacer: Sendable {
     public static let activeInterval = Duration.seconds(300)
     public static let idleInterval = Duration.seconds(600)
+    /// 429 를 받았을 때. 창이 언제 열리는지 서버가 안 알려주므로 넉넉히 쉰다.
+    public static let throttledInterval = Duration.seconds(900)
     /// 몇 번 연속 그대로여야 조용하다고 볼지.
     public static let idleThreshold = 3
 
     /// 연속으로 변화가 없었던 횟수. 첫 관측은 비교 대상이 없어 세지 않는다.
     public private(set) var idleStreak = 0
+    private var backedOff = false
     private var fingerprint: String?
 
     public init() {}
 
     public var currentInterval: Duration {
-        idleStreak >= Self.idleThreshold ? Self.idleInterval : Self.activeInterval
+        if backedOff { return Self.throttledInterval }
+        return idleStreak >= Self.idleThreshold ? Self.idleInterval : Self.activeInterval
     }
 
     /// 스냅샷 하나를 보고 다음 주기를 돌려준다.
     @discardableResult
     public mutating func observe(_ snapshot: DesktopSnapshot) -> Duration {
+        backedOff = snapshot.throttled
+        // 막힌 동안 값이 그대로인 것은 조용한 게 아니다
+        if snapshot.throttled { idleStreak = 0; return currentInterval }
+
         guard let current = Self.fingerprint(of: snapshot) else {
             // 아무것도 못 읽었으면 정보가 없는 것이다. 조용하다고 단정하지 않는다.
             // 여기서 느려지면 API 가 돌아왔을 때 알아차리는 데 오래 걸린다

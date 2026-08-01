@@ -11,6 +11,13 @@ public protocol UsageFetching: Sendable {
 
 public struct UsageFetchError: Error, CustomStringConvertible {
     public let description: String
+    /// 429. 실패와 다르다. 서버가 그만 물어보라고 한 것이다.
+    public let throttled: Bool
+
+    public init(description: String, throttled: Bool = false) {
+        self.description = description
+        self.throttled = throttled
+    }
 }
 
 public struct LiveUsageFetcher: UsageFetching {
@@ -30,11 +37,18 @@ public struct LiveUsageFetcher: UsageFetching {
 
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200 else {
-            // 401 은 토큰 만료다. 우리가 갱신하지 않고 사용자에게 길을 알려준다
-            throw UsageFetchError(description: status == 401
-                ? "토큰 만료. 앱에서 이 조직을 한 번 열면 갱신된다"
-                : "Usage API HTTP \(status)")
+        switch status {
+        case 200:
+            break
+        case 401:
+            // 우리가 갱신하지 않고 사용자에게 길을 알려준다
+            throw UsageFetchError(description: "토큰 만료. 앱에서 이 조직을 한 번 열면 갱신된다")
+        case 429:
+            // 짧은 시간에 여러 번 부르면 이게 온다. 더 두드리면 창이 안 열린다
+            throw UsageFetchError(description: "요청이 너무 잦다. 잠시 뒤 다시 읽는다",
+                                  throttled: true)
+        default:
+            throw UsageFetchError(description: "Usage API HTTP \(status)")
         }
         return try parseUsage(data)
     }

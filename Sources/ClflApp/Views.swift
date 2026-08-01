@@ -98,6 +98,34 @@ struct SettingsPane: View {
             Text("팝오버에는 켜 둔 조직이 전부 나온다")
                 .font(.system(size: 9)).foregroundStyle(.tertiary)
 
+            Divider()
+
+            VStack(alignment: .leading, spacing: 2) {
+                Toggle(isOn: Binding(
+                    get: { model.loginItem.isChecked },
+                    set: { model.setLoginItem($0) }
+                )) {
+                    Text(model.loginItem.label).font(.system(size: 11))
+                }
+                .toggleStyle(.checkbox)
+                .disabled(!model.loginItem.isToggleable)
+
+                if let hint = model.loginItem.hint {
+                    HStack(spacing: 4) {
+                        Text(hint).font(.system(size: 9)).foregroundStyle(.secondary)
+                        if model.loginItem == .needsApproval {
+                            // 경로를 말로 설명하는 것보다 열어주는 편이 낫다
+                            Button("열기") { model.openLoginItemSettings() }
+                                .buttonStyle(.borderless).font(.system(size: 9))
+                                .accessibilityLabel("로그인 항목 설정 열기")
+                        }
+                    }
+                    .padding(.leading, 18)
+                }
+            }
+
+            Divider()
+
             ForEach(model.known) { org in
                 HStack(spacing: 6) {
                     Toggle(isOn: Binding(

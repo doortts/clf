@@ -13,6 +13,8 @@ final class UsageModel: ObservableObject {
     @Published private(set) var readAt: Date?
     @Published private(set) var refreshing = false
     @Published private(set) var prefs = DesktopPreferences()
+    /// 시스템이 쥔 값이라 우리 설정 파일에 없다. 열 때마다 물어본다.
+    @Published private(set) var loginItem = LoginItemState.off
 
     private let reader: DesktopReader
     private let file: DesktopPreferencesFile?
@@ -25,6 +27,7 @@ final class UsageModel: ObservableObject {
         self.reader = reader
         self.file = try? DesktopPreferencesFile()
         if let file { prefs = file.load() }
+        loginItem = LoginItem.state
     }
 
     /// 켜자마자 한 번 읽고, 그다음은 사용량이 정하는 주기로.
@@ -65,6 +68,15 @@ final class UsageModel: ObservableObject {
     }
 
     // MARK: 설정
+
+    func setLoginItem(_ enabled: Bool) {
+        LoginItem.set(enabled)
+        // 우리가 원한 값이 아니라 시스템이 답한 값을 그린다. 등록이 승인 대기로
+        // 떨어질 수 있고 그때 켜진 것처럼 보이면 안 된다
+        loginItem = LoginItem.state
+    }
+
+    func openLoginItemSettings() { LoginItem.openSystemSettings() }
 
     func setHidden(_ uuid: String, _ value: Bool) {
         prefs.setHidden(uuid, value)

@@ -165,3 +165,50 @@ final class BarContentTests: XCTestCase {
                        .activeOnly)
     }
 }
+
+/// 429 를 받으면 물러선다.
+///
+/// 실측으로 만났다. Usage API 는 짧은 시간에 여러 번 부르면 429 를 준다.
+/// 그때 5분마다 계속 두드리면 창이 안 열린다.
+final class ThrottleBackoffTests: XCTestCase {
+    private func throttled() -> DesktopSnapshot {
+        DesktopSnapshot(
+            orgs: [OrgUsage(uuid: "a", name: "A", isActive: true, plan: "team",
+                            limits: [:], error: "요청이 너무 잦다")],
+            unreadable: [], throttled: true, readAt: Date())
+    }
+    private func ok(_ used: Int) -> DesktopSnapshot {
+        DesktopSnapshot(
+            orgs: [OrgUsage(uuid: "a", name: "A", isActive: true, plan: "team",
+                            limits: [.session: UsageLimit(percentUsed: used, resetsAt: nil,
+                                                          severity: "normal")])],
+            unreadable: [], readAt: Date())
+    }
+
+    /// 한 번만 받아도 곧바로 물러선다. 세 번 기다릴 일이 아니다.
+    func test_backsOffOnTheFirstThrottle() {
+        var pacer = RefreshPacer()
+        _ = pacer.observe(ok(10))
+        XCTAssertEqual(pacer.observe(throttled()), RefreshPacer.throttledInterval)
+    }
+
+    /// 물러난 간격은 조용할 때보다 길어야 한다. 안 그러면 물러난 게 아니다.
+    func test_throttledIsTheLongestInterval() {
+        XCTAssertGreaterThan(RefreshPacer.throttledInterval, RefreshPacer.idleInterval)
+    }
+
+    /// 풀리면 바로 돌아온다.
+    func test_recoversOnTheNextGoodRead() {
+        var pacer = RefreshPacer()
+        _ = pacer.observe(throttled())
+        XCTAssertEqual(pacer.observe(ok(10)), RefreshPacer.activeInterval)
+    }
+
+    /// 막힌 동안 값이 그대로인 것은 조용한 게 아니다. 물러난 상태를 유지한다.
+    func test_repeatedThrottlingStaysBackedOff() {
+        var pacer = RefreshPacer()
+        for _ in 0..<5 { _ = pacer.observe(throttled()) }
+        XCTAssertEqual(pacer.currentInterval, RefreshPacer.throttledInterval)
+        XCTAssertEqual(pacer.idleStreak, 0)
+    }
+}

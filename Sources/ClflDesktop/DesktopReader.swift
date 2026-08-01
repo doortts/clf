@@ -35,13 +35,17 @@ public struct DesktopSnapshot: Sendable, Equatable {
     public let unreadable: [String]
     /// 그 조직들의 uuid. 설정에서 순서와 숨김을 걸려면 uuid 가 있어야 한다.
     public let unreadableByUUID: [String: String]
+    /// 서버가 429 로 막았다. 실패와 다르다. 더 물어보면 안 된다는 뜻이다.
+    public let throttled: Bool
     public let readAt: Date
 
     public init(orgs: [OrgUsage], unreadable: [String],
-                unreadableByUUID: [String: String] = [:], readAt: Date) {
+                unreadableByUUID: [String: String] = [:],
+                throttled: Bool = false, readAt: Date) {
         self.orgs = orgs
         self.unreadable = unreadable
         self.unreadableByUUID = unreadableByUUID
+        self.throttled = throttled
         self.readAt = readAt
     }
 
@@ -90,6 +94,7 @@ public struct DesktopReader: Sendable {
         let names = (try? await session.orgNames(sessionKey: sessionKey(key: key))) ?? [:]
 
         var orgs: [OrgUsage] = []
+        var throttled = false
         for (uuid, token) in tokens {
             let name = names[uuid] ?? String(uuid.prefix(8))
             guard token.canReadUsage else {
@@ -103,6 +108,7 @@ public struct DesktopReader: Sendable {
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
                                      plan: token.subscriptionType, limits: limits))
             } catch {
+                if (error as? UsageFetchError)?.throttled == true { throttled = true }
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
                                      plan: token.subscriptionType, limits: [:],
                                      error: "\(error)"))
@@ -115,6 +121,7 @@ public struct DesktopReader: Sendable {
         return DesktopSnapshot(orgs: orgs,
                                unreadable: missing.values.sorted(),
                                unreadableByUUID: missing,
+                               throttled: throttled,
                                readAt: now)
     }
 
