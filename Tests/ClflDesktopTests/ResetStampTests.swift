@@ -16,8 +16,8 @@ final class ResetStampTests: XCTestCase {
 
     /// 하루 안쪽이면 남은 시간만. 괄호가 붙으면 잡음이다.
     func test_underADayStaysRelative() {
-        XCTAssertEqual(stamp(3 * 3600 + 36 * 60), "3시간 36분 뒤")
-        XCTAssertEqual(stamp(12 * 60), "12분 뒤")
+        XCTAssertEqual(stamp(3 * 3600 + 36 * 60), "리셋: 3시간 36분 뒤")
+        XCTAssertEqual(stamp(12 * 60), "리셋: 12분 뒤")
     }
 
     /// 정확히 24시간은 아직 넘은 것이 아니다.
@@ -27,7 +27,7 @@ final class ResetStampTests: XCTestCase {
 
     func test_overADayGetsTheClockTime() {
         let text = stamp(5 * 86400 + 3600)
-        XCTAssertTrue(text.hasPrefix("5일 1시간 뒤 ("), text)
+        XCTAssertTrue(text.hasPrefix("리셋: 5일 1시간 뒤 ("), text)
         XCTAssertTrue(text.hasSuffix(")"), text)
         XCTAssertTrue(text.contains("요일"), text)
         // 오전이든 오후든 하나는 있어야 한다
@@ -39,16 +39,16 @@ final class ResetStampTests: XCTestCase {
         let target = now.addingTimeInterval(5 * 86400 + 3600)
         let relative = BarText.until(target, from: now)
         XCTAssertTrue(BarText.reset(target, from: now, locale: ko, timeZone: seoul)
-            .hasPrefix(relative))
+            .hasPrefix(BarText.prefix + relative))
     }
 
-    /// 사용률 0 인 창은 리셋 시각이 없다. 괄호를 억지로 붙이지 않는다.
+    /// 창이 안 열렸으면 `리셋:` 도 안 붙인다. 리셋할 것이 아직 없다.
     func test_noWindowNoStamp() {
         XCTAssertEqual(BarText.reset(nil, from: now, locale: ko, timeZone: seoul), "창 안 열림")
     }
 
     func test_pastResetReadsAsDone() {
-        XCTAssertEqual(stamp(-600), "지남")
+        XCTAssertEqual(stamp(-600), "리셋: 지남")
     }
 
     /// 괄호가 겹치면 안 된다. ko_KR 템플릿이 요일을 괄호로 감싸는 바람에
@@ -56,7 +56,7 @@ final class ResetStampTests: XCTestCase {
     func test_exactShape() {
         let text = stamp(5 * 86400 + 3600)
         XCTAssertFalse(text.contains("(("), text)
-        let pattern = #"^\d+일( \d+시간)? 뒤 \([가-힣]+요일 (오전|오후) \d{1,2}:\d{2}\)$"#
+        let pattern = #"^리셋: \d+일( \d+시간)? 뒤 \([가-힣]+요일 (오전|오후) \d{1,2}:\d{2}\)$"#
         XCTAssertNotNil(text.range(of: pattern, options: .regularExpression), text)
     }
 

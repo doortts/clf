@@ -102,9 +102,12 @@ public enum BarText {
     /// 감이 안 오지만, 하루 안쪽이면 남은 시간만으로 충분하고 괄호는 잡음이다.
     ///
     /// ```
-    /// 3시간 36분 뒤
-    /// 5일 1시간 뒤 (금요일 오전 6:00)
+    /// 리셋: 3시간 36분 뒤
+    /// 리셋: 5일 1시간 뒤 (금요일 오전 6:00)
+    /// 창 안 열림
     /// ```
+    ///
+    /// 창이 안 열렸으면 `리셋:` 을 안 붙인다. 리셋할 것이 아직 없다.
     /// 로케일은 한국어로 못박는다. 화면 글자가 전부 한국어인데 시각만
     /// 시스템 로케일을 따르면 `5일 1시간 뒤 (Friday 6:00 AM)` 이 된다.
     /// 실제로 그렇게 나왔다. 시간대는 시스템을 따른다. 그건 사용자가 어디
@@ -115,9 +118,13 @@ public enum BarText {
                              locale: Locale = BarText.uiLocale,
                              timeZone: TimeZone = .current) -> String {
         let relative = until(date, from: now)
-        guard let date, date.timeIntervalSince(now) > 86400 else { return relative }
-        return relative + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
+        guard let date else { return relative }
+        guard date.timeIntervalSince(now) > 86400 else { return prefix + relative }
+        return prefix + relative
+            + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
     }
+
+    static let prefix = "리셋: "
 
     /// 가장 좁은 창을 쓴다. 5시간이 널널해도 주간이 바닥이면 바닥이 사실이다.
     private static func percent(_ org: OrgUsage) -> String {
