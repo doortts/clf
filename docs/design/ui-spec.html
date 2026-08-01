@@ -168,7 +168,9 @@ code {
 
 /* 메뉴바. 높이 24pt */
 .mb {
-  width: 100%; height: 24px; border-radius: 6px;
+  /* 항목이 실제로 차지하는 폭을 줄이지 않는다. 좁은 화면에서는 캔버스가 가로로
+     스크롤되게 두는 편이, 막대를 찌그러뜨려 거짓 치수를 보여주는 것보다 낫다 */
+  width: 100%; min-width: max-content; height: 24px; border-radius: 6px;
   background: var(--menubar-bg); color: var(--menubar-fg);
   display: flex; align-items: center; padding: 0 8px; gap: 12px;
   font-size: 13px; box-shadow: var(--shadow-pop);
@@ -193,16 +195,31 @@ code {
 }
 
 /* 막대 모드. 사용 중인 조직의 세 창을 막대와 숫자로 */
-.mb-metric { display: inline-flex; align-items: center; gap: 4px; }
-.mb-metric + .mb-metric { margin-left: 9px; }
+.mb-metric { display: inline-flex; align-items: center; gap: 5px; }
+.mb-metric + .mb-metric { margin-left: 11px; }
+
+/* 도트 텍스처 막대. 빈 칸과 채운 칸이 같은 격자 위에 있어야 한 줄로 읽힌다.
+   그래서 두 층이 같은 background-size 와 position 을 쓰고 fill 은 left:0 에 붙인다 */
 .mb-bar {
-  width: 24px; height: 4px; border-radius: 2px; display: block;
-  background: rgba(255,255,255,.22); overflow: hidden; flex: none;
+  width: 52px; height: 10px; display: block; position: relative; overflow: hidden;
+  flex: none; color: rgba(255,255,255,.28);
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 3px 3px; background-position: 0 center;
 }
-.mb-bar i { display: block; height: 100%; border-radius: 2px; min-width: 2px; }
-.mb-bar i.ok   { background: #5fdc86; }
-.mb-bar i.warn { background: #ffd60a; }
-.mb-bar i.bad  { background: #ff8a7d; }
+.mb-bar i {
+  position: absolute; inset: 0 auto 0 0; display: block; min-width: 3px;
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 3px 3px; background-position: 0 center;
+}
+.mb-bar i.ok   { color: #6fe094; }
+.mb-bar i.warn { color: #ffd60a; }
+.mb-bar i.bad  { color: #ff8a7d; }
+
+/* 세로 변형. 세 창을 한 항목 안에 쌓는다. 숫자를 빼고 폭을 줄인다 */
+.mb-vbars { display: inline-flex; flex-direction: column; gap: 2px; }
+.mb-vbars .mb-bar { width: 34px; height: 4px; }
+.mb-vbars .mb-bar,
+.mb-vbars .mb-bar i { background-size: 2.5px 2.5px; }
 .mb-pct {
   font-family: var(--mono); font-size: 10px; font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
@@ -263,12 +280,20 @@ code {
   font-family: var(--mono); font-size: 11px; text-align: right;
   font-variant-numeric: tabular-nums; color: var(--ink-2);
 }
-.track { height: 6px; border-radius: 3px; background: var(--sep-soft); overflow: hidden; }
-.fill { height: 100%; border-radius: 3px; display: block; }
-.fill.ok   { background: var(--green); }
-.fill.mid  { background: var(--accent); }
-.fill.warn { background: var(--yellow); }
-.fill.bad  { background: var(--red); }
+.track {
+  height: 9px; position: relative; overflow: hidden; color: var(--sep);
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 3px 3px; background-position: 0 center;
+}
+.fill {
+  position: absolute; inset: 0 auto 0 0; display: block; min-width: 3px;
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 3px 3px; background-position: 0 center;
+}
+.fill.ok   { color: var(--green); }
+.fill.mid  { color: var(--accent); }
+.fill.warn { color: var(--yellow); }
+.fill.bad  { color: var(--red); }
 .reset { font-size: 11px; color: var(--ink-3); margin: 3px 0 10px 54px; }
 .reset.last { margin-bottom: 0; }
 
@@ -283,7 +308,12 @@ code {
 .prow .id { font-weight: 500; }
 .prow .m { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
 .prow.pause .id { opacity: .5; }
-.mini { width: 44px; height: 4px; border-radius: 2px; background: var(--sep-soft); overflow: hidden; }
+.mini {
+  width: 44px; height: 6px; position: relative; overflow: hidden; color: var(--sep);
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 2.5px 2.5px; background-position: 0 center;
+}
+.mini .fill { background-size: 2.5px 2.5px; }
 
 .tl { display: flex; flex-direction: column; gap: 6px; }
 .tl div { display: grid; grid-template-columns: 40px 1fr; gap: 8px; font-size: 12px; }
@@ -751,7 +781,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       </div>
       <figcaption>
         <div class="name">막대 3개. 기본값</div>
-        <div class="dims">사용 중인 조직만 / 왼쪽부터 5시간, 주간, 모델별 주간 / 막대 24x4pt, 숫자 10pt</div>
+        <div class="dims">사용 중인 조직만 / 왼쪽부터 5시간, 주간, 모델별 주간 / 막대 52x10pt 도트 격자 3pt, 숫자 10pt</div>
       </figcaption>
     </figure>
 
@@ -763,7 +793,43 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       </div>
       <figcaption>
         <div class="name">모델별 주간이 바닥난 상태</div>
-        <div class="dims">0% 도 막대가 2pt 는 남는다. 빈 자리와 소진을 구별해야 한다</div>
+        <div class="dims">0% 도 막대가 한 점은 남는다. 빈 자리와 소진을 구별해야 한다</div>
+      </figcaption>
+    </figure>
+
+    <figure class="spec w">
+      <div class="mb">
+        <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">EN</span>
+          <span class="mb-vbars" style="margin-left:7px" title="위부터 5시간, 주간, 모델별 주간">
+            <span class="mb-bar"><i class="ok" style="width:88%"></i></span>
+            <span class="mb-bar"><i class="ok" style="width:69%"></i></span>
+            <span class="mb-bar"><i class="warn" style="width:8%"></i></span>
+          </span>
+        </span>
+        <span class="grow"></span>
+        <span class="mb-sys"><span>목 9:41</span></span>
+      </div>
+      <figcaption>
+        <div class="name">막대 세로. 셋을 한 번에 쌓는다</div>
+        <div class="dims">위부터 5시간, 주간, 모델별 주간 / 34x4pt 세 줄, 간격 2pt / 숫자를 빼고 폭을 3분의 1 로</div>
+      </figcaption>
+    </figure>
+
+    <figure class="spec w">
+      <div class="mb">
+        <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">T1</span>
+          <span class="mb-vbars" style="margin-left:7px" title="위부터 5시간, 주간, 모델별 주간">
+            <span class="mb-bar"><i class="ok" style="width:53%"></i></span>
+            <span class="mb-bar"><i class="ok" style="width:41%"></i></span>
+            <span class="mb-bar"><i class="bad" style="width:0%"></i></span>
+          </span>
+        </span>
+        <span class="grow"></span>
+        <span class="mb-sys"><span>목 9:41</span></span>
+      </div>
+      <figcaption>
+        <div class="name">세로 모드에서 맨 아래가 바닥난 상태</div>
+        <div class="dims">숫자가 없어도 어느 창이 비었는지 위치로 읽힌다</div>
       </figcaption>
     </figure>
 
@@ -924,9 +990,10 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
     <div class="tw"><table>
       <thead><tr><th>모드</th><th>보이는 것</th><th>대략 폭</th></tr></thead>
       <tbody>
-        <tr><td><strong>막대 3개</strong> (기본)</td><td>사용 중인 조직의 5시간, 주간, 모델별 주간</td><td>215pt</td></tr>
-        <tr><td>숫자만</td><td>사용 중 조직과 직전 조직의 숫자</td><td>90pt</td></tr>
-        <tr><td>코드만</td><td>사용 중 조직의 코드</td><td>45pt</td></tr>
+        <tr><td><strong>막대 가로</strong> (기본)</td><td>사용 중인 조직의 세 창을 막대와 숫자로</td><td>308pt</td></tr>
+        <tr><td>막대 세로</td><td>같은 세 창을 쌓아서. 숫자 없음</td><td>92pt</td></tr>
+        <tr><td>숫자만</td><td>사용 중 조직과 직전 조직의 숫자</td><td>87pt</td></tr>
+        <tr><td>코드만</td><td>사용 중 조직의 코드</td><td>46pt</td></tr>
       </tbody>
     </table></div>
     <p style="margin-top:16px">막대 모드에서 직전 조직을 함께 보여주지 않는 이유는 폭이다. 대신 전환이 일어나면
@@ -1132,14 +1199,26 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
             <div class="ctl">
               <div class="radios">
                 <span class="radio on"><i></i><span class="rl">
-                  <span class="rh"><span>막대 3개</span>
+                  <span class="rh"><span>막대 가로</span>
                     <span class="mb" style="width:auto;height:18px;padding:0 6px;gap:0;box-shadow:none;border-radius:4px">
-                      <span class="mb-metric"><span class="mb-bar"><i class="ok" style="width:88%"></i></span></span>
-                      <span class="mb-metric"><span class="mb-bar"><i class="ok" style="width:69%"></i></span></span>
-                      <span class="mb-metric"><span class="mb-bar"><i class="warn" style="width:8%"></i></span></span>
+                      <span class="mb-metric"><span class="mb-bar" style="width:34px"><i class="ok" style="width:88%"></i></span></span>
+                      <span class="mb-metric"><span class="mb-bar" style="width:34px"><i class="ok" style="width:69%"></i></span></span>
+                      <span class="mb-metric"><span class="mb-bar" style="width:34px"><i class="warn" style="width:8%"></i></span></span>
                     </span>
                   </span>
-                  <span class="help">사용 중인 조직의 5시간, 주간, 모델별 주간</span>
+                  <span class="help">사용 중인 조직의 세 창을 막대와 숫자로. 가장 넓습니다</span>
+                </span></span>
+                <span class="radio"><i></i><span class="rl">
+                  <span class="rh"><span>막대 세로</span>
+                    <span class="mb" style="width:auto;height:22px;padding:0 6px;gap:0;box-shadow:none;border-radius:4px">
+                      <span class="mb-vbars">
+                        <span class="mb-bar"><i class="ok" style="width:88%"></i></span>
+                        <span class="mb-bar"><i class="ok" style="width:69%"></i></span>
+                        <span class="mb-bar"><i class="warn" style="width:8%"></i></span>
+                      </span>
+                    </span>
+                  </span>
+                  <span class="help">같은 세 창을 쌓습니다. 숫자를 빼고 폭을 3분의 1 로</span>
                 </span></span>
                 <span class="radio"><i></i><span class="rl">
                   <span class="rh"><span>숫자만</span></span>
