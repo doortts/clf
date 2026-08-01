@@ -5,545 +5,477 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>clfl 설계 문서 - 사용량 한도 관리와 조직 전환</title>
 <style>
+/* ============================================================
+   토큰. macOS 시스템 값을 그대로 쓴다.
+   controlAccentColor 기본값, systemGreen/Yellow/Red, label 계열.
+   ============================================================ */
 :root {
-  --ground:  #eef0f3;
-  --surface: #ffffff;
-  --sunk:    #e2e6ea;
-  --ink:     #14181f;
-  --muted:   #64707f;
-  --faint:   #8b95a3;
-  --hair:    #d2d8de;
-  --accent:  #37536b;
-  --accent-soft: #e6edf3;
-  --ok:      #2d8a4e;
-  --warn:    #a8721c;
-  --crit:    #b4342a;
-  --ok-bg:   #dff0e4;
-  --warn-bg: #f6ebd5;
-  --crit-bg: #f7dedb;
+  --ink:        #1d1d1f;   /* label */
+  --ink-2:      #6e6e73;   /* secondaryLabel */
+  --ink-3:      #86868b;   /* tertiaryLabel */
+  --canvas:     #f5f5f7;
+  --surface:    #ffffff;   /* windowBackground */
+  --surface-2:  #f7f7f8;   /* controlBackground */
+  --sep:        #d2d2d7;   /* separator */
+  --sep-soft:   #e8e8ed;
 
-  --bar-h: 6px;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 28px rgba(20,24,31,.10);
+  --accent:     #007aff;   /* controlAccentColor 기본 */
+  --accent-bg:  #e8f1ff;
+  --green:      #34c759;
+  --yellow:     #ffcc00;
+  --red:        #ff3b30;
+  --green-bg:   #e3f7e8;
+  --yellow-bg:  #fdf3d7;
+  --red-bg:     #ffe8e6;
+  --green-fg:   #1f7a37;
+  --yellow-fg:  #8a6508;
+  --red-fg:     #b3261c;
 
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo",
-          "Pretendard", "Malgun Gothic", system-ui, sans-serif;
-  --serif: ui-serif, "New York", Georgia, serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --menubar-bg: #2a2a2c;
+  --menubar-fg: #ecedee;
+
+  --shadow-win: 0 24px 48px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.10);
+  --shadow-pop: 0 12px 32px rgba(0,0,0,.16), 0 1px 4px rgba(0,0,0,.10);
+  --hairline:   inset 0 0 0 .5px rgba(0,0,0,.16);
+
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+          "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground:  #14171b;
-    --surface: #1c2027;
-    --sunk:    #0e1115;
-    --ink:     #e8ecf1;
-    --muted:   #8b96a5;
-    --faint:   #6b7686;
-    --hair:    #2b313a;
-    --accent:  #86aecd;
-    --accent-soft: #202d38;
-    --ok:      #4cb072;
-    --warn:    #d3a04a;
-    --crit:    #e07268;
-    --ok-bg:   #1a2f22;
-    --warn-bg: #33291431;
-    --crit-bg: #33191a;
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.45);
+    --ink: #f5f5f7; --ink-2: #98989d; --ink-3: #6e6e73;
+    --canvas: #161617; --surface: #1e1e20; --surface-2: #29292b;
+    --sep: #38383a; --sep-soft: #2c2c2e;
+    --accent: #0a84ff; --accent-bg: #16283d;
+    --green: #30d158; --yellow: #ffd60a; --red: #ff453a;
+    --green-bg: #14301c; --yellow-bg: #33290f; --red-bg: #3a1815;
+    --green-fg: #5ee27f; --yellow-fg: #ffd60a; --red-fg: #ff8a7d;
+    --menubar-bg: #1b1b1d;
+    --shadow-win: 0 24px 48px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.35);
+    --shadow-pop: 0 12px 32px rgba(0,0,0,.45), 0 1px 4px rgba(0,0,0,.3);
+    --hairline: inset 0 0 0 .5px rgba(255,255,255,.14);
   }
 }
 :root[data-theme="dark"] {
-  --ground:  #14171b; --surface: #1c2027; --sunk: #0e1115;
-  --ink: #e8ecf1; --muted: #8b96a5; --faint: #6b7686; --hair: #2b313a;
-  --accent: #86aecd; --accent-soft: #202d38;
-  --ok: #4cb072; --warn: #d3a04a; --crit: #e07268;
-  --ok-bg: #1a2f22; --warn-bg: #332914; --crit-bg: #33191a;
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.45);
+  --ink: #f5f5f7; --ink-2: #98989d; --ink-3: #6e6e73;
+  --canvas: #161617; --surface: #1e1e20; --surface-2: #29292b;
+  --sep: #38383a; --sep-soft: #2c2c2e;
+  --accent: #0a84ff; --accent-bg: #16283d;
+  --green: #30d158; --yellow: #ffd60a; --red: #ff453a;
+  --green-bg: #14301c; --yellow-bg: #33290f; --red-bg: #3a1815;
+  --green-fg: #5ee27f; --yellow-fg: #ffd60a; --red-fg: #ff8a7d;
+  --menubar-bg: #1b1b1d;
+  --shadow-win: 0 24px 48px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.35);
+  --shadow-pop: 0 12px 32px rgba(0,0,0,.45), 0 1px 4px rgba(0,0,0,.3);
+  --hairline: inset 0 0 0 .5px rgba(255,255,255,.14);
 }
 :root[data-theme="light"] {
-  --ground:  #eef0f3; --surface: #ffffff; --sunk: #e2e6ea;
-  --ink: #14181f; --muted: #64707f; --faint: #8b95a3; --hair: #d2d8de;
-  --accent: #37536b; --accent-soft: #e6edf3;
-  --ok: #2d8a4e; --warn: #a8721c; --crit: #b4342a;
-  --ok-bg: #dff0e4; --warn-bg: #f6ebd5; --crit-bg: #f7dedb;
-  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 28px rgba(20,24,31,.10);
+  --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b;
+  --canvas: #f5f5f7; --surface: #ffffff; --surface-2: #f7f7f8;
+  --sep: #d2d2d7; --sep-soft: #e8e8ed;
+  --accent: #007aff; --accent-bg: #e8f1ff;
+  --green: #34c759; --yellow: #ffcc00; --red: #ff3b30;
+  --green-bg: #e3f7e8; --yellow-bg: #fdf3d7; --red-bg: #ffe8e6;
+  --green-fg: #1f7a37; --yellow-fg: #8a6508; --red-fg: #b3261c;
+  --menubar-bg: #2a2a2c;
+  --shadow-win: 0 24px 48px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.10);
+  --shadow-pop: 0 12px 32px rgba(0,0,0,.16), 0 1px 4px rgba(0,0,0,.10);
+  --hairline: inset 0 0 0 .5px rgba(0,0,0,.16);
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0;
-  background: var(--ground);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.68;
-  letter-spacing: -0.003em;
-  overflow-x: hidden;
+  margin: 0; background: var(--canvas); color: var(--ink);
+  font-family: var(--sans); font-size: 16px; line-height: 1.62;
+  letter-spacing: -.01em; overflow-x: hidden; -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- layout ---------- */
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
-.col  { max-width: 660px; }
-section { padding: 56px 0; border-top: 1px solid var(--hair); }
+/* ---------- 문서 레이아웃 ---------- */
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+.col  { max-width: 700px; }
+section { padding: 64px 0; border-top: .5px solid var(--sep); }
 section:first-of-type { border-top: none; }
 
-/* ---------- top bar ---------- */
-.topbar {
+.bar {
   position: sticky; top: 0; z-index: 50;
-  background: color-mix(in srgb, var(--ground) 88%, transparent);
-  backdrop-filter: saturate(180%) blur(16px);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  border-bottom: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--canvas) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: .5px solid var(--sep);
 }
-.topbar .wrap { display: flex; align-items: center; gap: 20px; height: 48px; }
-.brand { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
-.topnav { display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none; }
-.topnav::-webkit-scrollbar { display: none; }
-.topnav a {
-  color: var(--muted); text-decoration: none; font-size: 12.5px; white-space: nowrap;
-  padding: 2px 0; border-bottom: 1.5px solid transparent;
+.bar .wrap { display: flex; align-items: center; gap: 22px; height: 52px; }
+.bar b { font-size: 15px; font-weight: 600; letter-spacing: -.02em; }
+.bar nav { display: flex; gap: 18px; overflow-x: auto; scrollbar-width: none; }
+.bar nav::-webkit-scrollbar { display: none; }
+.bar a {
+  color: var(--ink-2); text-decoration: none; font-size: 13px;
+  white-space: nowrap; padding: 3px 0; border-bottom: 2px solid transparent;
 }
-.topnav a:hover, .topnav a:focus-visible { color: var(--ink); border-bottom-color: var(--accent); }
+.bar a:hover, .bar a:focus-visible { color: var(--ink); border-bottom-color: var(--accent); }
 
-/* ---------- masthead ---------- */
-.masthead { padding: 72px 0 52px; }
-.eyebrow {
-  font-family: var(--mono); font-size: 11px; letter-spacing: .13em;
-  text-transform: uppercase; color: var(--faint); margin: 0 0 18px;
-}
+.hero { padding: 88px 0 60px; }
+.eyebrow { font-size: 13px; font-weight: 590; color: var(--accent); margin: 0 0 14px; }
 h1 {
-  font-size: clamp(30px, 4.6vw, 46px); line-height: 1.18; margin: 0 0 18px;
-  font-weight: 700; letter-spacing: -0.024em; text-wrap: balance;
+  font-size: clamp(34px, 5vw, 52px); line-height: 1.08; margin: 0 0 20px;
+  font-weight: 680; letter-spacing: -.028em; text-wrap: balance;
 }
-.lede { font-size: 17px; color: var(--muted); margin: 0; max-width: 62ch; }
+.lede { font-size: 19px; line-height: 1.55; color: var(--ink-2); margin: 0; max-width: 60ch; }
 
 .facts {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1px; background: var(--hair); border: 1px solid var(--hair);
-  border-radius: var(--radius); overflow: hidden; margin-top: 36px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin-top: 44px; border-top: .5px solid var(--sep);
 }
-.fact { background: var(--surface); padding: 14px 16px; }
-.fact dt {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
-  text-transform: uppercase; color: var(--faint); margin: 0 0 5px;
-}
-.fact dd { margin: 0; font-size: 14px; font-weight: 550; }
+.fact { padding: 16px 18px 16px 0; border-right: .5px solid var(--sep); }
+.fact:last-child { border-right: none; }
+.fact dt { font-size: 12px; color: var(--ink-3); margin: 0 0 4px; }
+.fact dd { margin: 0; font-size: 15px; font-weight: 560; letter-spacing: -.012em; }
 
-/* ---------- headings ---------- */
-.shead { display: flex; align-items: baseline; gap: 14px; margin: 0 0 8px; }
-.snum {
-  font-family: var(--serif); font-size: 34px; line-height: 1;
-  color: var(--accent); opacity: .5; font-weight: 400;
-  font-variant-numeric: lining-nums tabular-nums;
-}
-h2 { font-size: 25px; margin: 0; font-weight: 660; letter-spacing: -0.02em; }
-.sub { color: var(--muted); margin: 0 0 30px; max-width: 62ch; }
-h3 {
-  font-size: 15px; margin: 34px 0 10px; font-weight: 650;
-  letter-spacing: -0.008em;
-}
+h2 { font-size: 30px; margin: 0 0 10px; font-weight: 660; letter-spacing: -.024em; }
+.sub { color: var(--ink-2); margin: 0 0 34px; max-width: 62ch; font-size: 17px; }
+h3 { font-size: 19px; margin: 40px 0 12px; font-weight: 620; letter-spacing: -.018em; }
 h3:first-child { margin-top: 0; }
-p { margin: 0 0 14px; }
+p { margin: 0 0 16px; }
 .col > p:last-child { margin-bottom: 0; }
-strong { font-weight: 640; }
+strong { font-weight: 620; }
 code {
-  font-family: var(--mono); font-size: .88em;
-  background: var(--accent-soft); padding: 1px 5px; border-radius: 4px;
+  font-family: var(--mono); font-size: .87em; background: var(--surface-2);
+  padding: 2px 6px; border-radius: 5px; border: .5px solid var(--sep-soft);
 }
 
-/* ---------- stage (mockups break out) ---------- */
-.stage {
-  margin: 34px 0 8px; padding: 44px 28px; border-radius: 14px;
-  background:
-    radial-gradient(circle at 1px 1px, var(--hair) 1px, transparent 0) 0 0 / 22px 22px,
-    var(--sunk);
-  border: 1px solid var(--hair);
-  display: flex; flex-direction: column; align-items: center; gap: 30px;
+/* ---------- 목업 캔버스 ---------- */
+.canvas {
+  margin: 34px 0 0; padding: 56px 28px 44px; border-radius: 16px;
+  background: var(--surface-2); border: .5px solid var(--sep);
+  display: flex; flex-direction: column; align-items: center; gap: 44px;
   overflow-x: auto;
 }
-.caption {
-  font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--faint); text-align: center;
-  margin: 12px 0 0;
+.spec { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 0; }
+.spec.w { width: min(620px, 100%); }
+.spec figcaption { text-align: center; }
+.spec .name { font-size: 14px; font-weight: 560; }
+.spec .dims {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  margin-top: 5px; font-variant-numeric: tabular-nums;
 }
-/* 부모가 shrink-wrap 되면 자식의 100% 가 잘못 계산되므로 여기서 너비를 확정한다 */
-.specimen { display: flex; flex-direction: column; align-items: center; gap: 9px; width: min(560px, 100%); }
-.specimen > .lbl {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em;
-  color: var(--faint); text-transform: uppercase;
-}
+.canvas > .cap { font-size: 13px; color: var(--ink-3); text-align: center; margin: -20px 0 0; }
 
-/* ---------- macOS menu bar ---------- */
-.menubar {
-  width: 100%; height: 26px; border-radius: 7px;
-  background: linear-gradient(180deg, #33363d, #26292f);
-  display: flex; align-items: center; padding: 0 10px; gap: 14px;
-  color: #e9ecef; font-size: 12px; box-shadow: var(--shadow);
+/* ============================================================
+   macOS 컴포넌트. HIG 치수를 그대로 쓴다.
+   ============================================================ */
+
+/* 메뉴바. 높이 24pt */
+.mb {
+  width: 100%; height: 24px; border-radius: 6px;
+  background: var(--menubar-bg); color: var(--menubar-fg);
+  display: flex; align-items: center; padding: 0 8px; gap: 12px;
+  font-size: 13px; box-shadow: var(--shadow-pop);
 }
-.menubar .spacer { flex: 1; }
+.mb .grow { flex: 1; }
 .mb-item {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+  padding: 0 6px; border-radius: 5px; height: 20px; white-space: nowrap;
 }
-.mb-item.on { background: rgba(255,255,255,.16); }
-.mb-item .code { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .03em; }
-.mb-item.crit { color: #ff8a7d; }
-.mb-item.off  { opacity: .45; }
-
-/* 코드와 숫자는 붙인다. 두 줄 스택 자체가 시각적 구분이 되므로 사이 공백이 필요없다 */
-.mb-acct { display: inline-flex; align-items: center; gap: 0; }
-/* 위가 5시간, 아래가 7일 */
-.mb-stack {
+.mb-item.sel { background: rgba(255,255,255,.18); }
+.mb-item.off { opacity: .45; }
+.mb-item.err { color: #ff8a7d; }
+.mb-code { font-family: var(--mono); font-size: 12px; font-weight: 590; }
+.mb-org { display: inline-flex; align-items: center; }
+.mb-org + .mb-org { margin-left: 8px; }
+.mb-org.prev { opacity: .5; }
+.mb-org.dim  { opacity: .3; }
+.mb-num {
   display: inline-flex; flex-direction: column; text-align: right;
-  font-family: var(--mono); font-size: 8px; line-height: 1.14;
-  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+  font-family: var(--mono); font-size: 8px; line-height: 1.16;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
-/* 색은 계정이 아니라 줄마다 따로 붙는다. 5시간과 7일은 서로 독립이다.
-   숫자는 남은 양이므로 클수록 좋다 */
-.mb-stack .ok   { color: #6fd18a; }   /* 50% 이상 남음 */
-.mb-stack .warn { color: #f0c05a; }   /* 5% 이상 15% 미만 남음 */
-.mb-stack .crit { color: #ff8a7d; }   /* 5% 미만 남음 */
-/* 15 이상 50 미만은 클래스 없이 기본색 */
+.mb-num .ok   { color: #5fdc86; }
+.mb-num .warn { color: #ffd60a; }
+.mb-num .bad  { color: #ff8a7d; }
+.mb-sys { display: flex; align-items: center; gap: 10px; opacity: .85; font-size: 12px; }
+.sym { width: 15px; height: 15px; flex: none; }
 
-/* 직전에 쓰던 계정. 활성 계정보다 확실히 뒤로 물러나야 한다.
-   분리선 대신 여백만으로 가른다 */
-.mb-acct.alt  { opacity: .52; margin-left: 7px; }
-.mb-acct.dead { opacity: .32; }
-.mb-sys { display: flex; align-items: center; gap: 11px; opacity: .8; font-size: 11px; }
-.glyph { width: 13px; height: 13px; flex: none; }
-
-/* ---------- popover ---------- */
-.popover {
-  width: 372px; background: var(--surface); border: 1px solid var(--hair);
-  border-radius: 12px; box-shadow: var(--shadow); overflow: hidden;
-  font-size: 13px; line-height: 1.5;
+/* 팝오버. 너비 340pt, 반경 11pt */
+.pop {
+  width: 340px; background: var(--surface); border-radius: 11px;
+  box-shadow: var(--shadow-pop), var(--hairline); overflow: hidden;
+  font-size: 13px; line-height: 1.45;
 }
-.pop-head {
-  display: flex; align-items: center; gap: 8px;
-  padding: 11px 14px; border-bottom: 1px solid var(--hair);
+.pop-top {
+  display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px 0 14px;
+  border-bottom: .5px solid var(--sep-soft);
 }
-.pop-title { font-family: var(--mono); font-weight: 600; font-size: 12.5px; letter-spacing: .03em; }
-.pop-head .spacer { flex: 1; }
-.iconbtn {
+.pop-top .t { font-size: 13px; font-weight: 590; }
+.pop-top .grow { flex: 1; }
+.ibtn {
   width: 24px; height: 24px; border-radius: 6px; border: none; cursor: pointer;
-  background: transparent; color: var(--muted);
-  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--ink-2);
+  display: inline-flex; align-items: center; justify-content: center; padding: 0;
 }
-.iconbtn:hover { background: var(--accent-soft); color: var(--ink); }
+.ibtn:hover { background: var(--surface-2); color: var(--ink); }
 
-.pop-sec { padding: 12px 14px; border-bottom: 1px solid var(--hair); }
+.pop-sec { padding: 12px 14px; border-bottom: .5px solid var(--sep-soft); }
 .pop-sec:last-child { border-bottom: none; }
-.sec-label {
-  font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--faint); margin: 0 0 9px;
-}
+.sec-t { font-size: 11px; color: var(--ink-3); margin: 0 0 8px; }
 
-.banner {
-  display: flex; gap: 9px; padding: 10px 14px;
-  border-bottom: 1px solid var(--hair); align-items: flex-start;
-}
-.banner.warn { background: var(--warn-bg); }
-.banner .glyph { margin-top: 2px; color: var(--warn); }
-.banner p { margin: 0; font-size: 12px; line-height: 1.45; }
-.banner .t { font-weight: 600; display: block; }
+.notice { display: flex; gap: 8px; padding: 10px 14px; border-bottom: .5px solid var(--sep-soft); }
+.notice.warn { background: var(--yellow-bg); }
+.notice .sym { margin-top: 1px; color: var(--yellow-fg); }
+.notice p { margin: 0; font-size: 12px; line-height: 1.42; }
+.notice .h { font-weight: 590; display: block; }
 
-/* account row */
-.acct-active { display: flex; align-items: center; gap: 9px; margin-bottom: 11px; }
-.acct-name { font-weight: 620; font-size: 14px; }
-.pill {
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: .07em;
-  text-transform: uppercase; padding: 2px 6px; border-radius: 999px;
-  border: 1px solid var(--hair); color: var(--muted); white-space: nowrap;
-}
-.pill.plan { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
-.pill.ok   { background: var(--ok-bg);   border-color: transparent; color: var(--ok); }
-.pill.warn { background: var(--warn-bg); border-color: transparent; color: var(--warn); }
-.pill.crit { background: var(--crit-bg); border-color: transparent; color: var(--crit); }
+.org-head { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.org-name { font-size: 14px; font-weight: 590; letter-spacing: -.01em; }
 
-.gauge { display: grid; grid-template-columns: 42px 1fr 40px; align-items: center; gap: 9px; margin-bottom: 6px; }
-.gauge .g-lbl { font-size: 11px; color: var(--muted); }
-.gauge .g-val {
+.tag {
+  font-size: 11px; padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+  color: var(--ink-2); background: var(--surface-2); border: .5px solid var(--sep-soft);
+  flex: none;   /* flex 자식으로 놓였을 때 축소되어 글자가 잘리는 것을 막는다 */
+}
+.tag.b { color: var(--accent);    background: var(--accent-bg); border-color: transparent; }
+.tag.g { color: var(--green-fg);  background: var(--green-bg);  border-color: transparent; }
+.tag.y { color: var(--yellow-fg); background: var(--yellow-bg); border-color: transparent; }
+.tag.r { color: var(--red-fg);    background: var(--red-bg);    border-color: transparent; }
+
+/* NSProgressIndicator bar. 높이 6pt */
+.meter { display: grid; grid-template-columns: 46px 1fr 40px; align-items: center; gap: 8px; }
+.meter .l { font-size: 12px; color: var(--ink-2); }
+.meter .v {
   font-family: var(--mono); font-size: 11px; text-align: right;
-  font-variant-numeric: tabular-nums; color: var(--muted);
+  font-variant-numeric: tabular-nums; color: var(--ink-2);
 }
-.track { height: var(--bar-h); border-radius: 999px; background: var(--hair); overflow: hidden; }
-.fill { height: 100%; border-radius: 999px; }
-.fill.ok   { background: var(--ok); }
-.fill.warn { background: var(--warn); }
-.fill.crit { background: var(--crit); }
-.fill.mid  { background: var(--accent); }   /* 15 이상 50 미만 남음 */
-.gauge-note { font-size: 11px; color: var(--faint); margin: 2px 0 0 51px; }
+.track { height: 6px; border-radius: 3px; background: var(--sep-soft); overflow: hidden; }
+.fill { height: 100%; border-radius: 3px; display: block; }
+.fill.ok   { background: var(--green); }
+.fill.mid  { background: var(--accent); }
+.fill.warn { background: var(--yellow); }
+.fill.bad  { background: var(--red); }
+.reset { font-size: 11px; color: var(--ink-3); margin: 3px 0 10px 54px; }
+.reset.last { margin-bottom: 0; }
 
-/* priority list */
-.plist { display: flex; flex-direction: column; gap: 2px; }
+.plist { display: flex; flex-direction: column; }
 .prow {
-  display: grid; grid-template-columns: 16px 1fr auto; align-items: center;
-  gap: 9px; padding: 6px 7px; border-radius: 7px;
+  display: grid; grid-template-columns: 14px 1fr auto; align-items: center;
+  gap: 8px; height: 28px; padding: 0 6px; border-radius: 5px;
 }
-.prow.is-active { background: var(--accent-soft); }
-.prow .ord {
-  font-family: var(--mono); font-size: 10.5px; color: var(--faint);
-  font-variant-numeric: tabular-nums; text-align: right;
-}
-.prow .who { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.prow .id { font-weight: 560; }
-.prow .meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.minitrack { width: 46px; height: 4px; border-radius: 999px; background: var(--hair); overflow: hidden; }
+.prow.on { background: var(--accent-bg); }
+.prow .n { font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-align: right; }
+.prow .w { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.prow .id { font-weight: 500; }
+.prow .m { font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.prow.pause .id { opacity: .5; }
+.mini { width: 44px; height: 4px; border-radius: 2px; background: var(--sep-soft); overflow: hidden; }
 
-/* timeline */
-.tl { display: flex; flex-direction: column; gap: 7px; }
-.tl-row { display: grid; grid-template-columns: 42px 1fr; gap: 9px; font-size: 12px; }
-.tl-row time { font-family: var(--mono); font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
-.tl-row .what { color: var(--muted); }
-.tl-row .what b { color: var(--ink); font-weight: 560; }
+.tl { display: flex; flex-direction: column; gap: 6px; }
+.tl div { display: grid; grid-template-columns: 40px 1fr; gap: 8px; font-size: 12px; }
+.tl time { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.tl span { color: var(--ink-2); }
+.tl b { color: var(--ink); font-weight: 530; }
 
 .pop-foot {
-  display: flex; align-items: center; gap: 9px; padding: 9px 14px;
-  background: var(--accent-soft); font-size: 11.5px; color: var(--muted);
+  display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+  background: var(--surface-2); font-size: 11px; color: var(--ink-2);
 }
-.pop-foot .spacer { flex: 1; }
-.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.pop-foot .grow { flex: 1; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex: none; }
+
+/* NSButton. 높이 22pt, 반경 6pt */
 .btn {
-  font: inherit; font-size: 11.5px; padding: 3px 10px; border-radius: 6px;
-  border: 1px solid var(--hair); background: var(--surface); color: var(--ink); cursor: pointer;
+  font: inherit; font-size: 12px; height: 22px; padding: 0 11px; border-radius: 6px;
+  border: .5px solid var(--sep); background: var(--surface); color: var(--ink);
+  cursor: pointer; box-shadow: 0 .5px 1px rgba(0,0,0,.05);
+  display: inline-flex; align-items: center; gap: 5px;
 }
-.btn:hover { border-color: var(--accent); color: var(--accent); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn:hover { background: var(--surface-2); }
+.btn.pri { background: var(--accent); border-color: transparent; color: #fff; font-weight: 500; }
+.btn.pri:hover { filter: brightness(1.06); }
 
-/* ---------- settings window ---------- */
-.window {
-  width: min(680px, 100%); background: var(--surface); border: 1px solid var(--hair);
-  border-radius: 11px; box-shadow: var(--shadow); overflow: hidden; font-size: 13px;
+/* NSSwitch. 38 x 22, 노브 18 */
+.sw { width: 38px; height: 22px; border-radius: 11px; background: var(--sep); position: relative; flex: none; }
+.sw.on { background: var(--green); }
+.sw::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.28);
 }
-.titlebar {
-  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 13px;
-  border-bottom: 1px solid var(--hair); background: color-mix(in srgb, var(--ground) 60%, var(--surface));
-}
-.traffic { display: flex; gap: 7px; }
-.traffic i { width: 11px; height: 11px; border-radius: 50%; display: block; }
-.traffic i:nth-child(1) { background: #ec6a5e; }
-.traffic i:nth-child(2) { background: #f3bf4f; }
-.traffic i:nth-child(3) { background: #61c454; }
-.wtitle { font-size: 12.5px; font-weight: 600; margin-left: 6px; }
+.sw.on::after { left: auto; right: 2px; }
+.sw.sm { width: 30px; height: 18px; border-radius: 9px; }
+.sw.sm::after { width: 14px; height: 14px; }
 
-.tabs { display: flex; gap: 2px; padding: 8px 10px; border-bottom: 1px solid var(--hair); overflow-x: auto; }
+/* 창. 반경 10pt, 신호등 12pt */
+.win {
+  width: min(600px, 100%); background: var(--surface); border-radius: 10px;
+  box-shadow: var(--shadow-win), var(--hairline); overflow: hidden; font-size: 13px;
+}
+.title {
+  display: flex; align-items: center; height: 38px; padding: 0 20px;
+  background: var(--surface-2); border-bottom: .5px solid var(--sep-soft);
+}
+.lights { display: flex; gap: 8px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #ff5f57; }
+.lights i:nth-child(2) { background: #febc2e; }
+.lights i:nth-child(3) { background: #28c840; }
+.title .t { font-size: 13px; font-weight: 590; margin-left: 12px; }
+
+.tabs { display: flex; gap: 2px; padding: 8px 12px; border-bottom: .5px solid var(--sep-soft); overflow-x: auto; }
 .tab {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 5px 13px; border-radius: 7px; color: var(--muted); font-size: 11px; white-space: nowrap;
+  min-width: 62px; padding: 5px 8px; border-radius: 6px;
+  color: var(--ink-2); font-size: 11px; white-space: nowrap;
 }
-.tab.on { background: var(--accent-soft); color: var(--accent); }
-.wbody { padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.tab.on { background: var(--accent-bg); color: var(--accent); }
+.wbody { padding: 20px; display: flex; flex-direction: column; gap: 18px; }
 
-.field { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: start; }
-.field > label { font-size: 12.5px; color: var(--muted); text-align: right; padding-top: 4px; }
-.field .ctl { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.hint { font-size: 11.5px; color: var(--faint); line-height: 1.45; }
-.input {
-  border: 1px solid var(--hair); background: var(--ground); border-radius: 6px;
-  padding: 5px 9px; font: inherit; font-size: 12.5px; color: var(--ink);
+.field { display: grid; grid-template-columns: 132px 1fr; gap: 14px; align-items: start; }
+.field > label { font-size: 13px; text-align: right; padding-top: 2px; }
+.ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.help { font-size: 11px; color: var(--ink-2); line-height: 1.45; }
+.line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tf {
+  border: .5px solid var(--sep); background: var(--surface); border-radius: 6px;
+  height: 22px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.03);
 }
-.input.mono { font-family: var(--mono); font-size: 12px; }
-.row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.switch {
-  width: 34px; height: 20px; border-radius: 999px; background: var(--hair);
-  position: relative; flex: none;
-}
-.switch.on { background: var(--ok); }
-.switch::after {
-  content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
-  border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3);
-}
-.switch.on::after { left: auto; right: 2px; }
+.tf.mono { font-family: var(--mono); font-size: 11px; }
 
-.slider { height: 4px; border-radius: 999px; background: var(--hair); position: relative; flex: 1; min-width: 120px; }
-.slider .done { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--accent); }
-.slider .knob {
-  position: absolute; top: 50%; width: 15px; height: 15px; border-radius: 50%;
-  background: var(--surface); border: 1px solid var(--hair); transform: translate(-50%,-50%);
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+/* 조직 목록. 행 높이 30pt */
+.list { border: .5px solid var(--sep); border-radius: 7px; overflow: hidden; }
+.lrow {
+  display: grid; grid-template-columns: 18px 28px 1fr 78px 40px 96px 24px;
+  align-items: center; gap: 10px; height: 30px; padding: 0 10px;
+  border-bottom: .5px solid var(--sep-soft); font-size: 12px;
 }
+.lrow:last-child { border-bottom: none; }
+.lrow.hd { background: var(--surface-2); color: var(--ink-3); font-size: 11px; height: 26px; }
+.lrow.pause .code, .lrow.pause .id { opacity: .45; }
+.grip { color: var(--ink-3); display: flex; cursor: grab; }
+.code { font-family: var(--mono); font-size: 11px; font-weight: 590; color: var(--accent); }
+.lrow .id { font-weight: 500; }
+.tools { display: flex; gap: 7px; flex-wrap: wrap; }
 
-/* account table inside settings */
-.atable { border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; }
-.arow {
-  display: grid; grid-template-columns: 20px 30px 1fr 84px 40px 108px 26px;
-  align-items: center; gap: 10px; padding: 8px 11px;
-  border-bottom: 1px solid var(--hair); font-size: 12.5px;
+.checks { border: .5px solid var(--sep); border-radius: 7px; overflow: hidden; }
+.chk {
+  display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center;
+  padding: 8px 11px; border-bottom: .5px solid var(--sep-soft); font-size: 12px;
 }
-.arow .code {
-  font-family: var(--mono); font-size: 11px; font-weight: 600;
-  color: var(--accent); letter-spacing: .03em;
-}
-/* 자동 전환에서 뺀 계정. 지워진 것이 아니라 잠시 빠진 것으로 읽혀야 한다 */
-.arow.paused .code, .arow.paused .id { opacity: .45; }
-.switch.sm { width: 28px; height: 17px; }
-.switch.sm::after { width: 13px; height: 13px; }
-.prow.paused .id { opacity: .5; }
-.arow:last-child { border-bottom: none; }
-.arow.head {
-  background: color-mix(in srgb, var(--ground) 60%, var(--surface));
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: .09em;
-  text-transform: uppercase; color: var(--faint);
-}
-.grip { color: var(--faint); cursor: grab; display: flex; }
-.arow .id { font-weight: 560; }
-.toolbar-row { display: flex; gap: 7px; }
+.chk:last-child { border-bottom: none; }
+.chk .d { color: var(--ink-2); font-size: 11px; }
+.st-ok { color: var(--green); display: flex; }
+.st-no { color: var(--red); display: flex; }
+.st-wa { color: var(--yellow-fg); display: flex; }
 
-/* doctor list */
-.checks { display: flex; flex-direction: column; gap: 1px; background: var(--hair);
-          border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; }
-.check { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px;
-         align-items: center; background: var(--surface); padding: 8px 11px; font-size: 12.5px; }
-.check .st { display: flex; }
-.check .det { color: var(--muted); font-size: 11.5px; }
-
-/* ---------- 등록 시트 ---------- */
+/* 시트 */
 .sheet {
-  width: min(460px, 100%); background: var(--surface); border: 1px solid var(--hair);
-  border-radius: 11px; box-shadow: var(--shadow); overflow: hidden; font-size: 13px;
+  width: min(440px, 100%); background: var(--surface); border-radius: 12px;
+  box-shadow: var(--shadow-win), var(--hairline); overflow: hidden; font-size: 13px;
 }
-.sheet-head { padding: 13px 17px 0; }
-.sheet-head .st { font-weight: 640; font-size: 14px; }
-.sheet-head .sd { color: var(--muted); font-size: 12px; margin-top: 3px; }
-.sheet-body { padding: 15px 17px; display: flex; flex-direction: column; gap: 13px; }
-.sheet-foot {
-  display: flex; gap: 8px; justify-content: flex-end;
-  padding: 11px 17px; border-top: 1px solid var(--hair);
-  background: color-mix(in srgb, var(--ground) 55%, var(--surface));
+.sheet-hd { padding: 18px 20px 0; }
+.sheet-hd .t { font-size: 15px; font-weight: 620; letter-spacing: -.015em; }
+.sheet-hd .s { color: var(--ink-2); font-size: 12px; margin-top: 3px; }
+.sheet-bd { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+.sheet-ft {
+  display: flex; gap: 8px; justify-content: flex-end; padding: 12px 20px;
+  background: var(--surface-2); border-top: .5px solid var(--sep-soft);
 }
-.fld { display: flex; flex-direction: column; gap: 5px; }
-.fld > .lb { font-size: 11.5px; color: var(--muted); }
-.codehint {
-  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent);
-  background: var(--accent-soft); padding: 2px 7px; border-radius: 5px;
-}
-.radios { display: flex; gap: 16px; }
-.radio { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
-.radio i {
-  width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--hair);
-  display: block; flex: none; background: var(--ground);
-}
-.radio.on i { border-color: var(--accent); border-width: 4px; background: var(--surface); }
-.cmdline {
-  display: flex; align-items: center; gap: 8px; background: var(--ground);
-  border: 1px solid var(--hair); border-radius: 6px; padding: 5px 6px 5px 10px;
-}
-.cmdline code { background: none; padding: 0; flex: 1; font-size: 11.5px; }
-.orline { display: flex; align-items: center; gap: 9px; color: var(--faint); font-size: 11px; }
-.orline::before, .orline::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
-.verify {
-  display: flex; flex-direction: column; gap: 7px;
-  border: 1px solid var(--hair); border-left: 2.5px solid var(--ok);
-  border-radius: 0 8px 8px 0; padding: 10px 13px; background: var(--ok-bg);
-}
-.verify .vt { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 560; }
-.verify .vt .glyph { color: var(--ok); }
+.step { display: flex; flex-direction: column; gap: 7px; }
+.step > .lb { font-size: 11px; color: var(--ink-3); }
+.done { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px; border-radius: 7px; background: var(--green-bg); }
+.done .h { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 560; }
+.done .h .sym { color: var(--green-fg); }
+.hint-code { font-family: var(--mono); font-size: 11px; font-weight: 590; color: var(--accent); }
 
-/* ---------- diagram ---------- */
-.diagram { display: flex; flex-direction: column; align-items: center; gap: 0; width: min(560px, 100%); }
-.dbox {
-  width: 100%; background: var(--surface); border: 1px solid var(--hair);
-  border-radius: 9px; padding: 13px 15px;
+/* 다이어그램 */
+.dia { display: flex; flex-direction: column; align-items: center; width: min(560px, 100%); }
+.box {
+  width: 100%; background: var(--surface); border: .5px solid var(--sep);
+  border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-.dbox.stressed { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.dbox .dt { font-weight: 620; font-size: 13.5px; }
-.dbox .dd { font-size: 12px; color: var(--muted); margin-top: 3px; }
-.dbox .dd code { font-size: 11.5px; }
-.connector { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; }
-.connector .line { width: 1.5px; height: 16px; background: var(--hair); }
-.connector .txt { font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: .05em; }
-.inner-list { display: flex; flex-direction: column; gap: 5px; margin-top: 9px; }
-.inner {
+.box.hi { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.box .bt { font-weight: 590; font-size: 14px; letter-spacing: -.01em; }
+.box .bd { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.link { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; }
+.link .ln { width: 1px; height: 16px; background: var(--sep); }
+.link .tx { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.inner { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+.inner div {
   display: flex; align-items: center; gap: 8px; font-size: 12px;
-  background: var(--ground); border-radius: 6px; padding: 5px 9px; color: var(--muted);
+  background: var(--surface-2); border-radius: 6px; padding: 6px 10px; color: var(--ink-2);
 }
-.inner b { color: var(--ink); font-weight: 560; }
+.inner b { color: var(--ink); font-weight: 550; }
 
-/* ---------- steps ---------- */
-.steps { display: flex; flex-direction: column; gap: 0; counter-reset: s; }
-.step { display: grid; grid-template-columns: 26px 1fr; gap: 14px; position: relative; padding-bottom: 18px; }
-.step:last-child { padding-bottom: 0; }
-.step::before {
+/* 단계 */
+.steps { display: flex; flex-direction: column; counter-reset: s; }
+.stp { display: grid; grid-template-columns: 26px 1fr; gap: 14px; position: relative; padding-bottom: 20px; }
+.stp:last-child { padding-bottom: 0; }
+.stp::before {
   counter-increment: s; content: counter(s);
-  font-family: var(--mono); font-size: 11px; color: var(--accent);
-  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--hair);
+  font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+  width: 26px; height: 26px; border-radius: 50%; border: .5px solid var(--sep);
   background: var(--surface); display: flex; align-items: center; justify-content: center;
 }
-.step:not(:last-child)::after {
-  content: ""; position: absolute; left: 13px; top: 28px; bottom: 2px;
-  width: 1px; background: var(--hair);
+.stp.key::before { background: var(--accent); border-color: transparent; color: #fff; }
+.stp:not(:last-child)::after {
+  content: ""; position: absolute; left: 13px; top: 28px; bottom: 4px; width: 1px; background: var(--sep);
 }
-.step .sh { font-weight: 600; font-size: 13.5px; }
-.step .sd { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-.step.gate .sh { color: var(--accent); }
+.stp .h { font-weight: 590; font-size: 15px; letter-spacing: -.012em; }
+.stp .d { font-size: 14px; color: var(--ink-2); margin-top: 3px; }
 
-/* ---------- tables ---------- */
-.tblwrap { overflow-x: auto; margin: 18px 0 0; border: 1px solid var(--hair); border-radius: 9px; }
-table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 480px; }
-th, td { text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--hair); vertical-align: top; }
-th {
-  background: color-mix(in srgb, var(--ground) 60%, var(--surface));
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: .09em;
-  text-transform: uppercase; color: var(--faint); font-weight: 600; white-space: nowrap;
-}
+/* 표 */
+.tw { overflow-x: auto; margin: 20px 0 0; border: .5px solid var(--sep); border-radius: 9px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 460px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: .5px solid var(--sep-soft); vertical-align: top; }
+th { background: var(--surface-2); font-size: 12px; color: var(--ink-2); font-weight: 560; white-space: nowrap; }
 tbody tr:last-child td { border-bottom: none; }
-td code { white-space: nowrap; }
 
-/* ---------- feature grid ---------- */
-.fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 26px; }
-.fcard { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius); padding: 15px 16px; }
-.fcard .ft { font-weight: 620; font-size: 13.5px; margin-bottom: 5px; display: flex; align-items: center; gap: 7px; }
-.fcard .fd { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
-.fcard .glyph { color: var(--accent); }
+/* 기능 카드 */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(238px, 1fr)); gap: 14px; margin-top: 30px; }
+.card { background: var(--surface); border: .5px solid var(--sep); border-radius: 12px; padding: 17px 18px; }
+.card .h { font-weight: 590; font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; letter-spacing: -.012em; }
+.card .h .sym { color: var(--accent); }
+.card .d { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
 
 .note {
-  border-left: 2.5px solid var(--accent); background: var(--accent-soft);
-  padding: 12px 15px; border-radius: 0 8px 8px 0; margin: 20px 0 0; font-size: 13px;
+  border: .5px solid var(--sep); border-left: 3px solid var(--accent);
+  background: var(--surface); padding: 14px 18px; border-radius: 0 9px 9px 0;
+  margin: 22px 0 0; font-size: 14.5px;
 }
+.note .nt { font-size: 12px; font-weight: 590; color: var(--accent); display: block; margin-bottom: 5px; }
 .note p:last-child { margin-bottom: 0; }
-.note .nt {
-  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--accent); display: block; margin-bottom: 5px;
-}
 
-footer { padding: 44px 0 64px; color: var(--faint); font-size: 12px; border-top: 1px solid var(--hair); }
-footer a { color: var(--muted); }
+footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top: .5px solid var(--sep); }
 
-@media (max-width: 620px) {
-  .wrap { padding: 0 18px; }
-  .stage { padding: 26px 14px; }
+@media (max-width: 640px) {
+  .wrap { padding: 0 20px; }
+  .canvas { padding: 32px 14px 28px; }
   .field { grid-template-columns: 1fr; }
   .field > label { text-align: left; padding-top: 0; }
-  /* 상태 셀은 숨기므로 남는 5개에 맞춰 열을 다시 센다 */
-  .arow { grid-template-columns: 18px 26px 1fr 40px 24px; gap: 8px; }
-  .arow .hide-m { display: none; }
-  .arow .hide-s { display: none; }
-  .snum { font-size: 26px; }
+  .lrow { grid-template-columns: 16px 26px 1fr 34px 22px; }
+  .lrow .hide { display: none; }
+  .fact { border-right: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="wrap">
-    <span class="brand">clfl</span>
-    <nav class="topnav">
-      <a href="#why">왜 만드나</a>
-      <a href="#how">동작 원리</a>
-      <a href="#features">기능</a>
-      <a href="#strategy">전환 전략</a>
-      <a href="#menubar">메뉴바</a>
-      <a href="#settings">설정 창</a>
-      <a href="#states">상태 표시</a>
-      <a href="#flow">요청 흐름</a>
-      <a href="#docs">설계 문서</a>
-    </nav>
-  </div>
-</div>
+<div class="bar"><div class="wrap">
+  <b>clfl</b>
+  <nav>
+    <a href="#why">왜 만드나</a>
+    <a href="#how">동작 원리</a>
+    <a href="#features">기능</a>
+    <a href="#strategy">전환 전략</a>
+    <a href="#menubar">메뉴바</a>
+    <a href="#settings">설정 창</a>
+    <a href="#states">상태 표시</a>
+    <a href="#flow">요청 흐름</a>
+    <a href="#docs">설계 문서</a>
+  </nav>
+</div></div>
 
-<header class="wrap masthead">
+<header class="wrap hero">
   <p class="eyebrow">설계 문서 / UI 시안</p>
   <h1>Claude Code 데스크톱 앱의<br>사용량 한도를 관리한다</h1>
   <p class="lede">
@@ -551,1184 +483,799 @@ footer a { color: var(--muted); }
     같은 턴 안에서 조용히 넘긴다. 사용자에게는 에러가 보이지 않는다.
   </p>
   <dl class="facts">
-    <div class="fact"><dt>형태</dt><dd>메뉴바 앱 (LSUIElement)</dd></div>
+    <div class="fact"><dt>형태</dt><dd>메뉴바 앱</dd></div>
     <div class="fact"><dt>스택</dt><dd>Swift, SwiftUI, NIO</dd></div>
-    <div class="fact"><dt>연결</dt><dd>settings.json 의 env</dd></div>
-    <div class="fact"><dt>토큰 저장</dt><dd>Keychain</dd></div>
     <div class="fact"><dt>대상</dt><dd>macOS 13 이상</dd></div>
     <div class="fact"><dt>다루는 것</dt><dd>한도와 전환</dd></div>
     <div class="fact"><dt>안 다루는 것</dt><dd>API 비용 집계</dd></div>
   </dl>
 </header>
 
-<!-- ============ 1. 왜 만드나 ============ -->
 <section id="why"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">1</span><h2>왜 만드나</h2></div>
-    <p class="sub">
-      비슷한 앱이 이미 있다. 그래도 만드는 이유가 셋이고, 그 셋이 이 앱의 범위를 정한다.
-    </p>
-
+    <h2>왜 만드나</h2>
+    <p class="sub">비슷한 앱이 이미 있다. 그래도 만드는 이유가 셋이고, 그 셋이 이 앱의 범위를 정한다.</p>
     <h3>다루는 것과 다루지 않는 것</h3>
-    <p>
-      <strong>한도 관리 한 가지에 집중한다.</strong> 지금 얼마나 남았는지, 어디로 넘어가야
-      하는지, 언제 넘어가야 하는지. 그 밖은 넣지 않는다.
-    </p>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>다룬다</th><th>다루지 않는다</th></tr></thead>
-        <tbody>
-          <tr><td>조직별 5시간, 7일 잔여</td><td>API 비용 집계, 오늘 얼마 썼나</td></tr>
-          <tr><td>모델별 쿨다운</td><td>대화 실행 UI</td></tr>
-          <tr><td>선제 전환과 반응형 전환</td><td>세션 통계, 활동량 대시보드</td></tr>
-          <tr><td>전환 이력</td><td>Claude Code 자체 설정 관리</td></tr>
-          <tr><td>프록시가 끈 기능 되살리기</td><td>손댈 노브 늘리기</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <p><strong>한도 관리 한 가지에 집중한다.</strong> 지금 얼마나 남았는지, 어디로 넘어가야
+      하는지, 언제 넘어가야 하는지. 그 밖은 넣지 않는다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>다룬다</th><th>다루지 않는다</th></tr></thead>
+      <tbody>
+        <tr><td>조직별 5시간, 주간, 모델별 주간 잔여</td><td>API 비용 집계, 오늘 얼마 썼나</td></tr>
+        <tr><td>모델별 쿨다운</td><td>대화 실행 UI</td></tr>
+        <tr><td>선제 전환과 반응형 전환</td><td>세션 통계, 활동량 대시보드</td></tr>
+        <tr><td>프록시가 끈 기능 되살리기</td><td>손댈 노브 늘리기</td></tr>
+      </tbody>
+    </table></div>
   </div>
 
-  <div class="stage">
-    <div class="diagram">
-      <div class="dbox">
-        <div class="dt">1. 한 이메일 아래 조직이 여럿이다</div>
-        <div class="dd">
-          사내 SSO 로그인 하나에 <code>Naver</code>, <code>NAVER_TEAM_52</code>,
-          <code>NAVER_TEAM_40</code> 이 함께 달려 있다. 한도는 조직마다 따로 찬다.
-        </div>
-        <div class="inner-list">
-          <div class="inner"><b>기존 앱</b> 이메일로 계정을 구분해 둘째 조직부터 거부한다</div>
-          <div class="inner"><b>clfl</b> 신원을 묻지 않는다. 사용자가 이름을 붙이고 토큰을 묶는다</div>
+  <div class="canvas">
+    <div class="dia">
+      <div class="box">
+        <div class="bt">1. 한 이메일 아래 조직이 여럿이다</div>
+        <div class="bd">사내 SSO 로그인 하나에 <code>Naver</code>, <code>NAVER_TEAM_52</code>,
+          <code>NAVER_TEAM_40</code> 이 함께 달려 있다. 한도는 조직마다 따로 찬다.</div>
+        <div class="inner">
+          <div><b>기존 앱</b> 이메일로 계정을 구분해 둘째 조직부터 거부한다</div>
+          <div><b>clfl</b> 신원을 묻지 않는다. 사용자가 이름을 붙이고 자격증명을 묶는다</div>
         </div>
       </div>
-      <div class="connector"><span class="line"></span></div>
-      <div class="dbox">
-        <div class="dt">2. 한도는 모델마다 따로 찬다</div>
-        <div class="dd">
-          주간 한도가 있는 모델 하나가 소진돼도 같은 조직의 다른 모델은 멀쩡하다.
-          조직 단위로만 전환하면 쓸 수 있는 것을 버리게 된다.
-        </div>
-        <div class="inner-list">
-          <div class="inner"><b>clfl</b> (조직, 모델) 쌍으로 쿨다운을 건다</div>
-        </div>
+      <div class="link"><span class="ln"></span></div>
+      <div class="box">
+        <div class="bt">2. 한도는 모델마다 따로 찬다</div>
+        <div class="bd">주간 한도가 있는 모델 하나가 소진돼도 같은 조직의 다른 모델은 멀쩡하다.
+          조직 단위로만 전환하면 쓸 수 있는 것을 버리게 된다.</div>
+        <div class="inner"><div><b>clfl</b> (조직, 모델) 쌍으로 쿨다운을 건다</div></div>
       </div>
-      <div class="connector"><span class="line"></span></div>
-      <div class="dbox">
-        <div class="dt">3. 이미 날아간 요청은 되돌릴 수 없다</div>
-        <div class="dd">
-          자격증명만 바꾸는 방식은 다음 호출부터 반영된다. 방금 한도에 걸린 그 요청은
-          그대로 실패한다.
-        </div>
-        <div class="inner-list">
-          <div class="inner"><b>clfl</b> 응답 첫 조각을 열어보고 판정해 같은 턴 안에서 다시 보낸다</div>
-        </div>
+      <div class="link"><span class="ln"></span></div>
+      <div class="box">
+        <div class="bt">3. 이미 날아간 요청은 되돌릴 수 없다</div>
+        <div class="bd">자격증명만 바꾸는 방식은 다음 호출부터 반영된다. 방금 한도에 걸린
+          그 요청은 그대로 실패한다.</div>
+        <div class="inner"><div><b>clfl</b> 응답 첫 조각을 열어보고 판정해 같은 턴 안에서 다시 보낸다</div></div>
       </div>
     </div>
-    <p class="caption">프록시 비용을 지불하는 세 가지 근거</p>
+    <p class="cap">프록시 비용을 지불하는 세 가지 근거</p>
   </div>
 
   <div class="col">
     <div class="note">
       <span class="nt">대가도 분명하다</span>
-      <p>
-        프록시를 거치므로 MCP 도구 검색이 기본 비활성화되고(설정으로 복구 가능),
-        원격 제어는 아예 쓸 수 없다. 이 셋이 필요없는 사용자에게는
-        <strong>프록시 없는 앱이 더 나은 선택이다.</strong> 정직하게 적어둔다.
-      </p>
+      <p>프록시를 거치므로 원격 제어를 쓸 수 없다. MCP 도구 검색도 기본 비활성화되는데
+        이쪽은 우리가 되살린다. 이 셋이 필요없는 사용자에게는
+        <strong>프록시 없는 앱이 더 나은 선택이다.</strong> 정직하게 적어둔다.</p>
     </div>
   </div>
 </div></section>
 
-<!-- ============ 2. 동작 원리 ============ -->
 <section id="how"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">2</span><h2>동작 원리</h2></div>
-    <p class="sub">
-      Claude Code 데스크톱 앱은 Dock 에서 실행되므로 부모 셸의 환경변수를 물려받지 못한다.
+    <h2>동작 원리</h2>
+    <p class="sub">데스크톱 앱은 Dock 에서 실행되므로 부모 셸의 환경변수를 물려받지 못한다.
       대신 <code>~/.claude/settings.json</code> 의 <code>env</code> 블록에 로컬 주소를 심어
-      모든 모델 호출을 clfl 로 통과시킨다.
-    </p>
+      모든 모델 호출을 clfl 로 통과시킨다.</p>
   </div>
 
-  <div class="stage">
-    <div class="diagram">
-      <div class="dbox">
-        <div class="dt">Claude Code 데스크톱 앱</div>
-        <div class="dd">clfl 이 소유하지 않는다. 건드리는 것은 <code>env.ANTHROPIC_BASE_URL</code> 한 줄뿐</div>
+  <div class="canvas">
+    <div class="dia">
+      <div class="box">
+        <div class="bt">Claude Code 데스크톱 앱</div>
+        <div class="bd">clfl 이 소유하지 않는다. 건드리는 것은 <code>env</code> 블록의 두 줄뿐</div>
       </div>
-
-      <div class="connector">
-        <span class="line"></span>
-        <span class="txt">HTTP  127.0.0.1:51710</span>
-        <span class="line"></span>
-      </div>
-
-      <div class="dbox stressed">
-        <div class="dt">clfl.app</div>
-        <div class="dd">상시 실행. 앱 자체가 데몬이므로 별도 백그라운드 프로세스가 없다</div>
-        <div class="inner-list">
-          <div class="inner"><b>Router</b> 계정 선택, 쿨다운, 우선순위</div>
-          <div class="inner"><b>Proxy</b> 첫 프레임 peek, 응답 분류, 스트림 릴레이</div>
-          <div class="inner"><b>Store</b> Keychain 토큰, 설정, 사용량 로그</div>
-          <div class="inner"><b>MenuBarExtra</b> 상태 표시, 계정 관리</div>
+      <div class="link"><span class="ln"></span><span class="tx">HTTP 127.0.0.1:51710</span><span class="ln"></span></div>
+      <div class="box hi">
+        <div class="bt">clfl.app</div>
+        <div class="bd">상시 실행. 앱 자체가 데몬이므로 별도 백그라운드 프로세스가 없다</div>
+        <div class="inner">
+          <div><b>Router</b> 조직 선택, 쿨다운, 우선순위</div>
+          <div><b>Proxy</b> 첫 프레임 peek, 응답 분류, 스트림 릴레이</div>
+          <div><b>Store</b> Keychain 자격증명, 설정, 사용량 로그</div>
+          <div><b>MenuBarExtra</b> 상태 표시, 조직 관리</div>
         </div>
       </div>
-
-      <div class="connector">
-        <span class="line"></span>
-        <span class="txt">HTTPS  계정별 토큰 주입</span>
-        <span class="line"></span>
-      </div>
-
-      <div class="dbox">
-        <div class="dt">api.anthropic.com</div>
-        <div class="dd">또는 계정별 base_url (기업용 게이트웨이)</div>
+      <div class="link"><span class="ln"></span><span class="tx">HTTPS 조직별 자격증명 주입</span><span class="ln"></span></div>
+      <div class="box">
+        <div class="bt">api.anthropic.com</div>
+        <div class="bd">또는 조직별 base_url</div>
       </div>
     </div>
-    <p class="caption">시스템 경계</p>
+    <p class="cap">시스템 경계</p>
   </div>
 
   <div class="col">
     <h3>대화를 소유하지 않는다</h3>
-    <p>
-      Messages API 는 상태를 서버에 두지 않는다. 전체 대화 이력이 매 요청 본문에 통째로
-      실려 오므로, 계정을 바꾼다는 것은 <strong>같은 바이트를 다른 인증 헤더로 다시
-      보내는 것</strong>이 전부다. 넘겨야 할 세션 같은 것은 없다.
-    </p>
-    <p>
-      다만 공짜는 아니다. 프롬프트 캐시는 계정 단위라서 전환하면 컨텍스트 전체가 다시
-      캐시 생성 비용으로 청구된다. 선제 전환을 대화 시작 시점에만 적용하는 이유다.
-    </p>
-
+    <p>Messages API 는 상태를 서버에 두지 않는다. 전체 대화 이력이 매 요청 본문에 통째로
+      실려 오므로, 조직을 바꾼다는 것은 <strong>같은 바이트를 다른 인증 헤더로 다시
+      보내는 것</strong>이 전부다. 넘겨야 할 세션 같은 것은 없다.</p>
+    <p>다만 공짜는 아니다. 프롬프트 캐시는 조직 단위라서 전환하면 컨텍스트 전체가 다시
+      캐시 생성 비용으로 청구된다. 선제 전환을 대화 시작 시점에만 적용하는 이유다.</p>
     <div class="note">
       <span class="nt">앱을 꺼도 안전하다</span>
-      <p>
-        정상 종료할 때 settings.json 에서 clfl 이 심은 줄을 지운다. 앱이 없으면 Claude Code 는
-        원래대로 직접 호출로 돌아간다. 죽은 포트를 가리킨 채 남겨두지 않는다.
-      </p>
+      <p>정상 종료할 때 settings.json 에서 clfl 이 심은 줄을 지운다. 앱이 없으면 Claude Code 는
+        원래대로 직접 호출로 돌아간다. 죽은 포트를 가리킨 채 남겨두지 않는다.</p>
     </div>
   </div>
 </div></section>
 
-<!-- ============ 2. 기능 ============ -->
 <section id="features"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">3</span><h2>기능</h2></div>
+    <h2>기능</h2>
     <p class="sub">터미널에서 하던 여섯 개 명령과 환경변수 설정이 창 하나로 들어온다.</p>
   </div>
-
-  <div class="fgrid">
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>같은 턴 안에서 전환</div>
-      <div class="fd">한도나 인증 오류를 만나면 클라이언트에 한 바이트도 쓰기 전에 다음 계정으로 다시 시도한다. 사용자에게는 에러가 보이지 않는다.</div>
+  <div class="cards">
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>같은 턴 안에서 전환</div>
+      <div class="d">한도나 인증 오류를 만나면 클라이언트에 한 바이트도 쓰기 전에 다음 조직으로 다시 시도한다.</div>
     </div>
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/></svg>모델별 쿨다운</div>
-      <div class="fd">한 모델의 주간 한도가 소진돼도 같은 계정의 다른 모델은 계속 쓴다. 계정 전체를 쉬게 하는 것은 5시간 세션 한도뿐이다.</div>
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="4" rx="1.2"/><rect x="2" y="9" width="12" height="4" rx="1.2"/></svg>모델별 쿨다운</div>
+      <div class="d">한 모델의 주간 한도가 소진돼도 같은 조직의 다른 모델은 계속 쓴다.</div>
     </div>
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v6l4 2"/><circle cx="8" cy="8" r="6"/></svg>차기 전에 미리 전환</div>
-      <div class="fd">5시간 잔여가 임계값을 넘은 계정은 후순위로 민다. 제외가 아니라 강등이라 가용 계정이 0이 되지 않는다.</div>
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 4.5V8l2.5 1.5"/><circle cx="8" cy="8" r="5.8"/></svg>차기 전에 미리 전환</div>
+      <div class="d">가장 빡빡한 창이 임계값 아래면 후순위로 민다. 제외가 아니라 강등이라 가용 조직이 0이 되지 않는다.</div>
     </div>
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13V6M8 13V3M13 13V9"/></svg>남은 양을 한눈에</div>
-      <div class="fd">계정마다 5시간과 7일 잔여를 함께 본다. 둘 중 먼저 바닥나는 쪽이 그 계정을 묶으므로 하나만 보면 절반을 놓친다.</div>
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 13V6.5M8 13V3M13 13V9.5"/></svg>남은 양을 한눈에</div>
+      <div class="d">5시간, 주간, 모델별 주간을 함께 본다. 먼저 바닥나는 쪽이 조직을 묶으므로 하나만 보면 절반을 놓친다.</div>
     </div>
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="11" height="8" rx="4"/><circle cx="6" cy="8" r="2.2"/></svg>빼둘 계정 지정</div>
-      <div class="fd">특정 계정을 자동 전환 대상에서 뺀다. 계정과 토큰은 그대로 남고 순서 자리도 지킨다. 지우는 것과 잠시 빼두는 것은 다른 일이다.</div>
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="11" height="8" rx="4"/><circle cx="6" cy="8" r="2"/></svg>빼둘 조직 지정</div>
+      <div class="d">자동 전환 대상에서 뺀다. 자격증명은 그대로 남고 순서 자리도 지킨다.</div>
     </div>
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>Keychain 보관</div>
-      <div class="fd">토큰은 Keychain 에만 있다. 암호 파일도, 셸에 export 해둘 passphrase 도 없다.</div>
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="7" width="10" height="6.5" rx="1.5"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/></svg>Keychain 보관</div>
+      <div class="d">자격증명은 Keychain 에만 있다. 만료 전에 앱이 알아서 갱신한다.</div>
     </div>
-    <div class="fcard">
-      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/><path d="m6 8 1.5 1.5L10.5 6.5"/></svg>자가 점검</div>
-      <div class="fd">포트, 연결 설정, Keychain, 계정 상태를 한 번에 확인하고 문제마다 고치는 버튼을 준다.</div>
+    <div class="card">
+      <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/><path d="m6 8 1.4 1.4L10.4 6.5"/></svg>자가 점검</div>
+      <div class="d">포트, 연결 설정, Keychain, 조직 상태를 확인하고 문제마다 고치는 버튼을 준다.</div>
     </div>
   </div>
 </div></section>
 
-<!-- ============ 4. 전환 전략 ============ -->
 <section id="strategy"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">4</span><h2>전환 전략</h2></div>
-    <p class="sub">
-      트리거가 둘이다. 성격이 다르므로 <strong>가드도 달라야 한다.</strong>
-    </p>
-
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th></th><th>선제 전환</th><th>반응형 전환</th></tr></thead>
-        <tbody>
-          <tr><td>트리거</td><td>잔여가 임계값 아래</td><td>서버가 429 로 거절</td></tr>
-          <tr><td>판단 주체</td><td>우리</td><td>서버</td></tr>
-          <tr><td>적용 시점</td><td>새 대화 시작할 때만</td><td>즉시, 같은 턴 안에서</td></tr>
-          <tr><td>쿨다운</td><td>300초</td><td><strong>걸지 않는다</strong></td></tr>
-          <tr><td>틀렸을 때</td><td>캐시를 헛되이 버린다</td><td>없음. 사실 통보다</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>
-      <strong>반응형에 쿨다운을 걸면 안 된다.</strong> 429 는 우리 판단이 아니라 그 조직을
-      지금 쓸 수 없다는 서버의 통보다. 쿨다운 때문에 넘어가지 못하면 요청이 그냥 실패한다.
-      선제 전환은 반대다. 우리 판단이라 틀릴 수 있고, 틀렸을 때 왕복하면 캐시를 반복해서
-      버린다.
-    </p>
-
+    <h2>전환 전략</h2>
+    <p class="sub">트리거가 둘이다. 성격이 다르므로 <strong>가드도 달라야 한다.</strong></p>
+    <div class="tw"><table>
+      <thead><tr><th></th><th>선제 전환</th><th>반응형 전환</th></tr></thead>
+      <tbody>
+        <tr><td>트리거</td><td>잔여가 임계값 아래</td><td>서버가 429 로 거절</td></tr>
+        <tr><td>판단 주체</td><td>우리</td><td>서버</td></tr>
+        <tr><td>적용 시점</td><td>새 대화 시작할 때만</td><td>즉시, 같은 턴 안에서</td></tr>
+        <tr><td>쿨다운</td><td>300초</td><td><strong>걸지 않는다</strong></td></tr>
+        <tr><td>틀렸을 때</td><td>캐시를 헛되이 버린다</td><td>없음. 사실 통보다</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:16px"><strong>반응형에 쿨다운을 걸면 안 된다.</strong> 429 는 우리 판단이 아니라
+      그 조직을 지금 쓸 수 없다는 서버의 통보다. 쿨다운 때문에 넘어가지 못하면 요청이 그냥
+      실패한다. 선제 전환은 반대다. 우리 판단이라 틀릴 수 있고, 틀렸을 때 왕복하면 캐시를
+      반복해서 버린다.</p>
     <h3>어느 창이 조직을 묶는가</h3>
-    <p>
-      5시간과 7일 중 <strong>먼저 바닥나는 쪽</strong>이 그 조직을 묶는다. 잔여 기준이므로
-      둘 중 최솟값을 본다. 5시간만 보면 7일이 먼저 차는 경우를 통째로 놓친다.
-    </p>
+    <p>5시간, 주간, 그리고 요청한 모델의 주간 중 <strong>먼저 바닥나는 쪽</strong>이 그 조직을
+      묶는다. 잔여 기준이므로 최솟값을 본다. 하나만 보면 나머지가 먼저 차는 경우를 놓친다.</p>
   </div>
 
-  <div class="stage">
-    <div class="diagram">
-      <div class="dbox">
-        <div class="dt">EN</div>
-        <div class="dd">5시간 88% 남음 / 7일 69% 남음</div>
-        <div class="inner-list">
-          <div class="inner"><b>묶는 값 69%</b> 여유. tier 0</div>
-        </div>
+  <div class="canvas">
+    <div class="dia">
+      <div class="box">
+        <div class="bt">EN</div>
+        <div class="bd">5시간 88% / 주간 69% / Fable 100% 남음</div>
+        <div class="inner"><div><b>묶는 값 69%</b> 여유. tier 0</div></div>
       </div>
-      <div class="connector"><span class="line"></span><span class="txt">둘 중 작은 쪽</span><span class="line"></span></div>
-      <div class="dbox stressed">
-        <div class="dt">T1</div>
-        <div class="dd">5시간 53% 남음 / 7일 0% 남음</div>
-        <div class="inner-list">
-          <div class="inner"><b>묶는 값 0%</b> 5시간만 봤으면 여유로 보였다</div>
-        </div>
+      <div class="link"><span class="ln"></span><span class="tx">셋 중 가장 작은 값</span><span class="ln"></span></div>
+      <div class="box hi">
+        <div class="bt">T1</div>
+        <div class="bd">5시간 53% / 주간 41% / Fable 0% 남음</div>
+        <div class="inner"><div><b>묶는 값 0%</b> 5시간만 봤으면 여유로 보였다</div></div>
       </div>
     </div>
-    <p class="caption">7일이 먼저 바닥난 경우. 하나만 보면 절반을 놓친다</p>
+    <p class="cap">모델별 주간이 먼저 바닥난 경우</p>
   </div>
 
   <div class="col">
     <h3>제외가 아니라 강등이다</h3>
-    <p>
-      임계값 아래인 조직을 후보에서 빼지 않고 <strong>뒤로 민다.</strong> 전 조직이 임계값을
-      넘었을 때 쓸 수 있는 곳이 0이 되면 안 되기 때문이다. 강등은 가용성을 절대 줄이지 않는다.
-    </p>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>tier</th><th>조건</th><th>동작</th></tr></thead>
-        <tbody>
-          <tr><td>0</td><td>묶는 잔여 &gt;= 25% (임계값 15% + hysteresis 10%)</td><td>선호. 우선순위 순서대로</td></tr>
-          <tr><td>1</td><td>그 외. 읽기가 없는 조직도 여기</td><td>tier 0 이 비었을 때만</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>
-      hysteresis 가 없으면 임계값 바로 위아래에 있는 두 조직이 대화마다 자리를 바꾼다.
-      전환은 프롬프트 캐시를 버리는 행위라 왕복 자체가 손해다. 한 번 tier 1 로 내려가면
-      25% 를 회복해야 다시 선호된다.
-    </p>
-
+    <p>임계값 아래인 조직을 후보에서 빼지 않고 <strong>뒤로 민다.</strong> 전 조직이 임계값을
+      넘었을 때 쓸 수 있는 곳이 0이 되면 안 되기 때문이다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>tier</th><th>조건</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>묶는 잔여가 25% 이상 (임계값 15 + hysteresis 10)</td><td>선호. 우선순위 순서대로</td></tr>
+        <tr><td>1</td><td>그 외. 읽기가 없는 조직도 여기</td><td>tier 0 이 비었을 때만</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:16px">hysteresis 가 없으면 임계값 바로 위아래에 있는 두 조직이 대화마다 자리를 바꾼다.
+      전환은 프롬프트 캐시를 버리는 행위라 왕복 자체가 손해다.</p>
     <h3>묵은 값을 믿지 않는다</h3>
-    <p>
-      잔여량은 응답 헤더에 편승해 갱신되므로, 오래 쓰지 않은 조직의 값은 며칠 묵는다.
+    <p>잔여량은 응답 헤더에 편승해 갱신되므로, 오래 쓰지 않은 조직의 값은 며칠 묵는다.
       그 사이 창이 리셋됐으면 <strong>실제로는 비어 있는 조직을 소진된 것으로 보고
-      건너뛴다.</strong>
-    </p>
-    <p>
-      그래서 리셋 시각이 지난 창의 읽기는 버린다. 아직 안 지났으면 소비는 늘기만 하므로
-      묵은 값도 유효한 하한이다. 리셋 시각 자체를 모를 때는 판단 방향에 따라 다르게 다룬다.
-      <strong>지금 쓰는 조직을 내보내는 판단에는 쓰지 않고</strong>, 후보를 뒤로 미는
-      판단에는 쓴다. 전자는 틀리면 멀쩡한 조직을 쫓아내고, 후자는 틀려도 그 후보가 조금
-      늦게 선택될 뿐이다.
-    </p>
-
+      건너뛴다.</strong></p>
+    <p>그래서 리셋 시각이 지난 창의 읽기는 버린다. 리셋 시각 자체를 모를 때는 판단 방향에
+      따라 다르게 다룬다. <strong>지금 쓰는 조직을 내보내는 판단에는 쓰지 않고</strong>,
+      후보를 뒤로 미는 판단에는 쓴다. 전자는 틀리면 멀쩡한 조직을 쫓아내고, 후자는 틀려도
+      그 후보가 조금 늦게 선택될 뿐이다.</p>
     <div class="note">
       <span class="nt">폴링하지 않는다</span>
-      <p>
-        잔여량은 어차피 응답 헤더로 들어온다. 요청이 흐르면 저절로 갱신되고, 요청이 없으면
-        갱신할 이유도 없다. 별도로 사용량 API 를 두드리면 그 호출 자체가 한도를 먹는다.
-      </p>
+      <p>5시간과 주간은 응답 헤더로 공짜로 들어온다. 모델별 주간만 Usage API 가 필요한데,
+        타이머 대신 캡처 직후, 갱신 직후, 팝오버 열림, 선제 판단, 후보 검증 다섯 계기에만
+        부른다. 사용량을 물어보다 사용량을 소진하면 앞뒤가 맞지 않는다.</p>
     </div>
   </div>
 </div></section>
 
-<!-- ============ 5. 메뉴바 ============ -->
 <section id="menubar"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">5</span><h2>메뉴바</h2></div>
-    <p class="sub">
-      항상 보이는 것은 두 가지다. <strong>지금 어느 계정을 쓰는가</strong>와
-      <strong>얼마나 남았는가</strong>. 나머지는 눌러서 본다.
-    </p>
+    <h2>메뉴바</h2>
+    <p class="sub">항상 보이는 것은 두 가지다. <strong>지금 어느 조직을 쓰는가</strong>와
+      <strong>얼마나 남았는가</strong>. 나머지는 눌러서 본다.</p>
   </div>
 
-  <div class="stage">
-    <div class="specimen">
-      <span class="lbl">위가 5시간, 아래가 7일 잔여. 줄마다 따로 색이 붙는다</span>
-      <div class="menubar">
-        <span class="mb-item on">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">T1</span><span class="mb-stack"><span class="h5 ok">56%</span><span class="d7 warn">9%</span></span></span>
-          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5 ok">88%</span><span class="d7 ok">69%</span></span></span>
+  <div class="canvas">
+    <figure class="spec w">
+      <div class="mb">
+        <span class="mb-item sel">
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
+          <span class="mb-org"><span class="mb-code">T1</span><span class="mb-num"><span class="ok">56%</span><span class="warn">9%</span></span></span>
+          <span class="mb-org prev"><span class="mb-code">T2</span><span class="mb-num"><span class="ok">88%</span><span class="ok">69%</span></span></span>
         </span>
-        <span class="spacer"></span>
+        <span class="grow"></span>
         <span class="mb-sys">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1.5 6a9 9 0 0 1 13 0M4 8.5a5.5 5.5 0 0 1 8 0"/><circle cx="8" cy="11.5" r="1"/></svg>
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="5" width="11" height="6" rx="1.5"/><path d="M14 7.5v1"/></svg>
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M1.5 6a9 9 0 0 1 13 0M4 8.5a5.5 5.5 0 0 1 8 0"/><circle cx="8" cy="11.5" r=".9"/></svg>
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.5" y="5" width="11" height="6" rx="1.8"/><path d="M14 7.5v1"/></svg>
           <span>목 9:41</span>
         </span>
       </div>
-    </div>
+      <figcaption>
+        <div class="name">정상. 위가 5시간, 아래가 주간 잔여</div>
+        <div class="dims">막대 24pt / 항목 20pt / 코드 12pt SF Mono / 숫자 8pt</div>
+      </figcaption>
+    </figure>
 
-    <div class="specimen">
-      <span class="lbl">5시간이 얼마 안 남음. 걸린 줄만 색이 바뀐다</span>
-      <div class="menubar">
-        <span class="mb-item on">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">T1</span><span class="mb-stack"><span class="h5 warn">12%</span><span class="d7 ok">58%</span></span></span>
-          <span class="mb-acct alt"><span class="code">T2</span><span class="mb-stack"><span class="h5 ok">88%</span><span class="d7 ok">69%</span></span></span>
+    <figure class="spec w">
+      <div class="mb">
+        <span class="mb-item sel">
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
+          <span class="mb-org"><span class="mb-code">EN</span><span class="mb-num"><span class="ok">88%</span><span class="ok">69%</span></span></span>
+          <span class="mb-org prev"><span class="mb-code">T1</span><span class="mb-num"><span class="ok">53%</span><span class="bad">0%</span></span></span>
         </span>
-        <span class="spacer"></span>
+        <span class="grow"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
-    </div>
+      <figcaption>
+        <div class="name">전환 직후. 떠나온 조직의 주간이 0% 라 넘어왔다</div>
+        <div class="dims">직전 조직 불투명도 0.5 / 분리선 없이 여백 8pt 로만 가른다</div>
+      </figcaption>
+    </figure>
 
-    <div class="specimen">
-      <span class="lbl">전환 직후. 떠나온 계정의 7일이 0% 라 넘어왔다</span>
-      <div class="menubar">
-        <span class="mb-item on">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">EN</span><span class="mb-stack"><span class="h5 ok">88%</span><span class="d7 ok">69%</span></span></span>
-          <span class="mb-acct alt"><span class="code">T1</span><span class="mb-stack"><span class="h5 ok">53%</span><span class="d7 crit">0%</span></span></span>
+    <figure class="spec w">
+      <div class="mb">
+        <span class="mb-item sel">
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
+          <span class="mb-org"><span class="mb-code">T2</span><span class="mb-num"><span>38%</span><span>26%</span></span></span>
+          <span class="mb-org dim"><span class="mb-code">T3</span></span>
         </span>
-        <span class="spacer"></span>
+        <span class="grow"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
-    </div>
+      <figcaption>
+        <div class="name">기본색 구간. 떠나온 조직은 인증 실패라 숫자를 뺀다</div>
+        <div class="dims">15 이상 50 미만은 색을 입히지 않는다 / 인증 실패 불투명도 0.3</div>
+      </figcaption>
+    </figure>
 
-    <div class="specimen">
-      <span class="lbl">기본색 구간(15-49%). 떠나온 계정은 인증 실패라 숫자를 뺀다</span>
-      <div class="menubar">
-        <span class="mb-item on">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          <span class="mb-acct "><span class="code">T2</span><span class="mb-stack"><span class="h5">38%</span><span class="d7">26%</span></span></span>
-          <span class="mb-acct alt dead"><span class="code">T3</span></span>
-        </span>
-        <span class="spacer"></span>
-        <span class="mb-sys"><span>목 9:41</span></span>
-      </div>
-    </div>
-
-    <div class="specimen">
-      <span class="lbl">일시 중지 / 쓸 수 있는 계정 없음</span>
-      <div class="menubar">
+    <figure class="spec w">
+      <div class="mb">
         <span class="mb-item off">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3.5" width="2.5" height="9" rx="1"/><rect x="9.5" y="3.5" width="2.5" height="9" rx="1"/></svg>
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4.5" y="3.5" width="2.5" height="9" rx="1"/><rect x="9" y="3.5" width="2.5" height="9" rx="1"/></svg>
           일시 중지
         </span>
-        <span class="mb-item crit" style="margin-left:22px">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5M8 10.8v.2"/></svg>
-          쓸 수 있는 계정 없음
+        <span class="mb-item err" style="margin-left:20px">
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="5.8"/><path d="M8 5v3.6M8 10.8v.2"/></svg>
+          쓸 수 있는 조직 없음
         </span>
-        <span class="spacer"></span>
+        <span class="grow"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
-    </div>
-    <p class="caption">메뉴바 라벨 상태별 변형</p>
+      <figcaption>
+        <div class="name">일시 중지 / 쓸 수 있는 조직 없음</div>
+        <div class="dims">systemRed 만 색을 쓰고 나머지는 불투명도로 낮춘다</div>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="canvas">
+    <figure class="spec">
+      <div class="pop">
+        <div class="pop-top">
+          <span class="t">clfl</span>
+          <span class="grow"></span>
+          <button class="ibtn" type="button" title="설정">
+            <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="2.1"/><path d="M8 1.8v1.7M8 12.5v1.7M14.2 8h-1.7M3.5 8H1.8M12.4 3.6l-1.2 1.2M4.8 11.2l-1.2 1.2M12.4 12.4l-1.2-1.2M4.8 4.8 3.6 3.6"/></svg>
+          </button>
+          <button class="ibtn" type="button" title="종료">
+            <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 2.2v6"/><path d="M4.7 4.5a5.4 5.4 0 1 0 6.6 0"/></svg>
+          </button>
+        </div>
+
+        <div class="notice warn">
+          <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.6 14.4 13.4H1.6L8 2.6Z"/><path d="M8 6.6v3M8 11.5v.2"/></svg>
+          <p><span class="h">team1 에서 ent1 로 넘어갔습니다</span>
+            지금까지의 대화가 enterprise 조직 서버로 전송됩니다.</p>
+        </div>
+
+        <div class="pop-sec">
+          <p class="sec-t">사용 중</p>
+          <div class="org-head">
+            <span class="org-name">ent1</span>
+            <span class="tag b">enterprise</span>
+            <span class="tag g">여유</span>
+          </div>
+          <div class="meter"><span class="l">5시간</span><span class="track"><span class="fill ok" style="width:88%"></span></span><span class="v">88%</span></div>
+          <p class="reset">3시간 7분 후 초기화</p>
+          <div class="meter"><span class="l">주간</span><span class="track"><span class="fill ok" style="width:69%"></span></span><span class="v">69%</span></div>
+          <p class="reset">금요일 오전 6:00 초기화</p>
+          <div class="meter"><span class="l">Fable</span><span class="track"><span class="fill warn" style="width:8%"></span></span><span class="v">8%</span></div>
+          <p class="reset last">모델별 주간. 이 모델만 곧 막힙니다</p>
+        </div>
+
+        <div class="pop-sec">
+          <p class="sec-t">우선순위</p>
+          <div class="plist">
+            <div class="prow">
+              <span class="n">1</span>
+              <span class="w"><span class="id">team1</span><span class="m">Fable 쿨다운, 6일 4시간</span></span>
+              <span class="mini"><span class="fill bad" style="width:3%"></span></span>
+            </div>
+            <div class="prow">
+              <span class="n">2</span>
+              <span class="w"><span class="id">team2</span><span class="m">대기</span></span>
+              <span class="mini"><span class="fill mid" style="width:24%"></span></span>
+            </div>
+            <div class="prow">
+              <span class="n">3</span>
+              <span class="w"><span class="id">team3</span><span class="m">재등록 필요</span></span>
+              <span class="tag r">인증 실패</span>
+            </div>
+            <div class="prow on">
+              <span class="n">4</span>
+              <span class="w"><span class="id">ent1</span><span class="m">사용 중</span></span>
+              <span class="mini"><span class="fill ok" style="width:69%"></span></span>
+            </div>
+            <div class="prow pause">
+              <span class="n">5</span>
+              <span class="w"><span class="id">personal</span><span class="m">자동 전환 제외</span></span>
+              <span class="tag">제외</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pop-sec">
+          <p class="sec-t">최근 활동</p>
+          <div class="tl">
+            <div><time>09:14</time><span><b>team1</b> 에서 <b>ent1</b> 로 전환. Fable 한도 소진</span></div>
+            <div><time>08:52</time><span><b>team3</b> 인증 실패. 자격증명 재등록 필요</span></div>
+            <div><time>08:07</time><span>첨부가 커서 이 요청은 전환 없이 보냄 (9.4 MB)</span></div>
+          </div>
+        </div>
+
+        <div class="pop-foot">
+          <span class="dot"></span>
+          <span>127.0.0.1:51710 연결됨</span>
+          <span class="grow"></span>
+          <button class="btn" type="button">일시 중지</button>
+        </div>
+      </div>
+      <figcaption>
+        <div class="name">팝오버</div>
+        <div class="dims">너비 340pt / 반경 11pt / 안쪽 여백 14pt / 막대 6pt / 행 28pt</div>
+      </figcaption>
+    </figure>
   </div>
 
   <div class="col">
-    <h3>계정 이름 대신 두 글자 코드를 쓴다</h3>
-    <p>
-      메뉴바는 폭이 귀하다. 계정 이름을 그대로 쓰면 시계와 다른 메뉴 항목을 밀어낸다.
-      메뉴바에서만 축약 코드를 쓰고, 팝오버와 설정 창은 원래 이름을 그대로 쓴다.
-    </p>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>계정 이름</th><th>코드</th><th>규칙</th></tr></thead>
-        <tbody>
-          <tr><td><code>team1</code></td><td><code>T1</code></td><td>이름에 team 포함. 알파벳순 1번째</td></tr>
-          <tr><td><code>team2</code></td><td><code>T2</code></td><td>알파벳순 2번째</td></tr>
-          <tr><td><code>team3</code></td><td><code>T3</code></td><td>알파벳순 3번째</td></tr>
-          <tr><td><code>ent1</code></td><td><code>EN</code></td><td>team 이 없으면 앞 2글자</td></tr>
-          <tr><td><code>personal</code></td><td><code>PE</code></td><td>앞 2글자</td></tr>
-          <tr><td><code>ent1</code> 과 <code>ent2</code> 가 함께</td><td><code>E1</code> <code>E2</code></td><td>앞 2글자가 겹치면 첫 글자에 순번</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <h3>조직 이름 대신 두 글자 코드를 쓴다</h3>
+    <p>메뉴바는 폭이 귀하다. 조직 이름을 그대로 쓰면 시계와 다른 메뉴 항목을 밀어낸다.
+      메뉴바에서만 축약 코드를 쓰고, 팝오버와 설정 창은 원래 이름을 그대로 쓴다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>조직 이름</th><th>코드</th><th>규칙</th></tr></thead>
+      <tbody>
+        <tr><td><code>team1</code></td><td><code>T1</code></td><td>이름에 team 포함. 알파벳순 1번째</td></tr>
+        <tr><td><code>team2</code></td><td><code>T2</code></td><td>알파벳순 2번째</td></tr>
+        <tr><td><code>ent1</code></td><td><code>EN</code></td><td>team 이 없으면 앞 2글자</td></tr>
+        <tr><td><code>ent1</code> 과 <code>ent2</code> 가 함께</td><td><code>E1</code> <code>E2</code></td><td>앞 2글자가 겹치면 첫 글자에 순번</td></tr>
+      </tbody>
+    </table></div>
 
-    <h3>옆자리는 직전에 쓰던 계정이다</h3>
-    <p>
-      전환이 일어난 직후 이 자리에 잡히는 것은 <strong>방금 한도에 걸려 떠나온 계정</strong>이다.
+    <h3>옆자리는 직전에 쓰던 조직이다</h3>
+    <p>전환 직후 이 자리에 잡히는 것은 <strong>방금 한도에 걸려 떠나온 조직</strong>이다.
       드문 경우를 위한 장식이 아니라, 전환 뒤 가장 궁금한 것 하나를 담는 자리다.
-      원래 계정으로 언제 돌아갈 수 있는가.
-    </p>
-    <p>
-      숫자는 <strong>남은 양</strong>이다. 쓴 양이 아니라 앞으로 쓸 수 있는 양을 보여준다.
-      메뉴바를 흘깃 보는 이유가 "아직 돌려도 되나"를 확인하는 것이므로, 남은 쪽이 바로
-      답이 되는 숫자다. 클수록 좋다.
-    </p>
-    <p>
-      두 계정 모두 숫자를 <strong>두 줄</strong>로 쌓는다. 위가 5시간 잔여, 아래가 7일
-      잔여다. 전환은 둘 중 어느 쪽이 먼저 바닥나느냐에 따라 일어나므로 하나만 보여주면
-      이유의 절반이 가려진다. 위 세 번째 예시에서 떠나온 계정의 5시간은 53% 나 남았는데
-      7일이 0% 다. 두 줄이라야 왜 넘어왔는지가 읽힌다.
-    </p>
-    <p>
-      그래서 색도 계정이 아니라 <strong>줄마다 따로</strong> 붙는다. 5시간과 7일은 서로
-      독립적으로 바닥나기 때문이다.
-    </p>
+      원래 조직으로 언제 돌아갈 수 있는가.</p>
 
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>남은 양</th><th>색</th><th>뜻</th></tr></thead>
-        <tbody>
-          <tr><td>50% 이상</td><td><span class="pill ok">녹색</span></td><td>여유. 계속 써도 되고 넘어올 곳으로도 좋다</td></tr>
-          <tr><td>15% 이상 50% 미만</td><td><span class="pill">기본</span></td><td>정상 범위. 굳이 눈길을 끌지 않는다</td></tr>
-          <tr><td>5% 이상 15% 미만</td><td><span class="pill warn">노랑</span></td><td>선제 전환 임계값 아래. 새 대화는 다른 계정으로 간다</td></tr>
-          <tr><td>5% 미만</td><td><span class="pill crit">빨강</span></td><td>사실상 소진. 곧 강제로 넘어간다</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p>
-      경계값은 임의가 아니다. <strong>노랑이 시작되는 15% 는 설정 창의 선제 전환
-      임계값과 같은 값</strong>이라, 노랑은 곧 "이 계정은 새 대화 후보에서 이미 밀려났다"
-      는 뜻이 된다. 빨강 5% 는 대화 도중에 강제로 넘어가기 직전 구간이다. 설정에서
-      임계값을 바꾸면 노랑 경계도 함께 움직인다.
-    </p>
-    <p>
-      코드와 숫자 사이는 붙인다. 두 줄로 쌓인 형태 자체가 이미 구분이 되므로 공백이 필요없고,
-      계정 사이도 선을 긋지 않고 여백만으로 가른다. 메뉴바에서 1픽셀은 비싸다.
-      인증 실패한 계정은 시간으로 풀리지 않으므로 숫자를 빼고 코드만 흐리게 남긴다.
-    </p>
-
-    <div class="note">
-      <span class="nt">확인이 필요한 부분</span>
-      <p>
-        번호가 알파벳 정렬 순서에서 나오므로 계정을 추가하면 기존 코드가 밀린다.
-        <code>team1</code>, <code>team3</code> 이 <code>T1</code>, <code>T2</code> 였다가
-        <code>team2</code> 를 넣으면 <code>team3</code> 이 <code>T3</code> 이 된다.
-        외운 코드가 조용히 바뀌는 셈이라, 설정 창의 계정 목록에 코드를 함께 표시해
-        언제든 확인할 수 있게 한다.
-      </p>
-    </div>
-  </div>
-
-  <div class="stage">
-    <div class="popover">
-      <div class="pop-head">
-        <span class="pop-title">clfl</span>
-        <span class="spacer"></span>
-        <button class="iconbtn" title="설정" type="button">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.6v1.8M8 12.6v1.8M14.4 8h-1.8M3.4 8H1.6M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3M12.5 12.5l-1.3-1.3M4.8 4.8 3.5 3.5"/></svg>
-        </button>
-        <button class="iconbtn" title="종료" type="button">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2v6"/><path d="M4.6 4.4a5.5 5.5 0 1 0 6.8 0"/></svg>
-        </button>
-      </div>
-
-      <div class="banner warn">
-        <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2.5 14.5 13.5h-13L8 2.5Z"/><path d="M8 6.6v3M8 11.6v.2"/></svg>
-        <p>
-          <span class="t">team1 에서 ent1 로 넘어갔습니다</span>
-          지금까지의 대화가 enterprise 계정 서버로 전송됩니다.
-        </p>
-      </div>
-
-      <div class="pop-sec">
-        <p class="sec-label">사용 중 / 남은 양</p>
-        <div class="acct-active">
-          <span class="acct-name">ent1</span>
-          <span class="pill plan">enterprise</span>
-          <span class="pill ok">여유</span>
-        </div>
-        <div class="gauge">
-          <span class="g-lbl">5시간</span>
-          <span class="track"><span class="fill ok" style="width:88%"></span></span>
-          <span class="g-val">88%</span>
-        </div>
-        <p class="gauge-note">3시간 7분 후 초기화</p>
-        <div class="gauge">
-          <span class="g-lbl">주간</span>
-          <span class="track"><span class="fill ok" style="width:69%"></span></span>
-          <span class="g-val">69%</span>
-        </div>
-        <p class="gauge-note">금요일 오전 6:00 초기화</p>
-        <div class="gauge">
-          <span class="g-lbl">Fable</span>
-          <span class="track"><span class="fill warn" style="width:8%"></span></span>
-          <span class="g-val">8%</span>
-        </div>
-        <p class="gauge-note">모델별 주간. 이 모델만 곧 막힙니다</p>
-      </div>
-
-      <div class="pop-sec">
-        <p class="sec-label">우선순위</p>
-        <div class="plist">
-          <div class="prow">
-            <span class="ord">1</span>
-            <span class="who"><span class="id">team1</span><span class="meta">fable 쿨다운, 6일 4시간 남음</span></span>
-            <span class="minitrack"><span class="fill crit" style="width:2%;display:block;height:100%"></span></span>
-          </div>
-          <div class="prow">
-            <span class="ord">2</span>
-            <span class="who"><span class="id">team2</span><span class="meta">대기</span></span>
-            <span class="minitrack"><span class="fill mid" style="width:24%;display:block;height:100%"></span></span>
-          </div>
-          <div class="prow">
-            <span class="ord">3</span>
-            <span class="who"><span class="id">team3</span><span class="meta">재로그인 필요</span></span>
-            <span class="pill crit">인증 실패</span>
-          </div>
-          <div class="prow is-active">
-            <span class="ord">4</span>
-            <span class="who"><span class="id">ent1</span><span class="meta">사용 중</span></span>
-            <span class="minitrack"><span class="fill ok" style="width:88%;display:block;height:100%"></span></span>
-          </div>
-          <div class="prow paused">
-            <span class="ord">5</span>
-            <span class="who"><span class="id">personal</span><span class="meta">자동 전환 제외</span></span>
-            <span class="pill">제외</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="pop-sec">
-        <p class="sec-label">최근 활동</p>
-        <div class="tl">
-          <div class="tl-row"><time>09:14</time><span class="what"><b>team1</b> 에서 <b>ent1</b> 로 전환. fable 한도 소진</span></div>
-          <div class="tl-row"><time>08:52</time><span class="what"><b>team3</b> 인증 실패. 토큰 재등록 필요</span></div>
-          <div class="tl-row"><time>08:07</time><span class="what">첨부가 커서 이 요청은 전환 없이 보냄 (9.4 MB)</span></div>
-        </div>
-      </div>
-
-      <div class="pop-foot">
-        <span class="dot"></span>
-        <span>127.0.0.1:51710 연결됨</span>
-        <span class="spacer"></span>
-        <button class="btn" type="button">일시 중지</button>
-      </div>
-    </div>
-    <p class="caption">팝오버. 너비 372pt</p>
-  </div>
-
-  <div class="col">
-    <h3>배너는 조건이 참인 동안만 떠 있는다</h3>
-    <p>
-      맨 위 경고는 알림이 아니라 <strong>현재 상태</strong>다. 다른 요금제 계정으로 넘어가
-      있는 동안 계속 보이고, 원래 계정으로 돌아오면 사라진다. 같은 경고를 몇 분마다 다시
-      띄우는 억제 타이머가 필요 없는 이유다.
-    </p>
-    <p>
-      한 번 지나간 일은 최근 활동에 남는다. 조건은 지금을 말하고, 활동은 과거를 말한다.
-    </p>
+    <h3>색은 줄마다 따로 붙는다</h3>
+    <p>숫자는 <strong>남은 양</strong>이다. 메뉴바를 흘깃 보는 목적이 "아직 돌려도 되나" 를
+      확인하는 것이므로 남은 쪽이 곧바로 답이 되는 숫자다. 클수록 좋다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>남은 양</th><th>색</th><th>뜻</th></tr></thead>
+      <tbody>
+        <tr><td>50% 이상</td><td><span class="tag g">systemGreen</span></td><td>여유. 넘어올 곳으로도 좋다</td></tr>
+        <tr><td>15% 이상 50% 미만</td><td><span class="tag">기본 라벨색</span></td><td>정상. 눈길을 끌지 않는다</td></tr>
+        <tr><td>5% 이상 15% 미만</td><td><span class="tag y">systemYellow</span></td><td>선제 전환 임계값 아래</td></tr>
+        <tr><td>5% 미만</td><td><span class="tag r">systemRed</span></td><td>사실상 소진</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:16px">경계값은 임의가 아니다. 노랑이 시작되는 15% 는 선제 전환 임계값과 같은 값이라,
+      노랑은 곧 "이 조직은 새 대화 후보에서 이미 밀려났다" 는 뜻이 된다.</p>
   </div>
 </div></section>
 
-<!-- ============ 4. 설정 창 ============ -->
 <section id="settings"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">6</span><h2>설정 창</h2></div>
-    <p class="sub">
-      계정 등록과 순서, 전환 정책, 연결 상태, 자가 점검. 터미널에서 스무 번쯤 하던 일이
-      여기 모인다.
-    </p>
+    <h2>설정 창</h2>
+    <p class="sub">조직 등록과 순서, 전환 정책, 연결 상태, 자가 점검. 탭 넷으로 끝난다.</p>
   </div>
 
-  <div class="stage">
-    <div class="window">
-      <div class="titlebar">
-        <span class="traffic"><i></i><i></i><i></i></span>
-        <span class="wtitle">clfl 설정</span>
-      </div>
-      <div class="tabs">
-        <span class="tab on">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13.2c0-2.4 2.2-3.7 5-3.7s5 1.3 5 3.7"/></svg>
-          계정
-        </span>
-        <span class="tab">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>
-          전환
-        </span>
-        <span class="tab">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6.5 9.5 4 12a2.8 2.8 0 1 1-4-4l2.5-2.5"/><path d="M9.5 6.5 12 4a2.8 2.8 0 1 1 4 4l-2.5 2.5" transform="translate(-1)"/><path d="M6 10 10 6"/></svg>
-          연결
-        </span>
-        <span class="tab">
-          <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/><path d="m6 8 1.5 1.5L10.5 6.5"/></svg>
-          점검
-        </span>
-      </div>
-      <div class="wbody">
-        <div class="hint">위에서부터 먼저 사용합니다. 끌어서 순서를 바꾸세요.</div>
-        <div class="atable">
-          <div class="arow head">
-            <span></span><span>코드</span><span>계정</span><span class="hide-m">요금제</span><span>자동</span><span class="hide-s">상태</span><span></span>
-          </div>
-          <div class="arow">
-            <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
-            <span class="code">T1</span>
-            <span class="id">team1</span>
-            <span class="hide-m"><span class="pill plan">team</span></span>
-            <span class="switch sm on" title="자동 전환"></span>
-            <span class="hide-s"><span class="pill warn">쿨다운 6일</span></span>
-            <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
-          </div>
-          <div class="arow">
-            <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
-            <span class="code">T2</span>
-            <span class="id">team2</span>
-            <span class="hide-m"><span class="pill plan">team</span></span>
-            <span class="switch sm on" title="자동 전환"></span>
-            <span class="hide-s"><span class="pill ok">대기</span></span>
-            <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
-          </div>
-          <div class="arow">
-            <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
-            <span class="code">T3</span>
-            <span class="id">team3</span>
-            <span class="hide-m"><span class="pill plan">team</span></span>
-            <span class="switch sm on" title="자동 전환"></span>
-            <span class="hide-s"><span class="pill crit">인증 실패</span></span>
-            <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
-          </div>
-          <div class="arow">
-            <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
-            <span class="code">EN</span>
-            <span class="id">ent1</span>
-            <span class="hide-m"><span class="pill plan">enterprise</span></span>
-            <span class="switch sm on" title="자동 전환"></span>
-            <span class="hide-s"><span class="pill ok">사용 중</span></span>
-            <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
-          </div>
-          <div class="arow paused">
-            <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
-            <span class="code">PE</span>
-            <span class="id">personal</span>
-            <span class="hide-m"><span class="pill plan">team</span></span>
-            <span class="switch sm" title="자동 전환"></span>
-            <span class="hide-s"><span class="pill">자동 전환 제외</span></span>
-            <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
-          </div>
+  <div class="canvas">
+    <figure class="spec">
+      <div class="win">
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="tabs">
+          <span class="tab on"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="5.4" r="2.4"/><path d="M3.2 13c0-2.3 2.1-3.6 4.8-3.6s4.8 1.3 4.8 3.6"/></svg>조직</span>
+          <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>전환</span>
+          <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M6.6 9.4 4.6 11.4a2.6 2.6 0 1 1-3.7-3.7l2-2"/><path d="M9.4 6.6l2-2a2.6 2.6 0 1 1 3.7 3.7l-2 2"/><path d="M6 10 10 6"/></svg>연결</span>
+          <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 3 4v4c0 3 2 5 5 6 3-1 5-3 5-6V4L8 2Z"/><path d="m6 8 1.4 1.4L10.4 6.5"/></svg>점검</span>
         </div>
-        <div class="toolbar-row">
-          <button class="btn primary" type="button">계정 추가</button>
-          <button class="btn" type="button">토큰 다시 등록</button>
-          <button class="btn" type="button">claulay 에서 가져오기</button>
-        </div>
-        <div class="hint">
-          <b>자동</b> 을 끄면 그 계정은 자동 전환에 쓰이지 않습니다. 계정과 토큰은 그대로
-          남고 순서 자리도 지킵니다. 다른 계정이 모두 소진돼도 꺼둔 계정을 대신 끌어다
-          쓰지 않습니다.
-        </div>
-        <div class="hint">
-          토큰은 Keychain 에 저장됩니다. 터미널에서 <code>claude setup-token</code> 으로 받은
-          값을 붙여넣으세요.
+        <div class="wbody">
+          <div class="help">위에서부터 먼저 사용합니다. 끌어서 순서를 바꾸세요.</div>
+          <div class="list">
+            <div class="lrow hd"><span></span><span>코드</span><span>조직</span><span class="hide">요금제</span><span>자동</span><span class="hide">상태</span><span></span></div>
+            <div class="lrow">
+              <span class="grip"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1"/><circle cx="10" cy="4" r="1"/><circle cx="6" cy="8" r="1"/><circle cx="10" cy="8" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="10" cy="12" r="1"/></svg></span>
+              <span class="code">T1</span><span class="id">team1</span>
+              <span class="hide"><span class="tag">team</span></span>
+              <span class="sw sm on"></span>
+              <span class="hide"><span class="tag y">쿨다운 6일</span></span>
+              <button class="ibtn" type="button"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+            </div>
+            <div class="lrow">
+              <span class="grip"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1"/><circle cx="10" cy="4" r="1"/><circle cx="6" cy="8" r="1"/><circle cx="10" cy="8" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="10" cy="12" r="1"/></svg></span>
+              <span class="code">T2</span><span class="id">team2</span>
+              <span class="hide"><span class="tag">team</span></span>
+              <span class="sw sm on"></span>
+              <span class="hide"><span class="tag g">대기</span></span>
+              <button class="ibtn" type="button"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+            </div>
+            <div class="lrow">
+              <span class="grip"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1"/><circle cx="10" cy="4" r="1"/><circle cx="6" cy="8" r="1"/><circle cx="10" cy="8" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="10" cy="12" r="1"/></svg></span>
+              <span class="code">T3</span><span class="id">team3</span>
+              <span class="hide"><span class="tag">team</span></span>
+              <span class="sw sm on"></span>
+              <span class="hide"><span class="tag r">인증 실패</span></span>
+              <button class="ibtn" type="button"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+            </div>
+            <div class="lrow">
+              <span class="grip"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1"/><circle cx="10" cy="4" r="1"/><circle cx="6" cy="8" r="1"/><circle cx="10" cy="8" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="10" cy="12" r="1"/></svg></span>
+              <span class="code">EN</span><span class="id">ent1</span>
+              <span class="hide"><span class="tag b">enterprise</span></span>
+              <span class="sw sm on"></span>
+              <span class="hide"><span class="tag g">사용 중</span></span>
+              <button class="ibtn" type="button"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+            </div>
+            <div class="lrow pause">
+              <span class="grip"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1"/><circle cx="10" cy="4" r="1"/><circle cx="6" cy="8" r="1"/><circle cx="10" cy="8" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="10" cy="12" r="1"/></svg></span>
+              <span class="code">PE</span><span class="id">personal</span>
+              <span class="hide"><span class="tag">team</span></span>
+              <span class="sw sm"></span>
+              <span class="hide"><span class="tag">자동 전환 제외</span></span>
+              <button class="ibtn" type="button"><svg class="sym" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/></svg></button>
+            </div>
+          </div>
+          <div class="tools">
+            <button class="btn pri" type="button">조직 추가</button>
+            <button class="btn" type="button">자격증명 재등록</button>
+            <button class="btn" type="button">claulay 에서 가져오기</button>
+          </div>
+          <div class="help"><b>자동</b> 을 끄면 그 조직은 자동 전환에 쓰이지 않습니다. 자격증명은
+            그대로 남고 순서 자리도 지킵니다. 다른 조직이 모두 소진돼도 꺼둔 조직을 대신
+            끌어다 쓰지 않습니다.</div>
         </div>
       </div>
-    </div>
-    <p class="caption">계정 탭. 끌어서 순서 변경</p>
-  </div>
+      <figcaption>
+        <div class="name">조직 탭</div>
+        <div class="dims">창 반경 10pt / 신호등 12pt / 탭 62pt / 행 30pt / 스위치 30x18pt</div>
+      </figcaption>
+    </figure>
 
-  <div class="col">
-    <h3>빼둔 계정은 소진 상황에서도 끌어오지 않는다</h3>
-    <p>
-      <strong>자동</strong> 을 끄면 그 계정은 선택 후보에서 아예 빠진다. 계정과 토큰은
-      그대로 남고 순서 자리도 지킨다. 지우면 토큰을 다시 발급받고 순서도 다시 잡아야
-      하니, 잠시 빼두는 것과 없애는 것은 다른 일이다.
-    </p>
-    <p>
-      중요한 것은 <strong>다른 계정이 모두 소진돼도 꺼둔 계정을 대신 쓰지 않는다</strong>는
-      점이다. 데이터 이그레스가 걱정돼서 뺀 계정을 마지막 수단이라며 조용히 끌어다 쓰면
-      사용자가 뺀 이유 자체를 배신하는 것이다. 대신 배너에 무엇을 켜면 풀리는지 알려주고
-      켜는 버튼을 준다. 결정은 사용자가 한다.
-    </p>
-    <p>
-      제외는 계정의 건강 상태와 다른 축이다. 쿨다운과 인증 실패는 계정이 처한 상태이고
-      제외는 사용자의 의사다. 그래서 한 계정이 제외이면서 동시에 쿨다운일 수 있고,
-      목록은 둘을 함께 보여준다.
-    </p>
-    <div class="note">
-      <span class="nt">마지막 하나는 막는다</span>
-      <p>
-        전부 빼면 모든 요청이 실패한다. 마지막 자동 전환 대상을 끄려 하면 확인을 받고,
-        그래도 0개가 되면 배너와 점검 항목에 띄운다.
-      </p>
-    </div>
-  </div>
-
-  <div class="stage">
-    <div class="sheet">
-      <div class="sheet-head">
-        <div class="st">조직 추가</div>
-        <div class="sd">브라우저에서 조직을 고르면 나머지는 앱이 처리합니다.</div>
-      </div>
-      <div class="sheet-body">
-        <div class="fld">
-          <span class="lb">1. 로그인</span>
-          <button class="btn primary" type="button" style="align-self:flex-start">브라우저에서 조직 선택</button>
-          <span class="hint">
-            이미 로그인되어 있으면 조직 선택 화면만 뜹니다. 조직을 여러 개 추가해도
-            로그인은 한 번입니다.
-          </span>
-          <div class="verify">
-            <div class="vt">
-              <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
-              NAVER_TEAM_40 연결됨
+    <figure class="spec">
+      <div class="sheet">
+        <div class="sheet-hd">
+          <div class="t">조직 추가</div>
+          <div class="s">브라우저에서 조직을 고르면 나머지는 앱이 처리합니다.</div>
+        </div>
+        <div class="sheet-bd">
+          <div class="step">
+            <span class="lb">1. 로그인</span>
+            <button class="btn pri" type="button" style="align-self:flex-start">브라우저에서 조직 선택</button>
+            <span class="help">이미 로그인되어 있으면 조직 선택 화면만 뜹니다. 조직을 여러 개
+              추가해도 로그인은 한 번입니다.</span>
+            <div class="done">
+              <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg>NAVER_TEAM_40 연결됨</div>
+              <div class="help">자격증명을 가져왔습니다. 만료 전에 앱이 알아서 갱신하므로 다시
+                로그인할 일이 없습니다.</div>
             </div>
-            <div class="hint" style="margin:0">
-              자격증명을 가져왔습니다. 만료 전에 앱이 알아서 갱신하므로 다시 로그인할 일이
-              없습니다.
+          </div>
+          <div class="step">
+            <span class="lb">2. 이름</span>
+            <div class="line">
+              <input class="tf" value="team40" style="width:140px" readonly>
+              <span class="hint-code">T1</span>
+              <span class="help" style="margin:0">메뉴바에 이렇게 표시됩니다</span>
+            </div>
+            <span class="help">조직 이름에서 자동으로 채웠습니다. 그대로 두어도 됩니다.</span>
+          </div>
+          <div class="step">
+            <span class="lb">3. 확인</span>
+            <div class="done">
+              <div class="h"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg>사용 가능</div>
+              <div class="meter"><span class="l">5시간</span><span class="track"><span class="fill ok" style="width:97%"></span></span><span class="v">97%</span></div>
+              <div class="meter"><span class="l">주간</span><span class="track"><span class="fill ok" style="width:84%"></span></span><span class="v">84%</span></div>
+              <div class="meter"><span class="l">Fable</span><span class="track"><span class="fill ok" style="width:100%"></span></span><span class="v">100%</span></div>
+              <div class="help">모델별 한도까지 보입니다</div>
             </div>
           </div>
         </div>
-
-        <div class="fld">
-          <span class="lb">2. 이름</span>
-          <div class="row">
-            <input class="input" value="team40" style="width:150px" readonly>
-            <span class="codehint">T1</span>
-            <span class="hint" style="margin:0">메뉴바에 이렇게 표시됩니다</span>
-          </div>
-          <span class="hint">조직 이름에서 자동으로 채웠습니다. 그대로 두어도 됩니다.</span>
-        </div>
-
-        <div class="fld">
-          <span class="lb">요금제</span>
-          <div class="radios">
-            <span class="radio on"><i></i>team</span>
-            <span class="radio"><i></i>enterprise</span>
-          </div>
-          <span class="hint">다른 요금제로 넘어갈 때 알려주는 데만 씁니다. 전환 순서에는 영향이 없습니다.</span>
-        </div>
-
-        <div class="fld">
-          <span class="lb">3. 확인</span>
-          <div class="verify">
-            <div class="vt">
-              <svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg>
-              사용 가능
-            </div>
-            <div class="gauge">
-              <span class="g-lbl">5시간</span>
-              <span class="track"><span class="fill ok" style="width:97%"></span></span>
-              <span class="g-val">97%</span>
-            </div>
-            <div class="gauge">
-              <span class="g-lbl">주간</span>
-              <span class="track"><span class="fill ok" style="width:84%"></span></span>
-              <span class="g-val">84%</span>
-            </div>
-            <div class="gauge">
-              <span class="g-lbl">Fable</span>
-              <span class="track"><span class="fill ok" style="width:100%"></span></span>
-              <span class="g-val">100%</span>
-            </div>
-            <div class="hint" style="margin:0">모델별 한도까지 보입니다</div>
-          </div>
+        <div class="sheet-ft">
+          <button class="btn" type="button">취소</button>
+          <button class="btn pri" type="button">추가</button>
         </div>
       </div>
-      <div class="sheet-foot">
-        <button class="btn" type="button">취소</button>
-        <button class="btn primary" type="button">추가</button>
-      </div>
-    </div>
-    <p class="caption">조직 추가. 로그인이 먼저, 이름은 자동</p>
-  </div>
+      <figcaption>
+        <div class="name">조직 추가 시트</div>
+        <div class="dims">너비 440pt / 반경 12pt / 버튼 22pt, 반경 6pt / 기본 버튼은 accent</div>
+      </figcaption>
+    </figure>
 
-  <div class="col">
-    <h3>자격증명은 우리가 만들 수 없다</h3>
-    <p>
-      Anthropic 계정 토큰을 얻는 지원되는 경로는 <code>claude setup-token</code> 하나뿐이다.
-      OAuth 를 직접 구현하려면 문서화되지 않은 엔드포인트와 남의 클라이언트 식별자를 써야
-      하고, 그쪽이 바꾸면 조용히 깨진다. 그래서 목표는 토큰을 만드는 것이 아니라
-      <strong>얻어 넣는 과정을 짧고 안전하게</strong> 만드는 것이다.
-    </p>
-    <p>
-      파이프로 붙여 실측해보니 TTY 없이도 토큰이 표준 출력에 나온다. 앱이 자식 프로세스로
-      띄워 그 한 덩어리만 집으면 <strong>토큰이 화면에도 클립보드에도 나타나지 않는다.</strong>
-      "다시 볼 수 없습니다" 라는 경고 자체가 무의미해진다.
-    </p>
-    <p>
-      다만 출력이 깨끗하지 않다. 스피너가 돌 때마다 화면 전체를 다시 찍어 같은 문구가
-      스무 번 넘게 반복되고, 긴 줄은 중간에서 접힌다. 실측에서 authorize URL 끝이 잘려
-      다음 줄에 <code>0</code> 하나만 남은 것을 봤다. 그래서
-      <strong>붙여넣기가 기본 경로이고 자동 캡처는 그 위에 얹는 가속기다.</strong>
-      파싱이 남의 TUI 렌더링에 의존하는 이상, 그쪽이 바뀌었을 때 등록 자체가 막히면
-      안 된다.
-    </p>
-
-    <h3>바꾸는 것은 계정이 아니라 조직이다</h3>
-    <p>
-      브라우저 로그인을 통과하면 <strong>조직 선택</strong> 화면이 뜬다. 한 로그인 아래
-      여러 조직이 나란히 있고 그중 하나를 골라 토큰을 만든다. clfl 이 전환하는 대상이
-      바로 이 조직들이다.
-    </p>
-    <p>
-      그래서 등록할 때 로그아웃할 일이 없다. 조직 여섯 개를 연달아 등록해도 로그인은 한
-      번이다. 브라우저 세션을 계정마다 격리하려던 초기 구상은 폐기했다. 격리하면 SSO
-      쿠키를 버리게 되어 오히려 매번 다시 로그인해야 한다.
-    </p>
-    <p>
-      다만 <strong>앱은 사용자가 어느 조직을 골랐는지 알 수 없다.</strong> 그 화면은
-      브라우저 안에 있고 토큰에는 신원 정보가 없다. 그래서 이름은 사용자가 붙이고,
-      순서도 토큰을 먼저 받은 뒤에 이름을 묻는 쪽이 맞다.
-    </p>
-
-    <div class="note">
-      <span class="nt">저장 전에 한 번 써본다</span>
-      <p>
-        최소 요청을 한 번 보내 401 이면 저장하지 않는다. 성공하면 그 응답 헤더의 잔여량을
-        첫 스냅샷으로 쓴다. 등록 직후부터 게이지에 실제 숫자가 차 있으므로, 우선순위를
-        어떻게 잡을지 바로 판단할 수 있다. 비용은 토큰 한두 개다.
-      </p>
-    </div>
-
-    <div class="note">
-      <span class="nt">토큰은 1년 뒤 만료된다</span>
-      <p>
-        여섯 조직을 같은 날 등록했다면 1년 뒤 같은 주에 한꺼번에 만료된다. 그냥 두면 어느
-        날 계정이 하나씩 인증 실패로 떨어지고 사용자는 401 만 보고 원인을 모른다. 남은
-        기간이 30일 이하면 점검 화면에, 7일 이하면 배너로 미리 알린다.
-      </p>
-    </div>
-  </div>
-  </div>
-
-  <div class="stage">
-    <div class="window">
-      <div class="titlebar">
-        <span class="traffic"><i></i><i></i><i></i></span>
-        <span class="wtitle">clfl 설정</span>
-      </div>
-      <div class="tabs">
-        <span class="tab">계정</span>
-        <span class="tab on">전환</span>
-        <span class="tab">연결</span>
-        <span class="tab">점검</span>
-      </div>
-      <div class="wbody">
-        <div class="field">
-          <label>미리 넘어가기</label>
-          <div class="ctl">
-            <div class="row"><span class="switch on"></span><span>한도에 걸리기 전에 여유 있는 조직으로 옮기기</span></div>
-            <div class="hint">
-              5시간, 주간, 모델별 주간 중 가장 빡빡한 창을 봅니다. 대화를 새로 시작할 때만
-              적용되며 대화 도중에는 넘어가지 않습니다. 도중에 옮기면 프롬프트 캐시가
-              통째로 날아가 오히려 손해입니다.
+    <figure class="spec">
+      <div class="win">
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="tabs">
+          <span class="tab">조직</span><span class="tab on">전환</span><span class="tab">연결</span><span class="tab">점검</span>
+        </div>
+        <div class="wbody">
+          <div class="field">
+            <label>미리 넘어가기</label>
+            <div class="ctl">
+              <div class="line"><span class="sw on"></span><span>한도에 걸리기 전에 여유 있는 조직으로 옮기기</span></div>
+              <div class="help">5시간, 주간, 모델별 주간 중 가장 빡빡한 창을 봅니다. 대화를 새로
+                시작할 때만 적용되며 대화 도중에는 넘어가지 않습니다. 도중에 옮기면 프롬프트
+                캐시가 통째로 날아가 오히려 손해입니다.</div>
             </div>
           </div>
-        </div>
-
-        <div class="field">
-          <label>다른 요금제로 넘어갈 때</label>
-          <div class="ctl">
-            <div class="row"><span class="switch on"></span><span>알리고 계속 진행</span></div>
-            <div class="hint">
-              team 조직이 모두 막히면 enterprise 조직으로 넘어갑니다. 지금까지의 대화가
-              그 조직 서버로 전송되므로 넘어가 있는 동안 배너로 알립니다.
+          <div class="field">
+            <label>다른 요금제로 넘어갈 때</label>
+            <div class="ctl">
+              <div class="line"><span class="sw on"></span><span>알리고 계속 진행</span></div>
+              <div class="help">team 조직이 모두 막히면 enterprise 조직으로 넘어갑니다. 지금까지의
+                대화가 그 조직 서버로 전송되므로 넘어가 있는 동안 배너로 알립니다.</div>
             </div>
           </div>
-        </div>
-
-        <div class="field">
-          <label></label>
-          <div class="ctl">
-            <div class="hint">
-              임계값, 대기 시간, 요청 크기 한도는 설정으로 내놓지 않습니다. 우리가 정할 수
-              있는 것은 우리가 정합니다. 손댈 것이 적은 편이 잘 동작하는 것에 가깝습니다.
-            </div>
-          </div>
-        </div>
-    </div>
-    <p class="caption">전환 탭</p>
-  </div>
-
-  <div class="stage">
-    <div class="window">
-      <div class="titlebar">
-        <span class="traffic"><i></i><i></i><i></i></span>
-        <span class="wtitle">clfl 설정</span>
-      </div>
-      <div class="tabs">
-        <span class="tab">계정</span>
-        <span class="tab">전환</span>
-        <span class="tab on">연결</span>
-        <span class="tab">점검</span>
-      </div>
-      <div class="wbody">
-        <div class="field">
-          <label>Claude Code 연결</label>
-          <div class="ctl">
-            <div class="row"><span class="switch on"></span><span>모델 호출을 clfl 로 통과시키기</span></div>
-            <div class="hint">
-              <code>~/.claude/settings.json</code> 의 <code>env.ANTHROPIC_BASE_URL</code> 을
-              관리합니다. 다른 키는 건드리지 않고, 처음 쓰기 전에 백업을 만듭니다.
-              끄면 원래대로 직접 호출로 돌아갑니다.
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="port">포트</label>
-          <div class="ctl">
-            <div class="row">
-              <input class="input mono" id="port" value="51710" style="width:88px" readonly>
-              <span class="pill ok">연결됨</span>
-            </div>
-            <div class="hint">이미 쓰이고 있으면 비어 있는 다음 포트로 자동 변경합니다.</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>도구 검색</label>
-          <div class="ctl">
-            <div class="row"><span class="switch on"></span><span>MCP 도구 검색 되살리기</span><span class="pill ok">기본 켬</span></div>
-            <div class="hint">
-              프록시를 거치면 Claude Code 가 MCP 도구 검색을 스스로 끕니다. clfl 은 응답을
-              바이트 그대로 전달하므로 문제가 없어 <b>처음부터 다시 켜둡니다.</b>
-              문제 해결이 필요할 때만 끄세요. 원격 제어는 되살릴 방법이 없습니다.
-            </div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>로그인 시 실행</label>
-          <div class="ctl">
-            <div class="row"><span class="switch on"></span><span>Mac 을 켜면 자동으로 시작</span></div>
-            <div class="hint">
-              꺼두면 로그인 후 clfl 을 직접 실행할 때까지 Claude Code 는 직접 호출로 동작합니다.
+          <div class="field">
+            <label></label>
+            <div class="ctl">
+              <div class="help">임계값, 대기 시간, 요청 크기 한도는 설정으로 내놓지 않습니다.
+                우리가 정할 수 있는 것은 우리가 정합니다. 손댈 것이 적은 편이 잘 동작하는 것에
+                가깝습니다.</div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <p class="caption">연결 탭</p>
-  </div>
+      <figcaption>
+        <div class="name">전환 탭. 토글 둘</div>
+        <div class="dims">라벨 열 132pt 우측 정렬 / 스위치 38x22pt / 도움말 11pt</div>
+      </figcaption>
+    </figure>
 
-  <div class="stage">
-    <div class="window">
-      <div class="titlebar">
-        <span class="traffic"><i></i><i></i><i></i></span>
-        <span class="wtitle">clfl 설정</span>
-      </div>
-      <div class="tabs">
-        <span class="tab">계정</span>
-        <span class="tab">전환</span>
-        <span class="tab">연결</span>
-        <span class="tab on">점검</span>
-      </div>
-      <div class="wbody">
-        <div class="checks">
-          <div class="check">
-            <span class="st" style="color:var(--ok)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg></span>
-            <span>포트 51710 에서 대기 중</span>
-            <span class="det"></span>
+    <figure class="spec">
+      <div class="win">
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="tabs">
+          <span class="tab">조직</span><span class="tab">전환</span><span class="tab on">연결</span><span class="tab">점검</span>
+        </div>
+        <div class="wbody">
+          <div class="field">
+            <label>Claude Code 연결</label>
+            <div class="ctl">
+              <div class="line"><span class="sw on"></span><span>모델 호출을 clfl 로 통과시키기</span></div>
+              <div class="help"><code>~/.claude/settings.json</code> 의 <code>env</code> 블록을
+                관리합니다. 다른 키는 건드리지 않고, 처음 쓰기 전에 백업을 만듭니다.</div>
+            </div>
           </div>
-          <div class="check">
-            <span class="st" style="color:var(--ok)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg></span>
-            <span>Claude Code 가 clfl 을 바라보고 있음</span>
-            <span class="det">settings.json</span>
+          <div class="field">
+            <label>포트</label>
+            <div class="ctl">
+              <div class="line"><input class="tf mono" value="51710" style="width:78px" readonly><span class="tag g">연결됨</span></div>
+              <div class="help">이미 쓰이고 있으면 비어 있는 다음 포트로 자동 변경합니다.</div>
+            </div>
           </div>
-          <div class="check">
-            <span class="st" style="color:var(--ok)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg></span>
-            <span>설정 백업 있음</span>
-            <span class="det">settings.json.clfl.bak</span>
+          <div class="field">
+            <label>MCP 도구 검색</label>
+            <div class="ctl">
+              <div class="line"><span class="sw on"></span><span>되살리기</span><span class="tag g">기본 켬</span></div>
+              <div class="help">프록시를 거치면 Claude Code 가 도구 검색을 스스로 끕니다. clfl 은
+                응답을 바이트 그대로 전달하므로 문제가 없어 <b>처음부터 다시 켜둡니다.</b>
+                원격 제어는 되살릴 방법이 없습니다.</div>
+            </div>
           </div>
-          <div class="check">
-            <span class="st" style="color:var(--crit)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg></span>
-            <span>team3 의 토큰이 거부됨</span>
-            <span class="det"><button class="btn" type="button">다시 등록</button></span>
-          </div>
-          <div class="check">
-            <span class="st" style="color:var(--ok)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg></span>
-            <span>쓸 수 있는 계정 3개</span>
-            <span class="det">전체 5개, 자동 전환 대상 4개</span>
-          </div>
-          <div class="check">
-            <span class="st" style="color:var(--warn)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2.5 14.5 13.5h-13L8 2.5Z"/><path d="M8 6.6v3M8 11.6v.2"/></svg></span>
-            <span>로그인 시 실행이 꺼져 있음</span>
-            <span class="det"><button class="btn" type="button">켜기</button></span>
+          <div class="field">
+            <label>로그인 시 실행</label>
+            <div class="ctl">
+              <div class="line"><span class="sw on"></span><span>Mac 을 켜면 자동으로 시작</span></div>
+            </div>
           </div>
         </div>
-        <div class="hint">
-          문제마다 바로 고칠 수 있는 버튼을 답니다. 무엇이 잘못됐는지만 알려주고 끝내지 않습니다.
+      </div>
+      <figcaption>
+        <div class="name">연결 탭</div>
+        <div class="dims">도구 검색은 옵션이 아니라 기본값이다</div>
+      </figcaption>
+    </figure>
+
+    <figure class="spec">
+      <div class="win">
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="tabs">
+          <span class="tab">조직</span><span class="tab">전환</span><span class="tab">연결</span><span class="tab on">점검</span>
+        </div>
+        <div class="wbody">
+          <div class="checks">
+            <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>포트 51710 에서 대기 중</span><span class="d"></span></div>
+            <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>Claude Code 가 clfl 을 바라보고 있음</span><span class="d">settings.json</span></div>
+            <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>MCP 도구 검색 켜짐</span><span class="d"></span></div>
+            <div class="chk"><span class="st-no"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span><span>team3 의 자격증명이 거부됨</span><span class="d"><button class="btn" type="button">다시 등록</button></span></div>
+            <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>쓸 수 있는 조직 3개</span><span class="d">전체 5개, 자동 전환 대상 4개</span></div>
+            <div class="chk"><span class="st-wa"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.6 14.4 13.4H1.6L8 2.6Z"/><path d="M8 6.6v3M8 11.5v.2"/></svg></span><span>로그인 시 실행이 꺼져 있음</span><span class="d"><button class="btn" type="button">켜기</button></span></div>
+          </div>
+          <div class="help">문제마다 바로 고칠 수 있는 버튼을 답니다. 무엇이 잘못됐는지만
+            알려주고 끝내지 않습니다.</div>
         </div>
       </div>
-    </div>
-    <p class="caption">점검 탭</p>
+      <figcaption>
+        <div class="name">점검 탭</div>
+        <div class="dims">상태 아이콘 stroke 1.6 / systemGreen, systemRed, systemYellow</div>
+      </figcaption>
+    </figure>
   </div>
 </div></section>
 
-<!-- ============ 5. 상태 표시 ============ -->
 <section id="states"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">7</span><h2>상태 표시 규칙</h2></div>
-    <p class="sub">
-      지금 참인 것은 <strong>조건</strong>이고 지나간 것은 <strong>사건</strong>이다.
-      이 구분이 알림 설계 전체를 결정한다.
-    </p>
-  </div>
+    <h2>상태 표시 규칙</h2>
+    <p class="sub">지금 참인 것은 <strong>조건</strong>이고 지나간 것은 <strong>사건</strong>이다.
+      이 구분이 알림 설계 전체를 결정한다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>표면</th><th>보여주는 것</th><th>반복 억제</th></tr></thead>
+      <tbody>
+        <tr><td>팝오버 배너</td><td>지금 참인 조건 전부</td><td>없음. 조건이 곧 상태다</td></tr>
+        <tr><td>조직 뱃지</td><td>그 조직의 조건</td><td>없음</td></tr>
+        <tr><td>최근 활동</td><td>사건 전부</td><td>없음</td></tr>
+        <tr><td>알림 센터</td><td>조건이 새로 참이 될 때</td><td>상태가 바뀔 때만 울린다</td></tr>
+      </tbody>
+    </table></div>
 
-  <div class="col">
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>표면</th><th>보여주는 것</th><th>반복 억제</th></tr></thead>
-        <tbody>
-          <tr><td>팝오버 배너</td><td>지금 참인 조건 전부</td><td>없음. 조건이 곧 상태다</td></tr>
-          <tr><td>계정 뱃지</td><td>그 계정의 조건</td><td>없음</td></tr>
-          <tr><td>최근 활동</td><td>사건 전부</td><td>없음</td></tr>
-          <tr><td>알림 센터</td><td>조건이 새로 참이 될 때</td><td>상태가 바뀔 때만 울린다</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>계정이 가질 수 있는 상태</h3>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>상태</th><th>원인</th><th>어떻게 풀리나</th></tr></thead>
-        <tbody>
-          <tr><td>사용 중</td><td>지금 이 요청이 쓰는 계정</td><td>-</td></tr>
-          <tr><td>대기</td><td>쓸 수 있으나 우선순위가 뒤</td><td>-</td></tr>
-          <tr><td>쿨다운 (모델)</td><td>특정 모델의 한도 소진</td><td>시간. 다른 모델은 계속 사용 가능</td></tr>
-          <tr><td>쿨다운 (계정)</td><td>5시간 세션 한도 소진</td><td>시간. 모든 모델이 막힘</td></tr>
-          <tr><td>인증 실패</td><td>토큰이 거부됨</td><td><strong>시간으로 풀리지 않음.</strong> 재등록 필요</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <h3>조직이 가질 수 있는 상태</h3>
+    <div class="tw"><table>
+      <thead><tr><th>상태</th><th>원인</th><th>어떻게 풀리나</th></tr></thead>
+      <tbody>
+        <tr><td>사용 중</td><td>지금 이 요청이 쓰는 조직</td><td>-</td></tr>
+        <tr><td>대기</td><td>쓸 수 있으나 우선순위가 뒤</td><td>-</td></tr>
+        <tr><td>쿨다운 (모델)</td><td>특정 모델의 한도 소진</td><td>시간. 다른 모델은 계속 사용 가능</td></tr>
+        <tr><td>쿨다운 (조직)</td><td>5시간 세션 한도 소진</td><td>시간. 모든 모델이 막힘</td></tr>
+        <tr><td>인증 실패</td><td>자격증명이 거부되고 갱신도 실패</td><td><strong>시간으로 풀리지 않음.</strong> 재등록 필요</td></tr>
+        <tr><td>자동 전환 제외</td><td>사용자가 껐다</td><td>사용자가 켠다. 건강 상태와 다른 축이다</td></tr>
+      </tbody>
+    </table></div>
 
     <div class="note">
       <span class="nt">모델별 쿨다운이 핵심이다</span>
-      <p>
-        같은 계정이 한 모델에는 막혀 있고 다른 모델에는 열려 있을 수 있다. 상태를 계정 하나에
-        붙은 값으로 저장하면 이 상황을 표현할 수 없어서, 요청한 모델을 넣고 그때그때 계산한다.
-      </p>
+      <p>같은 조직이 한 모델에는 막혀 있고 다른 모델에는 열려 있을 수 있다. 상태를 조직 하나에
+        붙은 값으로 저장하면 이 상황을 표현할 수 없어서, 요청한 모델을 넣고 그때그때 계산한다.</p>
     </div>
   </div>
 </div></section>
 
-<!-- ============ 6. 요청 흐름 ============ -->
 <section id="flow"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">8</span><h2>요청 흐름</h2></div>
-    <p class="sub">
-      요청 하나가 들어와서 나갈 때까지. 가장 중요한 제약은 5단계에 있다.
-    </p>
-
+    <h2>요청 흐름</h2>
+    <p class="sub">요청 하나가 들어와서 나갈 때까지. 가장 중요한 제약은 5단계에 있다.</p>
     <div class="steps">
-      <div class="step">
-        <div>
-          <div class="sh">요청 본문을 통째로 보관한다</div>
-          <div class="sd">다시 보내려면 사본이 있어야 한다. 8 MB 를 넘으면 사본을 포기하고 전환도 포기한다.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div>
-          <div class="sh">모델과 세션을 읽는다</div>
-          <div class="sd">본문에서 모델 이름을, 헤더에서 세션 식별자를 꺼낸다. 처음 보는 세션이면 새 대화로 본다.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div>
-          <div class="sh">계정을 고른다</div>
-          <div class="sd">인증 실패와 쿨다운 중인 계정을 걸러내고, 여유 없는 계정은 뒤로 민다. 남은 것 중 맨 위.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div>
-          <div class="sh">헤더를 바꿔 보낸다</div>
-          <div class="sd">클라이언트 인증 정보를 지우고 Keychain 토큰을 넣는다. OAuth 토큰은 전용 베타 플래그가 함께 가야 한다.</div>
-        </div>
-      </div>
-      <div class="step gate">
-        <div>
-          <div class="sh">첫 프레임만 열어본다</div>
-          <div class="sd">
-            스트리밍 응답이면 첫 조각까지만 받아 한도 오류인지 판별한다. 여기까지
-            <strong>클라이언트에는 아직 한 바이트도 보내지 않았다.</strong> 오류면 3번으로 돌아가
-            다음 계정을 쓴다. 이 한 줄이 전체 설계를 결정한다.
-          </div>
-        </div>
-      </div>
-      <div class="step">
-        <div>
-          <div class="sh">흘려보낸다</div>
-          <div class="sd">통과로 판정되면 첫 조각부터 클라이언트로 내보내고 나머지를 이어서 중계한다. 이 시점 이후로는 다시 판정하지 않는다.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div>
-          <div class="sh">기록한다</div>
-          <div class="sd">토큰 사용량과 잔여 한도를 남긴다. 전환이 있었다면 그 시각도 함께. 선제 전환 임계값을 실측으로 정하는 근거가 된다.</div>
-        </div>
-      </div>
+      <div class="stp"><div>
+        <div class="h">요청 본문을 통째로 보관한다</div>
+        <div class="d">다시 보내려면 사본이 있어야 한다. 8 MB 를 넘으면 사본을 포기하고 전환도 포기한다.</div>
+      </div></div>
+      <div class="stp"><div>
+        <div class="h">모델과 세션을 읽는다</div>
+        <div class="d">본문에서 모델 이름을, 헤더에서 세션 식별자를 꺼낸다. 처음 보는 세션이면 새 대화로 본다.</div>
+      </div></div>
+      <div class="stp"><div>
+        <div class="h">조직을 고른다</div>
+        <div class="d">자동 전환에서 빼둔 조직을 먼저 거르고, 인증 실패와 쿨다운 중인 조직을 걸러낸다. 여유 없는 조직은 뒤로 민다.</div>
+      </div></div>
+      <div class="stp"><div>
+        <div class="h">자격증명을 붙여 보낸다</div>
+        <div class="d">클라이언트 인증 정보를 지우고 Keychain 자격증명을 넣는다. 만료가 가까우면 먼저 갱신한다.</div>
+      </div></div>
+      <div class="stp key"><div>
+        <div class="h">첫 조각만 열어본다</div>
+        <div class="d">스트리밍 응답이면 첫 조각까지만 받아 한도 오류인지 판별한다. 여기까지
+          <strong>클라이언트에는 아직 한 바이트도 보내지 않았다.</strong> 오류면 3번으로 돌아가
+          다음 조직을 쓴다. 이 한 줄이 전체 설계를 결정한다.</div>
+      </div></div>
+      <div class="stp"><div>
+        <div class="h">흘려보낸다</div>
+        <div class="d">통과로 판정되면 첫 조각부터 클라이언트로 내보내고 나머지를 이어서 중계한다. 이 시점 이후로는 다시 판정하지 않는다.</div>
+      </div></div>
+      <div class="stp"><div>
+        <div class="h">기록한다</div>
+        <div class="d">토큰 사용량과 잔여 한도를 남긴다. 전환이 있었다면 그 시각도 함께.</div>
+      </div></div>
     </div>
 
     <div class="note">
-      <span class="nt">모든 계정이 막혔다면</span>
-      <p>
-        마지막으로 받은 실패 응답을 그대로 클라이언트에 전달한다. clfl 이 만든 가짜 오류가
-        아니라 서버가 실제로 준 응답이라야, 사용자가 보는 메시지와 실제 상황이 어긋나지 않는다.
-      </p>
+      <span class="nt">인증 오류는 조직을 태우지 않는다</span>
+      <p>자격증명이 만료돼 401 을 맞으면 갱신을 한 번 하고 <strong>같은 조직으로 다시
+        시도한다.</strong> 사용자는 아무것도 눈치채지 못한다. 갱신이 네트워크 문제로 실패하면
+        그 조직을 무효화하지 않고 이번 요청만 다음 조직으로 넘긴다.</p>
+    </div>
+    <div class="note">
+      <span class="nt">모든 조직이 막혔다면</span>
+      <p>마지막으로 받은 실패 응답을 그대로 클라이언트에 전달한다. clfl 이 만든 가짜 오류가
+        아니라 서버가 실제로 준 응답이라야, 사용자가 보는 메시지와 실제 상황이 어긋나지 않는다.</p>
     </div>
   </div>
 </div></section>
 
-<!-- ============ 9. 설계 문서 ============ -->
 <section id="docs"><div class="wrap">
   <div class="col">
-    <div class="shead"><span class="snum">9</span><h2>설계 문서</h2></div>
-    <p class="sub">
-      이 페이지는 요약이다. 구현에 쓰는 것은 저장소의 마크다운 문서다.
-    </p>
-
+    <h2>설계 문서</h2>
+    <p class="sub">이 페이지는 요약이다. 구현에 쓰는 것은 저장소의 마크다운 문서다.</p>
     <h3>설계</h3>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>문서</th><th>담긴 것</th></tr></thead>
-        <tbody>
-          <tr><td><code>01-architecture</code></td><td>시스템 경계, 타겟 분해, 동시성 모델, settings.json 소유권</td></tr>
-          <tr><td><code>02-domain-model</code></td><td>타입, 계정 상태, 선택 알고리즘, 선제 전환 가드, 영속화</td></tr>
-          <tr><td><code>03-request-flow</code></td><td>요청 생애, 시작과 종료 시퀀스, 실패 모드, 진단</td></tr>
-          <tr><td><code>04-implementation</code></td><td>패키지 구성, 의존성 근거, 타겟별 API, 테스트, 배포</td></tr>
-          <tr><td><code>05-account-registration</code></td><td>토큰 발급 실측, 등록 마법사, 검증, 만료</td></tr>
-          <tr><td><code>06-ccswitcher-comparison</code></td><td>자격증명 스왑 방식과의 대조, 반영 결과</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="tw"><table>
+      <thead><tr><th>문서</th><th>담긴 것</th></tr></thead>
+      <tbody>
+        <tr><td><code>01-architecture</code></td><td>설계 원칙, 시스템 경계, 타겟 분해, 동시성 모델, settings.json 소유권</td></tr>
+        <tr><td><code>02-domain-model</code></td><td>타입, 조직 상태, 선택 알고리즘, 선제 전환 가드, 영속화</td></tr>
+        <tr><td><code>03-request-flow</code></td><td>요청 생애, 시작과 종료 시퀀스, 실패 모드, 진단</td></tr>
+        <tr><td><code>04-implementation</code></td><td>패키지 구성, 의존성 근거, 타겟별 API, 테스트, 배포</td></tr>
+        <tr><td><code>05-account-registration</code></td><td>setup-token 폴백 경로, 등록 마법사, claulay 임포트</td></tr>
+        <tr><td><code>06-ccswitcher-comparison</code></td><td>자격증명 스왑 방식과의 대조, 반영 결과</td></tr>
+        <tr><td><code>07-oauth-credentials</code></td><td>기본 등록 경로. 캡처, 갱신, 401 처리, Usage API 정책</td></tr>
+      </tbody>
+    </table></div>
 
     <h3>포팅 규칙</h3>
-    <p>
-      검증된 프록시 코어를 Swift 로 옮기기 위한 명세. 각 문서 끝에 그대로 이식할 테스트
-      케이스 목록이 있다.
-    </p>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>문서</th><th>담긴 것</th></tr></thead>
-        <tbody>
-          <tr><td><code>porting/01-headers-and-auth</code></td><td>OAuth 토큰 헤더 규칙, blocklist, URL 조립</td></tr>
-          <tr><td><code>porting/02-response-classification</code></td><td>스왑 트리거 판정, 쿨다운 시각 해석</td></tr>
-          <tr><td><code>porting/03-sse-streaming</code></td><td>첫 프레임 peek, 스트리밍 릴레이, 보존할 불변식</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <p>검증된 프록시 코어를 Swift 로 옮기기 위한 명세. 각 문서 끝에 그대로 이식할 테스트
+      케이스 목록이 있고, 그 목록은 이미 <code>Tests/</code> 에 91개로 들어가 있다.</p>
+    <div class="tw"><table>
+      <thead><tr><th>문서</th><th>담긴 것</th></tr></thead>
+      <tbody>
+        <tr><td><code>porting/01-headers-and-auth</code></td><td>OAuth 헤더 규칙, blocklist, URL 조립</td></tr>
+        <tr><td><code>porting/02-response-classification</code></td><td>스왑 트리거 판정, 쿨다운 시각 해석</td></tr>
+        <tr><td><code>porting/03-sse-streaming</code></td><td>첫 프레임 peek, 스트리밍 릴레이, 보존할 불변식</td></tr>
+      </tbody>
+    </table></div>
 
     <h3>먼저 확인할 것</h3>
-    <p>
-      구현 순서에서 첫 관문은 <strong>전환 없이 통과만 시키는 프록시로 데스크톱 앱 대화가
+    <p>구현 순서에서 첫 관문은 <strong>전환 없이 통과만 시키는 프록시로 데스크톱 앱 대화가
       되는지</strong>다. 거기서 MCP 도구 검색과 원격 제어 제약이 실제로 어떻게 나타나는지,
-      대화 시작을 판별할 세션 식별자가 오는지가 한꺼번에 드러난다.
-    </p>
-    <p>
-      그 앞 단계까지는 네트워크 없이 만든다. 헤더 변환, 응답 분류, SSE 경계 스캐너, 선택
-      알고리즘, 저장소. 실제 토큰 없이도 절반 이상을 만들고 검증할 수 있다.
-    </p>
+      대화 시작을 판별할 세션 식별자가 오는지가 한꺼번에 드러난다.</p>
+    <p>그 앞 단계까지는 네트워크 없이 만든다. 헤더 변환, 응답 분류, SSE 경계 스캐너, 선택
+      알고리즘, 저장소. 실제 자격증명 없이도 절반 이상을 만들고 검증할 수 있다.</p>
   </div>
 </div></section>
 
 <footer><div class="wrap">
-  <p>
-    clfl 설계 문서. 이 페이지는 요약이고 구현에 쓰는 것은
-    <code>docs/design/</code> 와 <code>docs/porting/</code> 의 마크다운이다.
-  </p>
+  <p>clfl 설계 문서. 이 페이지는 요약이고 구현에 쓰는 것은
+    <code>docs/design/</code> 와 <code>docs/porting/</code> 의 마크다운이다.</p>
 </div></footer>
 
 </body>
