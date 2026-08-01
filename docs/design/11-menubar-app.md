@@ -9,10 +9,24 @@
 앱 번들은 세 가지만 있으면 된다.
 
 ```
-clfl.app/Contents/MacOS/clfl        SPM 이 만든 실행 파일
-clfl.app/Contents/Info.plist        LSUIElement 로 Dock 아이콘을 없앤다
-                                    임시 서명. 없으면 로컬에서도 실행이 막힌다
+clfl.app/Contents/MacOS/clfl          SPM 이 만든 실행 파일
+clfl.app/Contents/Info.plist          LSUIElement 로 Dock 아이콘을 없앤다
+clfl.app/Contents/Resources/clfl.icns 아이콘
+                                      임시 서명. 없으면 실행이 막힌다
 ```
+
+### 아이콘은 코드로 그린다
+
+`tools/make-icon.swift` 가 CoreGraphics 로 그리고 `make-app.sh` 가 `iconutil` 로
+`.icns` 를 만든다. 산출물은 커밋하지 않고 소스가 바뀔 때만 다시 만든다.
+색과 비율을 고치려면 파일을 열어 숫자를 바꾸고 다시 돌리면 된다.
+
+그림은 잔여 막대 셋이다. 팝오버가 보여주는 것과 같은 모양이라 목록에서 봐도
+무엇인지 안다.
+
+**Dock 에 안 뜨는 앱에 아이콘이 왜 필요한가.** 메뉴바 관리 앱(Bartender 류)의
+항목 목록이 이걸로 줄을 그린다. 아이콘이 없으면 이름 없는 빈 줄이 되어
+35개 목록에서 사용자가 못 찾는다. 실제로 그래서 못 찾았다.
 
 Xcode 프로젝트를 두면 타겟 정의가 `Package.swift` 와 두 곳으로 갈라지고,
 커맨드라인에서 빌드가 안 된다. `scripts/make-app.sh` 가 손으로 조립한다.
