@@ -242,7 +242,7 @@ a:hover { text-decoration: underline; }
 
 <h1>clfl 진행 현황</h1>
 <p class="lede">Claude Code 사용량 한도를 관리하고 조직을 전환하는 macOS 메뉴바 앱</p>
-<p class="meta">2026-08-01 기준 &nbsp;/&nbsp; 커밋 31개 &nbsp;/&nbsp; main</p>
+<p class="meta">2026-08-01 기준 &nbsp;/&nbsp; 커밋 35개 &nbsp;/&nbsp; main</p>
 
 <div class="kpis">
   <div class="card kpi">
@@ -260,15 +260,15 @@ a:hover { text-decoration: underline; }
 
   <div class="card kpi">
     <div>
-      <div class="num">3,918</div>
+      <div class="num">4,195</div>
       <div class="lbl">소스 줄</div>
-      <div class="sub">테스트 3,192줄</div>
+      <div class="sub">테스트 3,422줄</div>
     </div>
   </div>
 
   <div class="card kpi">
     <div>
-      <div class="num">255</div>
+      <div class="num">285</div>
       <div class="lbl">통과하는 테스트</div>
       <div class="sub">실패 0, 보류 17</div>
     </div>
@@ -276,7 +276,7 @@ a:hover { text-decoration: underline; }
 
   <div class="card kpi">
     <div>
-      <div class="num">44 <span style="font-size:17px;color:var(--ink-3)">/ 49</span></div>
+      <div class="num">46 <span style="font-size:17px;color:var(--ink-3)">/ 51</span></div>
       <div class="lbl">구현된 소스 파일</div>
       <div class="sub">남은 5개는 전부 Proxy</div>
     </div>
@@ -403,13 +403,13 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflStore</strong><em>8 / 8</em></div>
+    <div class="head"><strong>ClflStore</strong><em>10 / 10</em></div>
     <div class="grid">
-      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
-      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
     </div>
-    <p class="cap">원자적 쓰기, accounts.json, runtime.json, settings.json, Keychain, jsonl.
-      전부 임시 디렉토리 단위 테스트.</p>
+    <p class="cap">원자적 쓰기, accounts.json, runtime.json, settings.json, Keychain, jsonl,
+      토큰 추출과 위생. 전부 임시 디렉토리 단위 테스트.</p>
   </div>
 
   <div class="card layer">
@@ -457,19 +457,19 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="bar-row">
     <span class="name">ClflStore</span>
-    <span class="gauge"><span class="g-src" style="width:27.8%"></span><span class="g-test" style="width:26.0%"></span></span>
-    <span class="val">706 + 661</span>
+    <span class="gauge"><span class="g-src" style="width:38.4%"></span><span class="g-test" style="width:35.4%"></span></span>
+    <span class="val">978 + 900</span>
   </div>
   <div class="bar-row">
     <span class="name">clflctl</span>
-    <span class="gauge"><span class="g-src" style="width:45.5%"></span></span>
-    <span class="val">1157 + 0</span>
+    <span class="gauge"><span class="g-src" style="width:45.8%"></span></span>
+    <span class="val">1165 + 0</span>
   </div>
   <div class="legend">
     <span><b class="g-src" style="background:var(--accent)"></b>구현</span>
     <span><b style="background:color-mix(in srgb, var(--accent) 32%, transparent)"></b>테스트</span>
     <span><b class="g-todo"></b>스캐폴딩 (본문 없음)</span>
-    <span style="color:var(--ink-3)">설계 문서는 별도로 6,969줄</span>
+    <span style="color:var(--ink-3)">설계 문서는 별도로 7,018줄</span>
   </div>
 </div>
 
@@ -482,8 +482,8 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="bar-row">
     <span class="name">Store</span>
-    <span class="gauge"><span style="width:47.0%;background:var(--dot-ok)"></span><span style="width:3.4%;background:var(--dot-warn)"></span></span>
-    <span class="val">55 + 4 보류</span>
+    <span class="gauge"><span style="width:72.6%;background:var(--dot-ok)"></span><span style="width:3.4%;background:var(--dot-warn)"></span></span>
+    <span class="val">85 + 4 보류</span>
   </div>
   <div class="bar-row">
     <span class="name">Proxy</span>
@@ -631,6 +631,17 @@ $ clflctl select \
     <span class="w">--keychain-service</span> me.clfl.demo
 </div>
 
+<h3>설치</h3>
+<p class="note">
+  <code>.build/debug/clflctl</code> 은 상대 경로라 저장소 밖에서 부를 수 없고,
+  빌드를 다시 돌리면 자리가 바뀔 수 있다. 릴리스로 빌드해 PATH 에 링크한다.
+</p>
+<div class="term">
+$ ./scripts/install-clflctl.sh
+  <span class="d">빌드하는 중</span>
+  링크했다  ~/.local/bin/clflctl
+</div>
+
 <h3>명령</h3>
 <div class="card">
 <table>
@@ -638,7 +649,7 @@ $ clflctl select \
   <tbody>
     <tr><td class="m">doctor</td><td>환경 점검. 실패마다 고치는 법을 함께 말한다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">settings show/install/uninstall</td><td>settings.json 의 env 블록. 남의 키는 전부 보존한다</td><td><span class="tag ok">됨</span></td></tr>
-    <tr><td class="m">accounts list/add/remove</td><td>조직 등록. 토큰은 stdin 으로만 받는다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">accounts list/add/remove</td><td>조직 등록. 토큰은 stdin 으로만 받고 ANSI 와 장식을 걷어낸다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">accounts enable/disable/priority</td><td>자동 전환 대상과 순서</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">runtime show/simulate/clear</td><td>세 창과 구속 여유. 상태를 손으로 심는다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">select</td><td>선택 판정과 후보별 이유. <code>--json</code> 지원</td><td><span class="tag ok">됨</span></td></tr>
@@ -797,10 +808,53 @@ $ clflctl select \
       <td><span class="tag ok">고침</span> 추출한 <code>error.type</code> 을 항상 함께 찍는다</td>
     </tr>
     <tr>
+      <td><strong>붙여넣기가 자격증명을 오염시켰다.</strong> 터미널에서 토큰을 복사하니
+        Powerline 장식(<code>U+E0B2</code>)과 줄바꿈이 딸려왔다. 파이프로 넘겨도
+        <code>setup-token</code> 이 ANSI 제어 문자(<code>U+001B</code>)를 뿜는다</td>
+      <td><span class="tag ok">고침</span> 도구가 뽑아낸다. 아래 참조</td>
+    </tr>
+    <tr>
+      <td><strong>security 가 값을 16진수로 냈다.</strong> 출력 불가 바이트가 하나라도
+        있으면 원문 대신 hex 를 낸다. 태그가 <code>L:</code> 대신 <code>4c</code> 로 읽혔다</td>
+      <td><span class="tag ok">고침</span> hex 출력을 알아보고 되돌린다</td>
+    </tr>
+    <tr>
       <td><strong>tier 1 안의 순서가 미정이다.</strong> 잔여 3% 인 조직이 읽기 없는
         조직보다 앞선다. 둘 다 tier 1 이고 우선순위가 앞서기 때문이다</td>
       <td><span class="tag now">보류</span> 실측 없이 정하지 않는다</td>
     </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>자격증명 위생</h3>
+<p class="note">
+  실제로 겪은 경로라 값이 있다. 오염된 토큰을 저장하면 업스트림이 401 을 내고
+  사용자는 토큰이 틀렸다고 생각한다. 등록 시점에 막는 편이 훨씬 싸다.
+</p>
+<div class="term">
+$ claude setup-token | clflctl accounts add naver_team_40 --plan team
+  <span class="c">정리    제어 문자와 장식을 걷어내고 토큰을 뽑았다</span>
+  종류    setup-token
+  등록했다 naver_team_40 (team)
+
+<span class="d">$ # 뽑아낼 수 없으면 이유를 말한다</span>
+  <span class="r">Error: 붙여넣기에 토큰이 아닌 문자가 섞였다. U+E0B2 가 17번째에 있다</span>
+</div>
+<p class="note" style="margin-top:12px">
+  <strong>값을 고치지는 않는다. 찾아낼 뿐이다.</strong> 후보가 정확히 하나일 때만
+  통과시킨다. 서로 다른 토큰이 둘이면 어느 것인지 우리가 고를 수 없으므로 거부한다.
+  제어 문자는 지우지 않고 공백으로 바꾼다. 그냥 지우면 앞뒤 조각이 붙어 없던
+  토큰이 만들어진다.
+</p>
+<div class="card" style="margin:16px 0">
+<table>
+  <thead><tr><th>거부하는 경우</th><th>이유</th></tr></thead>
+  <tbody>
+    <tr><td class="m">토큰 없음</td><td><code>sk-ant-</code> 나 <code>claudeAiOauth</code> 가 있어야 한다</td></tr>
+    <tr><td class="m">서로 다른 토큰 2개 이상</td><td>어느 것인지 우리가 고를 수 없다</td></tr>
+    <tr><td class="m">40글자 미만</td><td>터미널 접힘으로 잘렸을 수 있다</td></tr>
+    <tr><td class="m">필드 빠진 oauth 블록</td><td>캡처가 덜 됐다</td></tr>
   </tbody>
 </table>
 </div>
