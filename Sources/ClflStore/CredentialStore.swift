@@ -3,11 +3,32 @@ import ClflCore
 
 /// Keychain 에 들어가는 값. 종류에 따라 모양이 다르다.
 /// docs/design/07-oauth-credentials.md 8절
-public enum StoredCredential: Sendable {
+public enum StoredCredential: Sendable, Equatable {
     /// setup-token. 문자열 하나.
     case longLived(token: String)
     /// auth login 캡처. `{"claudeAiOauth": {...}}` 블록 전체.
     case oauth(json: Data)
+
+    /// 저장 형식. 앞의 두 글자가 종류를 말한다.
+    ///
+    /// 내용으로 추측하지 않는다. oauth JSON 이 언젠가 다른 모양이 되거나 토큰 접두사가
+    /// 바뀌어도 이 태그는 그대로다. 읽는 쪽이 Account.credentialKind 를 들고 다니지
+    /// 않아도 되게 하려는 것이기도 하다.
+    var wireFormat: String {
+        switch self {
+        case .longLived(let token): return "L:\(token)"
+        case .oauth(let json):      return "O:" + String(decoding: json, as: UTF8.self)
+        }
+    }
+
+    init?(wireFormat: String) {
+        let body = String(wireFormat.dropFirst(2))
+        switch wireFormat.prefix(2) {
+        case "L:": self = .longLived(token: body)
+        case "O:": self = .oauth(json: Data(body.utf8))
+        default:   return nil
+        }
+    }
 }
 
 /// auth login 자격증명의 파싱된 모양.
@@ -30,6 +51,35 @@ public struct OAuthCredential: Sendable, Equatable {
         self.scopes = scopes
         self.subscriptionType = subscriptionType
     }
+
+    /// `{"claudeAiOauth": {...}}` 블록을 읽는다. 바깥 껍질 없이 안쪽만 온 것도 받는다.
+    ///
+    /// expiresAt 은 밀리초 epoch 다. Claude CLI 가 그렇게 쓴다.
+    public init?(claudeAiOauthJSON data: Data) {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        let block = root["claudeAiOauth"] as? [String: Any] ?? root
+
+        guard let access = block["accessToken"] as? String, !access.isEmpty,
+              let refresh = block["refreshToken"] as? String,
+              let expiresMillis = block["expiresAt"] as? Double
+        else { return nil }
+
+        // scopes 는 배열이거나 공백으로 이어붙인 문자열이다.
+        let scopes: [String]
+        if let list = block["scopes"] as? [String] {
+            scopes = list
+        } else if let joined = block["scopes"] as? String {
+            scopes = joined.split(separator: " ").map(String.init)
+        } else {
+            scopes = []
+        }
+
+        self.init(accessToken: access, refreshToken: refresh,
+                  expiresAt: Date(timeIntervalSince1970: expiresMillis / 1000),
+                  scopes: scopes,
+                  subscriptionType: block["subscriptionType"] as? String)
+    }
 }
 
 public protocol CredentialStoring: Sendable {
@@ -46,22 +96,76 @@ public protocol CredentialStoring: Sendable {
 public struct KeychainCredentialStore: CredentialStoring {
     public static let service = "me.clfl.credentials"
 
-    public init() {}
+    private let service: String
+
+    public init(service: String = KeychainCredentialStore.service) {
+        self.service = service
+    }
 
     public func credential(for id: AccountID) throws -> StoredCredential {
-        _ = id
-        fatalError("TODO")
+        guard let raw = try SecurityCLI.findPassword(service: service, account: id) else {
+            throw StoreError.credentialMissing(id)
+        }
+        guard let credential = StoredCredential(wireFormat: raw) else {
+            throw StoreError.keychainFailed(reason: "\(id) 항목의 형식을 알 수 없다")
+        }
+        return credential
+    }
+
+    /// -U 는 같은 (service, account) 항목을 덮어쓴다. 없으면 만든다.
+    ///
+    /// 비밀값이 argv 로 간다. macOS 는 다른 사용자의 argv 를 못 읽고, 같은 사용자는
+    /// 어차피 이 Keychain 항목에 접근할 수 있으므로 노출 범위가 늘지 않는다.
+    /// security CLI 에 stdin 으로 넣는 방법이 없어 남는 유일한 경로다.
+    public func store(_ credential: StoredCredential, for id: AccountID) throws {
+        let result = try SecurityCLI.run([
+            "add-generic-password", "-U",
+            "-s", service, "-a", id,
+            "-D", "clfl credential",
+            "-w", credential.wireFormat,
+        ])
+        guard result.status == 0 else {
+            throw StoreError.keychainFailed(reason: result.stderr)
+        }
+    }
+
+    /// 없는 항목을 지우는 것은 성공이다. 호출부가 존재를 먼저 확인하지 않아도 된다.
+    public func remove(_ id: AccountID) throws {
+        let result = try SecurityCLI.run(["delete-generic-password", "-s", service, "-a", id])
+        guard result.status == 0 || result.status == SecurityCLI.itemNotFound else {
+            throw StoreError.keychainFailed(reason: result.stderr)
+        }
+    }
+
+    /// -w 를 빼면 속성만 읽는다. 비밀값 접근이 아니라 잠금 해제 프롬프트가 뜨지 않는다.
+    public func hasCredential(for id: AccountID) -> Bool {
+        let result = try? SecurityCLI.run(["find-generic-password", "-s", service, "-a", id])
+        return result?.status == 0
+    }
+}
+
+/// 테스트와 미리보기용. Keychain 을 건드리지 않는다.
+public final class InMemoryCredentialStore: CredentialStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [AccountID: StoredCredential] = [:]
+
+    public init(_ items: [AccountID: StoredCredential] = [:]) { self.items = items }
+
+    public func credential(for id: AccountID) throws -> StoredCredential {
+        lock.lock(); defer { lock.unlock() }
+        guard let item = items[id] else { throw StoreError.credentialMissing(id) }
+        return item
     }
     public func store(_ credential: StoredCredential, for id: AccountID) throws {
-        _ = (credential, id)
-        fatalError("TODO")
+        lock.lock(); defer { lock.unlock() }
+        items[id] = credential
     }
     public func remove(_ id: AccountID) throws {
-        _ = id
-        fatalError("TODO")
+        lock.lock(); defer { lock.unlock() }
+        items[id] = nil
     }
     public func hasCredential(for id: AccountID) -> Bool {
-        _ = id
-        fatalError("TODO")
+        lock.lock(); defer { lock.unlock() }
+        return items[id] != nil
     }
 }

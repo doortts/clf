@@ -11,14 +11,25 @@ import Foundation
 public struct ClaudeKeychainReader: Sendable {
     public static let service = "Claude Code-credentials"
 
-    public init() {}
+    private let service: String
+
+    public init(service: String = ClaudeKeychainReader.service) {
+        self.service = service
+    }
 
     /// 슬롯의 원문 JSON. 없으면 nil.
     ///
     /// 계정 이름이 OS 사용자명이라는 것은 CCSwitcher 관측 기준이며 확인이 필요하다.
     /// docs/design/07-oauth-credentials.md 10절
     public func readRawCredential(osUsername: String = NSUserName()) throws -> Data? {
-        _ = osUsername
-        fatalError("TODO: security find-generic-password -s <service> -a <user> -w")
+        guard let raw = try SecurityCLI.findPassword(service: service, account: osUsername)
+        else { return nil }
+        return Data(raw.utf8)
+    }
+
+    /// 캡처 경로가 실제로 쓰는 진입점. 파싱까지 해서 준다.
+    public func readOAuthCredential(osUsername: String = NSUserName()) throws -> OAuthCredential? {
+        guard let data = try readRawCredential(osUsername: osUsername) else { return nil }
+        return OAuthCredential(claudeAiOauthJSON: data)
     }
 }

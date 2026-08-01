@@ -210,11 +210,11 @@ public func shortCodes(for ids: [AccountID]) -> [AccountID: String]
 ### ClflStore
 
 ```swift
-public protocol TokenStoring: Sendable {
-    func token(for id: AccountID) throws -> String
-    func store(_ token: String, for id: AccountID) throws
+public protocol CredentialStoring: Sendable {
+    func credential(for id: AccountID) throws -> StoredCredential
+    func store(_ credential: StoredCredential, for id: AccountID) throws
     func remove(_ id: AccountID) throws
-    func hasToken(for id: AccountID) -> Bool          // 값을 읽지 않고 존재만 확인
+    func hasCredential(for id: AccountID) -> Bool     // 값을 읽지 않고 존재만 확인
 }
 
 public protocol ClaudeSettingsManaging: Sendable {
@@ -232,8 +232,13 @@ public actor AccountsFile { ... }   // load/save accounts.json
 public actor RuntimeFile  { ... }   // load/save runtime.json, 1초 debounce
 ```
 
-`hasToken` 이 따로 있는 이유는 점검 화면 때문이다. 토큰 존재만 확인하는 데 Keychain
-잠금 해제 프롬프트를 띄우면 안 된다.
+`hasCredential` 이 따로 있는 이유는 점검 화면 때문이다. 존재만 확인하는 데 Keychain
+잠금 해제 프롬프트를 띄우면 안 된다. `security find-generic-password` 를 `-w` 없이
+부르면 속성만 읽으므로 비밀값 접근이 아니다.
+
+두 파일의 로드 실패를 다르게 다룬다. `runtime.json` 이 깨지면 빈 런타임으로 시작하고,
+`accounts.json` 이 깨지면 던진다. 런타임은 다시 관측하면 되지만 등록 목록은 사용자가
+손으로 넣은 것이라, 조용히 빈 문서로 시작했다가 다음 저장에서 덮어쓰면 그대로 사라진다.
 
 ### ClflProxy
 
