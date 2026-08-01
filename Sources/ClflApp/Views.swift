@@ -74,7 +74,7 @@ struct OrgCard: View {
                     .frame(width: 58, alignment: .leading)
                 UsageGauge(limit: limit)
             }
-            Text(BarText.until(limit?.resetsAt))
+            Text(BarText.reset(limit?.resetsAt))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
                 .padding(.leading, 65)
         }

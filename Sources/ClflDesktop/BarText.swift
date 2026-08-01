@@ -96,6 +96,29 @@ public enum BarText {
         return minutes > 0 ? "\(minutes)분 뒤" : "곧"
     }
 
+    /// 남은 시간에 리셋 시각을 곁들인다.
+    ///
+    /// **하루를 넘는 창에만 붙인다.** `5일 1시간 뒤` 만으로는 그게 언제인지
+    /// 감이 안 오지만, 하루 안쪽이면 남은 시간만으로 충분하고 괄호는 잡음이다.
+    ///
+    /// ```
+    /// 3시간 36분 뒤
+    /// 5일 1시간 뒤 (금요일 오전 6:00)
+    /// ```
+    /// 로케일은 한국어로 못박는다. 화면 글자가 전부 한국어인데 시각만
+    /// 시스템 로케일을 따르면 `5일 1시간 뒤 (Friday 6:00 AM)` 이 된다.
+    /// 실제로 그렇게 나왔다. 시간대는 시스템을 따른다. 그건 사용자가 어디
+    /// 있는지의 문제지 언어가 아니다.
+    public static let uiLocale = Locale(identifier: "ko_KR")
+
+    public static func reset(_ date: Date?, from now: Date = Date(),
+                             locale: Locale = BarText.uiLocale,
+                             timeZone: TimeZone = .current) -> String {
+        let relative = until(date, from: now)
+        guard let date, date.timeIntervalSince(now) > 86400 else { return relative }
+        return relative + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
+    }
+
     /// 가장 좁은 창을 쓴다. 5시간이 널널해도 주간이 바닥이면 바닥이 사실이다.
     private static func percent(_ org: OrgUsage) -> String {
         guard let binding = org.binding else { return unknown }
@@ -108,5 +131,33 @@ private extension String {
     var capitalizedFirst: String {
         guard let first else { return self }
         return first.uppercased() + dropFirst()
+    }
+}
+
+/// `DateFormatter` 는 Sendable 이 아니고 만드는 비용이 싸지 않다. 메뉴바가
+/// 주기적으로 갱신하며 조직마다 세 번씩 부르므로 하나를 락으로 공유한다.
+/// `Usage.swift` 의 `ISOParsers` 와 같은 이유다.
+private final class Clocks: @unchecked Sendable {
+    static let shared = Clocks()
+
+    private let lock = NSLock()
+    private let formatter = DateFormatter()
+    private var configured: (locale: Locale, zone: TimeZone)?
+
+    /// 형식을 직접 쓴다.
+    ///
+    /// 처음에는 `setLocalizedDateFormatFromTemplate` 로 줬는데 ko_KR 이
+    /// 요일을 괄호로 감싼 형식을 돌려줘 `((금요일) 오전 5:59)` 가 나왔다.
+    /// 우리가 이미 괄호를 치고 있어서 겹친 것이다. 로케일을 한국어로
+    /// 못박은 이상 형식도 우리가 정하는 편이 맞다.
+    func stamp(_ date: Date, locale: Locale, timeZone: TimeZone) -> String {
+        lock.lock(); defer { lock.unlock() }
+        if configured?.locale != locale || configured?.zone != timeZone {
+            formatter.locale = locale
+            formatter.timeZone = timeZone
+            formatter.dateFormat = "EEEE a h:mm"
+            configured = (locale, timeZone)
+        }
+        return formatter.string(from: date)
     }
 }
