@@ -46,12 +46,12 @@ public struct RefreshPacer: Sendable {
         return currentInterval
     }
 
-    /// 읽어낸 사용률과 활성 조직을 담는다. 읽은 시각은 매번 바뀌므로 넣으면
-    /// 영영 안 느려진다. 조직이 늘거나 줄어도, 창이 리셋돼 0 으로 떨어져도
+    /// 읽어낸 사용률과 활성 계정을 담는다. 읽은 시각은 매번 바뀌므로 넣으면
+    /// 영영 안 느려진다. 계정이 늘거나 줄어도, 창이 리셋돼 0 으로 떨어져도
     /// 다르게 나온다.
     ///
-    /// **활성 조직을 빠뜨렸던 것이 버그였다.** 사용자가 앱에서 조직을 바꿨는데
-    /// 숫자가 그대로면 조용한 것으로 보고 주기를 늘려, 메뉴바가 한참 옛 조직을
+    /// **활성 계정을 빠뜨렸던 것이 버그였다.** 사용자가 앱에서 계정을 바꿨는데
+    /// 숫자가 그대로면 조용한 것으로 보고 주기를 늘려, 메뉴바가 한참 옛 계정을
     /// 가리켰다. 전환은 활동이다.
     static func fingerprint(of snapshot: DesktopSnapshot) -> String? {
         let active = snapshot.active?.uuid ?? "-"
@@ -63,7 +63,7 @@ public struct RefreshPacer: Sendable {
                     .sorted { $0.key.rawValue < $1.key.rawValue }
                     .map { "\($0.key.rawValue):\($0.value.percentUsed)" }
                     .joined(separator: ",")
-                // 예산도 활동이다. 시간 창이 없는 조직은 이것만 움직인다
+                // 예산도 활동이다. 시간 창이 없는 계정은 이것만 움직인다
                 let money = org.spend.map { ",$:\($0.usedMinor)" } ?? ""
                 return org.uuid + "=" + windows + money
             }

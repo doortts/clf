@@ -1,8 +1,8 @@
 import Foundation
 
-/// 앱이 `config.json` 의 `oauth:tokenCacheV2` 에 캐시해 둔 조직별 토큰 하나.
+/// 앱이 `config.json` 의 `oauth:tokenCacheV2` 에 캐시해 둔 계정별 토큰 하나.
 ///
-/// 우리는 읽기만 한다. 갱신은 앱이 한다. 만료되면 사용자가 앱에서 그 조직을
+/// 우리는 읽기만 한다. 갱신은 앱이 한다. 만료되면 사용자가 앱에서 그 계정을
 /// 한 번 열면 되므로 우리가 갱신 경로를 들 이유가 없다.
 public struct DesktopToken: Sendable, Equatable {
     public let token: String
@@ -22,7 +22,7 @@ public struct DesktopToken: Sendable, Equatable {
     }
 }
 
-/// 복호화된 토큰 캐시 JSON 을 조직 uuid 로 색인한다.
+/// 복호화된 토큰 캐시 JSON 을 계정 uuid 로 색인한다.
 ///
 /// 캐시 키가 이렇게 생겼다.
 /// ```

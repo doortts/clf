@@ -138,7 +138,7 @@ enum Money {
     }
 }
 
-/// 한 조직의 사용량 전부. 플랜에 따라 한쪽만 채워진다.
+/// 한 계정의 사용량 전부. 플랜에 따라 한쪽만 채워진다.
 public struct UsageReport: Sendable, Equatable {
     public let limits: [LimitKind: UsageLimit]
     /// Enterprise 만 있다.

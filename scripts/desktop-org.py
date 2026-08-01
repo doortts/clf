@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Claude 데스크톱 앱의 활성 조직을 읽고 바꾼다.
+"""Claude 데스크톱 앱의 활성 계정을 읽고 바꾼다.
 
-앱은 조직 선택을 claude.ai 의 lastActiveOrg 쿠키에만 담는다. 그 쿠키는
+앱은 계정 선택을 claude.ai 의 lastActiveOrg 쿠키에만 담는다. 그 쿠키는
 Chromium safe storage 로 암호화돼 있지만 키가 Keychain 에 있으므로 읽고
 쓸 수 있다. docs/design/09-desktop-org-switch.md
 
-  status            지금 활성 조직
-  list              로그인된 조직 목록
-  switch <이름|uuid>  조직을 바꾼다. 앱을 껐다 켠다
+  status            지금 활성 계정
+  list              로그인된 계정 목록
+  switch <이름|uuid>  계정을 바꾼다. 앱을 껐다 켠다
 
-실측으로 확인했다. 앱이 부팅하며 이 쿠키를 읽고 그 조직으로 시작하며,
+실측으로 확인했다. 앱이 부팅하며 이 쿠키를 읽고 그 계정으로 시작하며,
 그대로 유지된다. ~/Library/Logs/Claude/main.log 에 이렇게 남는다.
 
   Updated allowlist enabled state for org <uuid>: false
@@ -114,10 +114,10 @@ def app_running() -> bool:
 def cmd_status(key: bytes) -> None:
     enc = read_cookie("lastActiveOrg")
     if not enc:
-        sys.exit("lastActiveOrg 쿠키가 없다. 앱에서 조직을 한 번 골라본다")
+        sys.exit("lastActiveOrg 쿠키가 없다. 앱에서 계정을 한 번 골라본다")
     current = decrypt(key, enc)
     names = {o["uuid"]: o["name"] for o in orgs(key)}
-    print(f"  활성 조직  {names.get(current, '?')}  ({current})")
+    print(f"  활성 계정  {names.get(current, '?')}  ({current})")
     print(f"  앱 상태    {'실행 중' if app_running() else '꺼짐'}")
 
 
@@ -129,14 +129,14 @@ def cmd_list(key: bytes) -> None:
         caps = o.get("capabilities", [])
         plan = "Enterprise" if "raven_enterprise" in caps else "Team"
         print(f"  {mark} {o['uuid']}  {o['name']:<18} {plan}")
-    print("\n  * 가 지금 활성 조직")
+    print("\n  * 가 지금 활성 계정")
 
 
 def cmd_switch(key: bytes, target: str) -> None:
     found = [o for o in orgs(key)
              if o["uuid"] == target or o["name"].lower() == target.lower()]
     if len(found) != 1:
-        sys.exit(f"'{target}' 에 맞는 조직이 {len(found)}개다. list 로 확인한다")
+        sys.exit(f"'{target}' 에 맞는 계정이 {len(found)}개다. list 로 확인한다")
     org = found[0]
 
     enc = read_cookie("lastActiveOrg")

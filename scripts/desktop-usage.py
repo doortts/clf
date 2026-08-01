@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Claude 데스크톱 앱이 아는 모든 조직의 사용량을 읽는다.
+"""Claude 데스크톱 앱이 아는 모든 계정의 사용량을 읽는다.
 
-앱은 활성 조직 하나의 사용량만 보여준다. 나머지가 얼마나 남았는지는 일일이
+앱은 활성 계정 하나의 사용량만 보여준다. 나머지가 얼마나 남았는지는 일일이
 전환해 봐야 안다. 이 스크립트가 그 셋을 한 번에 읽는다.
 
-앱은 조직별 OAuth 토큰을 config.json 의 oauth:tokenCacheV2 에 캐시해 두는데,
+앱은 계정별 OAuth 토큰을 config.json 의 oauth:tokenCacheV2 에 캐시해 두는데,
 그 토큰들이 user:profile 스코프를 갖고 있다. Usage API 가 요구하는 그 스코프다.
 setup-token 으로는 403 이 나던 호출이 이 토큰으로는 통한다.
 docs/design/10-desktop-usage.md
 
   (인자 없음)   표로 보여준다
   --json       기계가 읽을 형태로
-  --active     활성 조직 하나만
+  --active     활성 계정 하나만
 
 요청을 보내지 않는다. 토큰을 소모하지 않는다.
 """
@@ -61,7 +61,7 @@ def decrypt(key: bytes, blob: bytes) -> bytes:
 
 
 def org_tokens(key: bytes) -> dict[str, dict]:
-    """조직 uuid -> 토큰 레코드. 캐시 키가 clientId:orgId:host:scopes 형식이다."""
+    """계정 uuid -> 토큰 레코드. 캐시 키가 clientId:orgId:host:scopes 형식이다."""
     cfg = json.loads(CONFIG.read_text())
     blob = cfg.get("oauth:tokenCacheV2") or cfg.get("oauth:tokenCache")
     if not blob:
@@ -84,7 +84,7 @@ def active_org(key: bytes) -> str | None:
 
 
 def org_names(key: bytes) -> dict[str, str]:
-    """조직 이름은 claude.ai 세션으로 얻는다. 토큰 캐시에는 uuid 뿐이다."""
+    """계정 이름은 claude.ai 세션으로 얻는다. 토큰 캐시에는 uuid 뿐이다."""
     tmp = tempfile.mktemp()
     shutil.copy(COOKIES, tmp)
     try:
@@ -120,7 +120,7 @@ def usage(token: str) -> dict | str:
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")
         if e.code == 401:
-            return "토큰 만료. 앱에서 이 조직을 한 번 열면 갱신된다"
+            return "토큰 만료. 앱에서 이 계정을 한 번 열면 갱신된다"
         return f"HTTP {e.code}: {body[:120]}"
     except Exception as e:
         return f"실패: {e}"
@@ -150,7 +150,7 @@ def collect(key: bytes, only_active: bool) -> list[dict]:
     current = active_org(key)
     names = org_names(key)
 
-    # 앱에서 한 번도 열지 않은 조직은 토큰 캐시에 없다. 없는 것을 말해준다
+    # 앱에서 한 번도 열지 않은 계정은 토큰 캐시에 없다. 없는 것을 말해준다
     missing = [n for u, n in names.items() if u not in tokens]
 
     out = []
@@ -170,7 +170,7 @@ def collect(key: bytes, only_active: bool) -> list[dict]:
                               "severity": lim.get("severity")}
                 for lim in result.get("limits", [])}
         out.append(entry)
-    # 활성 조직을 맨 위에
+    # 활성 계정을 맨 위에
     out = sorted(out, key=lambda e: (not e["active"], e["name"]))
     if missing and not only_active:
         out.append({"missing": missing})
@@ -180,13 +180,13 @@ def collect(key: bytes, only_active: bool) -> list[dict]:
 def render(entries: list[dict]) -> None:
     for e in entries:
         if "missing" in e:
-            print("  아직 못 읽는 조직: " + ", ".join(e["missing"]))
+            print("  아직 못 읽는 계정: " + ", ".join(e["missing"]))
             print("  앱에서 한 번 열면 토큰이 캐시돼 다음부터 읽힌다")
             continue
         mark = "*" if e["active"] else " "
         head = f"{mark} {e['name']}"
         if e["active"]:
-            head += "  (지금 앱에서 쓰는 조직)"
+            head += "  (지금 앱에서 쓰는 계정)"
         print(head)
         if "error" in e:
             print(f"    {e['error']}")
@@ -207,14 +207,14 @@ def render(entries: list[dict]) -> None:
             print(f"    {label:<10} [{bar}] 잔여 {remaining:>3}%   {when}{warn}")
         print()
     if not any(e.get("active") for e in entries):
-        print("  활성 조직을 못 찾았다. 앱에서 조직을 한 번 골라본다")
+        print("  활성 계정을 못 찾았다. 앱에서 계정을 한 번 골라본다")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--json", action="store_true", help="기계가 읽을 형태로")
-    ap.add_argument("--active", action="store_true", help="활성 조직만")
+    ap.add_argument("--active", action="store_true", help="활성 계정만")
     args = ap.parse_args()
 
     if not CONFIG.exists():

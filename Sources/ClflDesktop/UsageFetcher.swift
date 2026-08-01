@@ -5,7 +5,7 @@ import SQLite3
 public protocol UsageFetching: Sendable {
     /// 추론 요청이 아니다. 읽기 전용이라 토큰을 소모하지 않는다.
     func usage(token: String) async throws -> UsageReport
-    /// 조직 이름은 토큰 캐시에 없다. claude.ai 세션으로만 얻는다.
+    /// 계정 이름은 토큰 캐시에 없다. claude.ai 세션으로만 얻는다.
     func orgNames(sessionKey: String) async throws -> [String: String]
 }
 
@@ -42,7 +42,7 @@ public struct LiveUsageFetcher: UsageFetching {
             break
         case 401:
             // 우리가 갱신하지 않고 사용자에게 길을 알려준다
-            throw UsageFetchError(description: "토큰 만료. 앱에서 이 조직을 한 번 열면 갱신된다")
+            throw UsageFetchError(description: "토큰 만료. 앱에서 이 계정을 한 번 열면 갱신된다")
         case 429:
             // 짧은 시간에 여러 번 부르면 이게 온다. 더 두드리면 창이 안 열린다
             throw UsageFetchError(description: "요청이 너무 잦다. 잠시 뒤 다시 읽는다",

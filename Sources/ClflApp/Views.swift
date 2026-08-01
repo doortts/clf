@@ -12,7 +12,7 @@ extension UsageBand {
     }
 }
 
-/// 조직 하나. 세 줄이 5시간, 주간, 모델별이다.
+/// 계정 하나. 세 줄이 5시간, 주간, 모델별이다.
 ///
 /// docs/design/ui-spec.html 의 팝오버. 리셋 문구는 값 옆이 아니라 아랫줄에
 /// 둔다. 한 줄에 넣으면 값과 시각이 눈싸움을 한다.
@@ -99,7 +99,7 @@ struct OrgCard: View {
     }
 }
 
-/// 어느 조직을 어떤 차례로 볼지. 팝오버 안에서 접었다 편다.
+/// 어느 계정을 어떤 차례로 볼지. 팝오버 안에서 접었다 편다.
 struct SettingsPane: View {
     @ObservedObject var model: UsageModel
 
@@ -123,7 +123,7 @@ struct SettingsPane: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            Text("팝오버에는 켜 둔 조직이 전부 나온다")
+            Text("팝오버에는 켜 둔 계정이 전부 나온다")
                 .font(.system(size: 9)).foregroundStyle(.tertiary)
 
             Divider()
@@ -214,7 +214,7 @@ struct PopoverView: View {
             }
 
             if model.orgs.isEmpty {
-                Text(model.readAt == nil ? "읽는 중" : "볼 조직을 하나도 안 켰다")
+                Text(model.readAt == nil ? "읽는 중" : "볼 계정을 하나도 안 켰다")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .padding(.vertical, 10)
             } else {

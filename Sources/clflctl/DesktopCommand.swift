@@ -2,19 +2,19 @@ import Foundation
 import ArgumentParser
 import ClflDesktop
 
-/// 데스크톱 앱이 아는 조직들의 사용량. 요청을 보내지 않는다.
+/// 데스크톱 앱이 아는 계정들의 사용량. 요청을 보내지 않는다.
 /// docs/design/10-desktop-usage.md
 struct Desktop: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Claude 데스크톱 앱의 조직별 한도",
+        abstract: "Claude 데스크톱 앱의 계정별 한도",
         subcommands: [Usage.self, Orgs.self, Show.self, Hide.self, Order.self, Bar.self],
         defaultSubcommand: Usage.self)
 
     struct Usage: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "5시간, 주간 전체, 주간 Fable 잔여를 조직마다 보여준다")
+            abstract: "5시간, 주간 전체, 주간 Fable 잔여를 계정마다 보여준다")
 
-        @Flag(help: "활성 조직만") var active = false
+        @Flag(help: "활성 계정만") var active = false
         @Flag(help: "표 대신 JSON") var json = false
 
         func run() async throws {
@@ -23,7 +23,7 @@ struct Desktop: AsyncParsableCommand {
                 throw CheckFailed(description: "Claude 데스크톱 앱을 찾지 못했다")
             }
             let snapshot = try await reader.read()
-            // 설정에서 끈 조직은 빼고 사용자가 정한 순서로
+            // 설정에서 끈 계정은 빼고 사용자가 정한 순서로
             let prefs = try DesktopPreferencesFile().load()
             var orgs = prefs.apply(to: snapshot.orgs)
             if active { orgs = orgs.filter(\.isActive) }
@@ -34,14 +34,14 @@ struct Desktop: AsyncParsableCommand {
             }
             for org in orgs { render(org) }
             if !active, !snapshot.unreadable.isEmpty {
-                print("  아직 못 읽는 조직: " + snapshot.unreadable.joined(separator: ", "))
+                print("  아직 못 읽는 계정: " + snapshot.unreadable.joined(separator: ", "))
                 print("  앱에서 한 번 열면 토큰이 캐시돼 다음부터 읽힌다")
             }
         }
 
         private func render(_ org: OrgUsage) {
             let mark = org.isActive ? "*" : " "
-            print("\(mark) \(org.name)" + (org.isActive ? "  (지금 앱에서 쓰는 조직)" : ""))
+            print("\(mark) \(org.name)" + (org.isActive ? "  (지금 앱에서 쓰는 계정)" : ""))
             if let error = org.error {
                 print("    \(error)")
                 print()
@@ -108,7 +108,7 @@ extension Desktop {
     /// 설정 화면이 보는 목록. 숨긴 것도 함께 보여야 다시 켤 수 있다.
     struct Orgs: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "아는 조직 전부와 표시 여부")
+            abstract: "아는 계정 전부와 표시 여부")
 
         func run() async throws {
             let snapshot = try await DesktopReader().read()
@@ -127,7 +127,7 @@ extension Desktop {
             print()
             let bar = prefs.barOrgs(from: known).map(\.name).joined(separator: ", ")
             print("  막대: \(prefs.barContent.label) (\(bar.isEmpty ? "비어 있음" : bar))")
-            print("  팝오버에는 보이는 조직이 전부 나온다")
+            print("  팝오버에는 보이는 계정이 전부 나온다")
             print()
             print("  clflctl desktop hide <이름|uuid>    목록에서 뺀다")
             print("  clflctl desktop show <이름|uuid>    다시 넣는다")
@@ -137,21 +137,21 @@ extension Desktop {
     }
 
     struct Show: AsyncParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "조직을 다시 보이게 한다")
+        static let configuration = CommandConfiguration(abstract: "계정을 다시 보이게 한다")
         @Argument var target: String
         func run() async throws { try await setVisibility(target, hidden: false) }
     }
 
     struct Hide: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "조직을 메뉴바에서 뺀다. 설정 목록에는 남는다")
+            abstract: "계정을 메뉴바에서 뺀다. 설정 목록에는 남는다")
         @Argument var target: String
         func run() async throws { try await setVisibility(target, hidden: true) }
     }
 
     struct Order: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
-            abstract: "표시 순서를 정한다. 빠뜨린 조직은 뒤에 붙는다")
+            abstract: "표시 순서를 정한다. 빠뜨린 계정은 뒤에 붙는다")
         @Argument(help: "보고 싶은 순서대로") var targets: [String]
 
         func run() async throws {
@@ -199,7 +199,7 @@ private func resolve(_ target: String, in orgs: [OrgUsage]) throws -> OrgUsage {
     }
     guard hits.count == 1 else {
         throw CheckFailed(description:
-            "'\(target)' 에 맞는 조직이 \(hits.count)개다. clflctl desktop orgs 로 확인한다")
+            "'\(target)' 에 맞는 계정이 \(hits.count)개다. clflctl desktop orgs 로 확인한다")
     }
     return hits[0]
 }
@@ -214,6 +214,6 @@ private func setVisibility(_ target: String, hidden: Bool) async throws {
 
     let remaining = prefs.apply(to: known)
     print("  \(org.name) \(hidden ? "숨김" : "표시")")
-    print("  지금 보이는 조직: "
+    print("  지금 보이는 계정: "
           + (remaining.isEmpty ? "없음" : remaining.map(\.name).joined(separator: ", ")))
 }

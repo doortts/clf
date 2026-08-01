@@ -1,125 +1,141 @@
 # clfl
 
-macOS 메뉴바 앱 - **터미널 Claude Code** 의 사용량 한도를 관리하고 조직 간 전환한다.
+Claude Code 데스크톱 앱의 **계정별 남은 한도**를 macOS 메뉴바에 띄운다.
 
-> **데스크톱 앱은 대상이 아니다.** 앱이 자식 프로세스 환경에 `ANTHROPIC_BASE_URL` 을
-> 직접 꽂고, 그 이름을 관리 대상 변수로 잠가 두었다. 실측으로 확인했다.
-> [08 문서 7-4절](docs/design/08-verification.md)
+![메뉴바](docs/images/menubar.png)
 
-[claulay](https://pages.oss.navercorp.com/chanyeong-cho/claulay/index.html)(Node/TypeScript CLI)의
-프록시 코어를 Swift로 포팅하고, CLI가 담당하던 부분을 네이티브 메뉴바 UI로 대체한다.
-
-## 무엇을 위한 도구인가
-
-한도 관리에 집중한다. **API 비용을 얼마 썼는지는 다루지 않는다.**
-
-- 조직마다 5시간과 7일 잔여가 얼마인지
-- 어디로 넘어가야 하는지, 언제 넘어가야 하는지
-- 모델 하나가 막혔을 때 같은 조직의 다른 모델은 계속 쓸 수 있는지
-
-비슷한 앱인 [CCSwitcher](https://github.com/XueshiQiao/CCSwitcher)가 이미 성숙하고,
-프록시를 쓰지 않아 제약도 없다. 그래도 clfl 을 만드는 이유는 셋이다.
-
-1. **한 이메일 아래 조직이 여럿인 환경.** CCSwitcher 는 이메일로 계정을 구분하므로
-   같은 SSO 로그인의 조직 여러 개를 등록할 수 없다
-2. **모델별 한도.** 계정 단위 전환으로는 `fable` 주간이 소진돼도 `opus` 는 멀쩡한
-   상황을 표현하지 못한다
-3. **진행 중인 요청 구제.** 자격증명만 바꾸는 방식은 이미 날아간 요청을 되돌릴 수 없다
-
-자세한 대조는 [06 문서](docs/design/06-ccswitcher-comparison.md).
+앱은 지금 쓰는 계정 하나만 보여준다. 나머지가 얼마나 남았는지는 일일이
+전환해 봐야 안다. clfl 은 셋을 한 번에 읽는다.
 
 ---
 
-## 왜 별도 앱인가
+## 무엇이 보이나
 
-claulay는 `claude`를 **자식 프로세스로 spawn하면서 환경변수를 주입**한다. 앱을 상시
-실행으로 두면 그 지점이 없으므로 `~/.claude/settings.json`의 `env` 블록을 쓴다.
+<img src="docs/images/popover.png" width="340" alt="팝오버">
 
-```json
-{
-  "env": { "ANTHROPIC_BASE_URL": "http://127.0.0.1:51710" }
-}
+계정마다 **5시간 / 주간 전체 / 주간 Fable** 세 창의 잔여와 리셋 시각.
+Enterprise 처럼 시간 창이 없는 플랜은 **월 예산**을 대신 보여준다.
+
+메뉴바 막대는 코드, 숫자 두 줄, 눈금 게이지 세 줄이다. 눈금 한 칸이 5% 이고
+5% 단위로 올림한다.
+
+| 잔여 | 색 |
+|---|---|
+| 50% 이상 | 초록 |
+| 15% 이상 | 기본색 |
+| 5% 이상 | 노랑 |
+| 5% 미만 | 빨강 |
+
+---
+
+## 설치
+
+```
+./scripts/install-app.sh
+open ~/Applications/clfl.app
 ```
 
-앱이 상시 실행되며 고정 포트에 로컬 프록시를 띄우고, 위 한 줄을 관리한다.
+Swift 6 툴체인과 macOS 13 이상이 필요하다. Xcode 프로젝트는 없다.
+`Package.swift` 로 빌드하고 스크립트가 `.app` 번들을 조립한다.
 
-### 어디에 통하는가
-
-| 표면 | 리디렉션 | 근거 |
-|---|---|---|
-| 터미널 `claude` | **된다** | 실측. 프록시로 요청이 온다 |
-| 데스크톱 앱 | 안 된다 | 앱이 자식 환경에 직접 꽂고 그 이름을 잠가 두었다 |
-| Agent View 백그라운드 워커 | 안 된다 | `ANTHROPIC_BASE_URL` 을 무시하고 직접 호출 |
-
-데스크톱 앱을 못 돌리는 것은 설정 문제가 아니라 앱의 정책이다. 자식 프로세스
-환경에 `ANTHROPIC_BASE_URL=https://api.anthropic.com` 을 직접 넣고, 사용자가
-그 이름으로 환경변수를 넣으려 하면 관리 대상이라며 거부한다. 앱은 자격증명도
-직접 쥐고 갱신까지 한다.
-
-그래서 이 도구의 대상은 **터미널에서 쓰는 `claude`** 다. 조직 여러 개를 오가는
-자동 전환, 모델별 한도 관측, 진행 중인 요청 구제는 거기서 전부 성립한다.
-메뉴바는 그 세션들의 사용량을 보여주고 조직 순서를 관리한다.
-
-### 알려진 대가
-
-`ANTHROPIC_BASE_URL`을 non-first-party 호스트로 지정하면:
-
-- **MCP tool search가 기본 비활성화** - 프록시가 `tool_reference` 블록을 전달한다면
-  `ENABLE_TOOL_SEARCH=true`로 복구 가능
-- **Remote Control 비활성화** - `api.anthropic.com`이 아니면 동작하지 않음. 우회 방법 없음
+`~/Applications` 에 두는 이유는 로그인 항목 등록 때문이다. 빌드 디렉토리에
+있으면 다음 빌드에 번들이 지워져 등록이 헛일이 된다.
 
 ---
 
-## claulay 대비 달라지는 것
+## 설정
 
-| 항목 | claulay | clfl |
-|---|---|---|
-| 프로세스 모델 | spawn-per-invocation | **상시 실행 앱** |
-| daemon 계층 | guardian + IPC + lease + lifecycle (~2,560 LOC) | **불필요** - 앱 자체가 daemon |
-| 토큰 저장 | `vault.enc` (AES-256-GCM + PBKDF2, ~325 LOC) | **Keychain** |
-| passphrase | `CLAULAY_VAULT_PASS` 환경변수 필수 | **불필요** |
-| 상태 표시 | statusline hook (~1,154 LOC) | 메뉴바 팝오버 |
-| 알림 dedupe | 시간 기반 억제 (`cross-plan-notice.json`) | **상태 표시로 대체** - [03](docs/porting/03-sse-streaming.md) 참고 |
-| 계정 전환 | 반응형 (429 수신 후) | 반응형 + **선제 전환**(임계값 기반) |
+<img src="docs/images/settings.png" width="340" alt="설정">
 
-daemon 계층이 통째로 사라지는 것이 가장 큰 단순화다. claulay의 POSIX 의존성
-(unix domain socket, 시그널, 프로세스 상속)은 전부 그 계층에 있었고, 프록시 코어 자체는
-플랫폼 중립적이다. 이 때문에 향후 Windows 확장도 열려 있다.
+톱니를 누르면 팝오버 안에서 펼쳐진다.
+
+- **막대 범위**: 활성 계정만 / 보이는 계정 전부
+- **자세히**: 기본 / 도트만 / 숫자만 / 코드만
+- 계정별 체크박스와 순서
+- 로그인할 때 실행
+
+설정은 `~/Library/Application Support/clfl/desktop.json` 에 저장된다.
+보여줄 목록이 아니라 **숨길 목록**을 담으므로 계정이 새로 생기면 자동으로 보인다.
 
 ---
 
-## 기술 스택
+## 하지 않는 것
 
-- **Swift + SwiftUI** - `MenuBarExtra`(macOS 13+)가 메뉴바 앱을 위해 설계된 API
-- **swift-nio / AsyncHTTPClient** - 스트리밍 프록시의 backpressure를 프레임워크가 처리
-- **Keychain** - 계정별 OAuth 토큰
+- **데스크톱 앱의 파일을 쓰지 않는다.** 읽기만 한다
+- **추론 요청을 보내지 않는다.** 사용량 조회는 토큰을 소모하지 않는다
+- **계정을 자동으로 바꾸지 않는다.** 바꾸려면 앱 재시작이 필요하고 대화 이력이
+  끊긴다. 한도에 걸려 잠깐 기다리는 것보다 불편하다
+  ([09 문서](docs/design/09-desktop-org-switch.md))
 
-Flutter/Electron을 쓰지 않는 이유는 [docs/porting/README.md](docs/porting/README.md) 참고.
+토큰 갱신도 앱이 하게 두고, 만료되면 그 사실만 말한다.
+
+### 요청을 아낀다
+
+한 번 읽을 때 요청이 계정 수만큼 나간다. 그래서
+
+- 기본 5분. 세 번 연속 변화가 없으면 10분, 429 를 받으면 15분
+- 사람이 유발한 읽기는 60초 정숙 구간
+- 계정 이름은 한 번만 조회하고 캐시
+- 계정 전환은 로컬 쿠키로 5초마다 확인한다. 네트워크를 안 탄다
+
+읽기에 실패해도 마지막으로 읽은 값을 지우지 않는다. 대신 낡았다고 표시한다.
 
 ---
 
-## 설계 문서
+## clflctl
 
-앱 전체의 구조와 동작.
+앱 없이 같은 데이터를 보는 도구다. 개발과 점검에 쓴다.
 
-| 문서 | 내용 |
+```
+./scripts/install-clflctl.sh
+
+clflctl desktop usage              계정별 잔여
+clflctl desktop usage --json       기계가 읽을 형태로
+clflctl desktop orgs               아는 계정과 표시 여부
+clflctl desktop hide <이름|uuid>    목록에서 뺀다
+clflctl desktop bar <active|all>   막대에 그릴 범위
+```
+
+메뉴바 숫자와 `clflctl desktop usage` 는 항상 같은 값을 낸다.
+
+---
+
+## 터미널 트랙
+
+한도에 걸리면 계정을 자동으로 바꿔주는 프록시가 저장소에 함께 있다.
+**데스크톱 앱은 이 프록시를 안 탄다.** 앱이 자식 프로세스 환경에
+`ANTHROPIC_BASE_URL` 을 직접 꽂고 그 이름을 잠가 두기 때문이다. 실측으로
+확인했다 ([08 문서 7-4절](docs/design/08-verification.md)).
+
+터미널 `claude` 에서는 동작하고 테스트도 통과하지만 제품으로 내놓지 않는다.
+자세한 것은 [00 범위](docs/design/00-scope.md).
+
+---
+
+## 문서
+
+[docs/design/00-scope.md](docs/design/00-scope.md) 를 먼저 읽는다.
+지금 만드는 것과 만들다 그만둔 것, 그리고 문서 지도가 있다.
+
+| | |
 |---|---|
-| [01. 아키텍처](docs/design/01-architecture.md) | 시스템 경계, 모듈 분해, 동시성 모델, settings.json 소유권 |
-| [02. 도메인 모델과 계정 선택](docs/design/02-domain-model.md) | 타입, 계정 상태, 선택 알고리즘, 선제 전환, 영속화 |
-| [03. 요청 흐름과 실패 모드](docs/design/03-request-flow.md) | 요청 생애, 시작/종료 시퀀스, 실패 대응, 구현 순서 |
-| [04. 구현 설계](docs/design/04-implementation.md) | 패키지 구성, 의존성, 타겟별 API, 동시성 주석, 테스트, 배포 |
-| [05. 계정 등록 (폴백)](docs/design/05-account-registration.md) | setup-token 경로, 등록 마법사, claulay 에서 가져오기 |
-| [06. CCSwitcher 비교](docs/design/06-ccswitcher-comparison.md) | 자격증명 스왑 방식과의 대조, 전환 전략 비교, 우리 설계의 구멍 |
-| [07. OAuth 자격증명](docs/design/07-oauth-credentials.md) | **기본 등록 경로.** 캡처, 갱신, 401 처리, Usage API 취득 정책 |
-| [UI 시안](docs/design/ui-spec.html) | 동작 원리와 화면 시안 (HTML) |
+| [10 사용량 읽기](docs/design/10-desktop-usage.md) | 토큰 캐시, 스코프, 설정, 갱신 주기 |
+| [11 메뉴바 앱](docs/design/11-menubar-app.md) | 번들, 화면 치수, 로그인 항목, 429 |
+| [12 Enterprise](docs/design/12-enterprise-spend.md) | 시간 창이 없는 플랜과 월 예산 |
+| [진행 현황](docs/design/status.html) | 검증 사다리와 계층별 상태 (HTML) |
 
-## 포팅 문서
+---
 
-claulay의 프록시 코어를 Swift로 옮기기 위한 규칙 명세.
+## 개발
 
-| 문서 | 내용 |
-|---|---|
-| [porting/README](docs/porting/README.md) | 포팅 전략, 모듈 우선순위, 무엇을 버릴지 |
-| [01. 헤더 위생과 인증 재작성](docs/porting/01-headers-and-auth.md) | `headers.ts` - OAuth 토큰 처리, 헤더 blocklist, URL 조립 |
-| [02. 응답 분류와 쿨다운](docs/porting/02-response-classification.md) | `interceptor.ts` - 스왑 트리거 판정, reset epoch 해석 |
-| [03. SSE peek와 스트리밍 패스스루](docs/porting/03-sse-streaming.md) | `stream-peek.ts` 외 - NIO에서 가장 많이 달라지는 부분 |
+```
+swift test                  전체 테스트
+swift build -c release      clflctl 릴리스
+./scripts/make-app.sh       .app 번들만 만든다
+```
+
+판단은 전부 `ClflDesktop` 에 있고 `ClflApp` 에는 뷰와 상태 하나뿐이다.
+잔여 계산, 이름 줄이기, 남은 시간 표기가 모두 순수 함수라 테스트가 잠근다.
+뷰에 판단을 두지 않는 이유는 뷰를 테스트할 수 없기 때문이다.
+
+`clflctl` 은 소스보다 낡았으면 실행할 때 알려준다.

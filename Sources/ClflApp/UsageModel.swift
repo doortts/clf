@@ -25,13 +25,13 @@ final class UsageModel: ObservableObject {
     private let file: DesktopPreferencesFile?
     private var pacer = RefreshPacer()
     private var gate = ReadGate()
-    /// 조직 이름은 안 바뀐다. 매번 물으면 읽기당 요청이 하나씩 더 는다.
+    /// 계정 이름은 안 바뀐다. 매번 물으면 읽기당 요청이 하나씩 더 는다.
     private var cachedNames: [String: String] = [:]
     private var loop: Task<Void, Never>?
     private var orgWatch: Task<Void, Never>?
     private var appearanceWatch: (any NSObjectProtocol)?
     private var activeUUID: String?
-    /// 설정 화면이 보는 목록. 사용량을 못 읽는 조직도 들어간다.
+    /// 설정 화면이 보는 목록. 사용량을 못 읽는 계정도 들어간다.
     private(set) var known: [OrgUsage] = []
 
     init(reader: DesktopReader = DesktopReader()) {
@@ -62,13 +62,13 @@ final class UsageModel: ObservableObject {
         orgWatch = nil
     }
 
-    /// 앱에서 조직을 바꾸면 곧바로 따라간다.
+    /// 앱에서 계정을 바꾸면 곧바로 따라간다.
     ///
-    /// 활성 조직은 로컬 쿠키에 있어 **네트워크를 안 타므로 자주 물어도 된다.**
-    /// 사용량 주기(5분)를 기다리면 메뉴바가 한참 옛 조직을 가리킨다.
+    /// 활성 계정은 로컬 쿠키에 있어 **네트워크를 안 타므로 자주 물어도 된다.**
+    /// 사용량 주기(5분)를 기다리면 메뉴바가 한참 옛 계정을 가리킨다.
     ///
     /// 바뀌면 표시부터 옮기고 숫자는 나중에 맞춘다. 표시는 공짜고 숫자는
-    /// 요청이 조직 수만큼 나가기 때문이다.
+    /// 요청이 계정 수만큼 나가기 때문이다.
     private func watchActiveOrg() {
         guard orgWatch == nil else { return }
         let reader = self.reader
@@ -120,7 +120,7 @@ final class UsageModel: ObservableObject {
 
     /// 팝오버를 열 때, 새로고침을 누를 때, 그리고 주기 루프가 부를 때.
     ///
-    /// **읽기 하나에 요청이 조직 수만큼 나간다.** 팝오버를 여닫을 때마다
+    /// **읽기 하나에 요청이 계정 수만큼 나간다.** 팝오버를 여닫을 때마다
     /// 읽으면 몇 번 만에 429 가 온다. 그래서 문을 하나 둔다.
     func refresh(scheduled: Bool = false) async {
         guard !refreshing else { return }
@@ -138,7 +138,7 @@ final class UsageModel: ObservableObject {
             gate.record(at: now, throttled: snapshot.throttled)
             waitText = gate.complaint(at: now)
 
-            // 못 읽은 조직에는 지난번 값을 물려준다. 한 번 실패했다고 화면을
+            // 못 읽은 계정에는 지난번 값을 물려준다. 한 번 실패했다고 화면을
             // 비우면 사용자가 알고 있던 것까지 잃는다
             known = mergeKeepingLastGood(fresh: snapshot.knownOrgs, previous: known)
             if !snapshot.names.isEmpty { cachedNames = snapshot.names }

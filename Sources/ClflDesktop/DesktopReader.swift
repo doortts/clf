@@ -1,6 +1,6 @@
 import Foundation
 
-/// 조직 하나의 현재 상태. UI 가 그대로 그린다.
+/// 계정 하나의 현재 상태. UI 가 그대로 그린다.
 public struct OrgUsage: Sendable, Equatable, Identifiable {
     public let uuid: String
     public let name: String
@@ -19,7 +19,7 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
     /// 보여줄 것이 하나라도 있나. 시간 창이든 월 예산이든.
     public var hasUsage: Bool { !limits.isEmpty || spend != nil }
 
-    /// 셋 중 가장 좁은 창. 메뉴바가 한 조직을 한 숫자로 말해야 할 때 쓴다.
+    /// 셋 중 가장 좁은 창. 메뉴바가 한 계정을 한 숫자로 말해야 할 때 쓴다.
     public var binding: UsageLimit? {
         limits.values.min { $0.percentRemaining < $1.percentRemaining }
     }
@@ -39,15 +39,15 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
 }
 
 public struct DesktopSnapshot: Sendable, Equatable {
-    /// 사용량을 읽어낸 조직.
+    /// 사용량을 읽어낸 계정.
     public let orgs: [OrgUsage]
-    /// 앱에서 한 번도 열지 않아 토큰이 없는 조직 이름. 없는 것을 숨기지 않는다.
+    /// 앱에서 한 번도 열지 않아 토큰이 없는 계정 이름. 없는 것을 숨기지 않는다.
     public let unreadable: [String]
-    /// 그 조직들의 uuid. 설정에서 순서와 숨김을 걸려면 uuid 가 있어야 한다.
+    /// 그 계정들의 uuid. 설정에서 순서와 숨김을 걸려면 uuid 가 있어야 한다.
     public let unreadableByUUID: [String: String]
     /// 서버가 429 로 막았다. 실패와 다르다. 더 물어보면 안 된다는 뜻이다.
     public let throttled: Bool
-    /// 이번에 알아낸 조직 이름. 다음 읽기가 캐시로 쓴다.
+    /// 이번에 알아낸 계정 이름. 다음 읽기가 캐시로 쓴다.
     public let names: [String: String]
     public let readAt: Date
 
@@ -64,14 +64,14 @@ public struct DesktopSnapshot: Sendable, Equatable {
 
     public var active: OrgUsage? { orgs.first { $0.isActive } }
 
-    /// 설정 화면이 보는 목록. 사용량을 못 읽는 조직도 들어간다.
+    /// 설정 화면이 보는 목록. 사용량을 못 읽는 계정도 들어간다.
     ///
     /// 사용자가 쓸 조합에 들어 있는데 목록에 없으면 순서도 못 정하고 미리
-    /// 숨길 수도 없다. 사용량을 모르는 것과 조직을 모르는 것은 다르다.
+    /// 숨길 수도 없다. 사용량을 모르는 것과 계정을 모르는 것은 다르다.
     public var knownOrgs: [OrgUsage] {
         orgs + unreadableByUUID.map { uuid, name in
             OrgUsage(uuid: uuid, name: name, isActive: false, plan: nil, limits: [:],
-                     error: "앱에서 이 조직을 한 번 열면 사용량이 읽힌다")
+                     error: "앱에서 이 계정을 한 번 열면 사용량이 읽힌다")
         }.sorted { $0.name < $1.name }
     }
 }
@@ -99,7 +99,7 @@ public struct DesktopReader: Sendable {
         FileManager.default.fileExists(atPath: support.appendingPathComponent("config.json").path)
     }
 
-    /// `names` 를 주면 조직 목록을 다시 묻지 않는다. 이름은 안 바뀌는데
+    /// `names` 를 주면 계정 목록을 다시 묻지 않는다. 이름은 안 바뀌는데
     /// 매번 물으면 읽기당 요청이 하나씩 더 나간다.
     public func read(now: Date = Date(),
                      names cached: [String: String] = [:]) async throws -> DesktopSnapshot {
@@ -133,7 +133,7 @@ public struct DesktopReader: Sendable {
                                      error: "\(error)"))
             }
         }
-        // 활성 조직을 맨 위에. 나머지는 이름순
+        // 활성 계정을 맨 위에. 나머지는 이름순
         orgs.sort { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
 
         let missing = names.filter { tokens[$0.key] == nil }
@@ -161,7 +161,7 @@ public struct DesktopReader: Sendable {
         throw SafeStorageError(description: "config.json 에 oauth 토큰 캐시가 없다")
     }
 
-    /// 지금 앱이 쓰는 조직. **로컬 파일만 읽는다.** 네트워크를 안 타므로
+    /// 지금 앱이 쓰는 계정. **로컬 파일만 읽는다.** 네트워크를 안 타므로
     /// 자주 물어도 된다. 사용량과 달리 이건 공짜다.
     public func activeOrgUUID() -> String? {
         guard let key = try? safeStorageKeyFromKeychain() else { return nil }

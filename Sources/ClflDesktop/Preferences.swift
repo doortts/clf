@@ -1,13 +1,13 @@
 import Foundation
 import ClflStore
 
-/// 어느 조직을 메뉴바에 보여줄지, 어떤 순서로 보여줄지.
+/// 어느 계정을 메뉴바에 보여줄지, 어떤 순서로 보여줄지.
 ///
 /// 사람마다 조합이 다르다. 팀 둘에 Enterprise 하나, 팀 하나에 Enterprise 하나,
 /// Enterprise 만. 그래서 목록을 고정하지 않고 사용자가 정하게 한다.
 ///
-/// **보여줄 것을 담지 않고 숨길 것을 담는다.** 그래야 조직이 새로 생겼을 때
-/// 자동으로 보인다. 보여줄 목록만 저장하면 새 조직이 설정을 열기 전까지
+/// **보여줄 것을 담지 않고 숨길 것을 담는다.** 그래야 계정이 새로 생겼을 때
+/// 자동으로 보인다. 보여줄 목록만 저장하면 새 계정이 설정을 열기 전까지
 /// 영영 안 보인다.
 /// 막대를 얼마나 자세히 그릴지.
 ///
@@ -39,26 +39,26 @@ public enum BarDetail: String, Codable, Sendable, CaseIterable {
 
 /// 메뉴바 막대에 무엇을 그릴지.
 public enum BarContent: String, Codable, Sendable, CaseIterable {
-    /// 활성 조직 하나만. 조직이 셋이면 막대가 너무 길어진다
+    /// 활성 계정 하나만. 계정이 셋이면 막대가 너무 길어진다
     case activeOnly = "active_only"
-    /// 보이기로 한 조직 전부
+    /// 보이기로 한 계정 전부
     case allVisible = "all_visible"
 
     public var label: String {
         switch self {
-        case .activeOnly: return "활성 조직만"
-        case .allVisible: return "보이는 조직 전부"
+        case .activeOnly: return "활성 계정만"
+        case .allVisible: return "보이는 계정 전부"
         }
     }
 }
 
 public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var version: Int
-    /// 사용자가 명시적으로 끈 조직.
+    /// 사용자가 명시적으로 끈 계정.
     public var hidden: Set<String>
-    /// 사용자가 정한 순서. 여기 없는 조직은 뒤에 붙는다.
+    /// 사용자가 정한 순서. 여기 없는 계정은 뒤에 붙는다.
     public var order: [String]
-    /// 막대에 그릴 범위. 팝오버는 이것과 무관하게 보이는 조직을 전부 보여준다.
+    /// 막대에 그릴 범위. 팝오버는 이것과 무관하게 보이는 계정을 전부 보여준다.
     public var barContent: BarContent
     /// 막대를 얼마나 자세히 그릴지.
     public var barDetail: BarDetail
@@ -90,14 +90,14 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
 
     /// 숨긴 것을 걸러내고 순서를 매긴다.
     ///
-    /// 순서를 안 정했으면 활성 조직이 먼저, 나머지는 이름순이다. 정했으면
-    /// 그쪽이 이긴다. 활성 조직 우선은 기본값일 뿐 사용자 의사를 덮지 않는다.
+    /// 순서를 안 정했으면 활성 계정이 먼저, 나머지는 이름순이다. 정했으면
+    /// 그쪽이 이긴다. 활성 계정 우선은 기본값일 뿐 사용자 의사를 덮지 않는다.
     public func apply(to orgs: [OrgUsage]) -> [OrgUsage] {
         let shown = orgs.filter { !hidden.contains($0.uuid) }
         guard !order.isEmpty else {
             return shown.sorted { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
         }
-        // 순서에 있는 것부터, 없는 것은 뒤에 이름순으로. 사라진 조직 항목은 무시된다
+        // 순서에 있는 것부터, 없는 것은 뒤에 이름순으로. 사라진 계정 항목은 무시된다
         let rank = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
         return shown.sorted {
             let a = rank[$0.uuid] ?? Int.max
@@ -106,17 +106,17 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         }
     }
 
-    /// 막대에 그릴 조직. 팝오버에는 `apply(to:)` 결과를 전부 쓴다.
+    /// 막대에 그릴 계정. 팝오버에는 `apply(to:)` 결과를 전부 쓴다.
     ///
-    /// 숨긴 조직은 여기에도 안 나온다. 설정이 두 곳에 따로 있으면 헷갈린다.
+    /// 숨긴 계정은 여기에도 안 나온다. 설정이 두 곳에 따로 있으면 헷갈린다.
     ///
-    /// **사용량을 모르는 조직도 안 올린다.** `?` 와 빈 게이지는 자리만 먹고
+    /// **사용량을 모르는 계정도 안 올린다.** `?` 와 빈 게이지는 자리만 먹고
     /// 알려주는 것이 없다. 팝오버와 설정에는 그대로 남는다. 거기서는 왜 못
     /// 읽는지까지 말할 수 있다.
     public func barOrgs(from orgs: [OrgUsage]) -> [OrgUsage] {
         let shown = apply(to: orgs).filter(\.hasUsage)
         guard barContent == .activeOnly else { return shown }
-        // 활성 조직을 숨겨뒀거나 활성이 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다
+        // 활성 계정을 숨겨뒀거나 활성이 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다
         if let active = shown.first(where: \.isActive) { return [active] }
         return Array(shown.prefix(1))
     }

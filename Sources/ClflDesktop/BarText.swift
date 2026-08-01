@@ -2,16 +2,16 @@ import Foundation
 
 /// 메뉴바 막대에 들어갈 글자.
 ///
-/// 막대는 다른 앱과 자리를 나눠 쓴다. 조직 이름을 그대로 넣으면 화면 절반을
+/// 막대는 다른 앱과 자리를 나눠 쓴다. 계정 이름을 그대로 넣으면 화면 절반을
 /// 먹는다. 팝오버에는 전체 이름이 나오므로 여기서는 구별만 되면 된다.
 public enum BarText {
     public static let placeholder = "clfl"
-    /// 사용량을 못 읽은 조직. 0% 로 그리면 한도가 찬 것처럼 보인다.
+    /// 사용량을 못 읽은 계정. 0% 로 그리면 한도가 찬 것처럼 보인다.
     public static let unknown = "?"
 
-    /// 조직 이름을 두세 글자로 줄인다.
+    /// 계정 이름을 두세 글자로 줄인다.
     ///
-    /// docs/design/ui-spec.html "조직 이름 대신 두 글자 코드를 쓴다".
+    /// docs/design/ui-spec.html "계정 이름 대신 두 글자 코드를 쓴다".
     /// 코드는 **집합에 딸린 값**이다. 겹치는지 알아야 정할 수 있어서 이름 하나만
     /// 보고는 못 만든다.
     ///
@@ -29,7 +29,7 @@ public enum BarText {
         for name in names { draft[name] = base(name) }
 
         // 겹치는 것만 첫 글자 + 알파벳순 순번으로 바꾼다. 순번이 목록 차례를
-        // 따르면 조직이 늘고 줄 때마다 코드가 흔들려 눈이 못 따라간다
+        // 따르면 계정이 늘고 줄 때마다 코드가 흔들려 눈이 못 따라간다
         var byCode: [String: [String]] = [:]
         for (name, code) in draft { byCode[code, default: []].append(name) }
         for (_, clashing) in byCode where clashing.count > 1 {
@@ -142,7 +142,7 @@ private extension String {
 }
 
 /// `DateFormatter` 는 Sendable 이 아니고 만드는 비용이 싸지 않다. 메뉴바가
-/// 주기적으로 갱신하며 조직마다 세 번씩 부르므로 하나를 락으로 공유한다.
+/// 주기적으로 갱신하며 계정마다 세 번씩 부르므로 하나를 락으로 공유한다.
 /// `Usage.swift` 의 `ISOParsers` 와 같은 이유다.
 private final class Clocks: @unchecked Sendable {
     static let shared = Clocks()
