@@ -29,18 +29,34 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
 }
 
 public struct DesktopSnapshot: Sendable, Equatable {
+    /// 사용량을 읽어낸 조직.
     public let orgs: [OrgUsage]
     /// 앱에서 한 번도 열지 않아 토큰이 없는 조직 이름. 없는 것을 숨기지 않는다.
     public let unreadable: [String]
+    /// 그 조직들의 uuid. 설정에서 순서와 숨김을 걸려면 uuid 가 있어야 한다.
+    public let unreadableByUUID: [String: String]
     public let readAt: Date
 
-    public init(orgs: [OrgUsage], unreadable: [String], readAt: Date) {
+    public init(orgs: [OrgUsage], unreadable: [String],
+                unreadableByUUID: [String: String] = [:], readAt: Date) {
         self.orgs = orgs
         self.unreadable = unreadable
+        self.unreadableByUUID = unreadableByUUID
         self.readAt = readAt
     }
 
     public var active: OrgUsage? { orgs.first { $0.isActive } }
+
+    /// 설정 화면이 보는 목록. 사용량을 못 읽는 조직도 들어간다.
+    ///
+    /// 사용자가 쓸 조합에 들어 있는데 목록에 없으면 순서도 못 정하고 미리
+    /// 숨길 수도 없다. 사용량을 모르는 것과 조직을 모르는 것은 다르다.
+    public var knownOrgs: [OrgUsage] {
+        orgs + unreadableByUUID.map { uuid, name in
+            OrgUsage(uuid: uuid, name: name, isActive: false, plan: nil, limits: [:],
+                     error: "앱에서 이 조직을 한 번 열면 사용량이 읽힌다")
+        }.sorted { $0.name < $1.name }
+    }
 }
 
 /// Claude 데스크톱 앱의 상태를 읽는다.
@@ -95,8 +111,11 @@ public struct DesktopReader: Sendable {
         // 활성 조직을 맨 위에. 나머지는 이름순
         orgs.sort { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
 
-        let unreadable = names.filter { tokens[$0.key] == nil }.values.sorted()
-        return DesktopSnapshot(orgs: orgs, unreadable: Array(unreadable), readAt: now)
+        let missing = names.filter { tokens[$0.key] == nil }
+        return DesktopSnapshot(orgs: orgs,
+                               unreadable: missing.values.sorted(),
+                               unreadableByUUID: missing,
+                               readAt: now)
     }
 
     // MARK: 파일에서 읽기

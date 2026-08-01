@@ -32,7 +32,7 @@ let package = Package(
 
         .target(name: "ClflStore", dependencies: ["ClflCore"]),
 
-        .target(name: "ClflDesktop", dependencies: ["ClflCore"]),
+        .target(name: "ClflDesktop", dependencies: ["ClflCore", "ClflStore"]),
 
         .target(
             name: "ClflProxy",

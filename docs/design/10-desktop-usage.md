@@ -163,3 +163,66 @@ clflctl desktop usage --active   활성 조직만
 
 `severity` 는 서버가 직접 주는 경고 등급이다. 우리가 임계값을 정하는 대신 이 값을
 쓸 수 있는지 살펴볼 만하다. 아직 `normal` 외의 값을 관측하지 못했다.
+
+---
+
+## 7. 무엇을 보여줄지는 사용자가 정한다
+
+조합이 사람마다 다르다.
+
+| 쓰는 사람 | 조합 |
+|---|---|
+| 이 저장소 사용자 | 팀 둘 + Enterprise 하나 |
+| 다른 사람 | 팀 하나 + Enterprise 하나 |
+| 또 다른 사람 | Enterprise 하나 |
+
+목록을 고정할 수 없으므로 설정으로 뺀다.
+
+### 보여줄 것이 아니라 숨길 것을 담는다
+
+```swift
+public struct DesktopPreferences: Codable, Sendable, Equatable {
+    public var hidden: Set<String>   // 명시적으로 끈 조직
+    public var order: [String]       // 정한 순서. 없는 것은 뒤에 붙는다
+}
+```
+
+보여줄 목록만 저장하면 **조직이 새로 생겼을 때 설정을 열기 전까지 영영 안 보인다.**
+숨길 것을 담으면 새 조직이 자동으로 보인다. 기본값이 옳은 쪽으로 기운다.
+
+순서를 안 정했으면 활성 조직이 먼저, 나머지는 이름순이다. 정했으면 그쪽이 이긴다.
+활성 조직 우선은 기본값일 뿐 사용자 의사를 덮지 않는다.
+
+### 못 읽는 조직도 설정에는 나온다
+
+앱에서 한 번도 열지 않은 조직은 토큰이 없어 사용량을 모른다. 그래도 **이름은
+알기 때문에** 설정 목록에는 올린다. 그러지 않으면 사용자가 쓸 조합에 들어 있는데
+순서도 못 정하고 미리 숨길 수도 없다.
+
+`DesktopSnapshot.orgs` 는 읽어낸 것만, `knownOrgs` 는 아는 것 전부다.
+메뉴바는 앞을, 설정은 뒤를 본다.
+
+```
+        순서  이름           플랜        사용량   uuid
+  ----  ----  -------------  ----  ----  -------  ---------
+  표시  1     NAVER_TEAM_40  team  활성  읽힘     746e81ae-...
+  표시  2     NAVER_TEAM_52  team        읽힘     2a063dae-...
+  표시  3     Naver          -           못 읽음  2b4a57bf-...
+```
+
+### 명령
+
+```
+clflctl desktop orgs               아는 조직 전부와 표시 여부
+clflctl desktop hide <이름|uuid>    목록에서 뺀다
+clflctl desktop show <이름|uuid>    다시 넣는다
+clflctl desktop order <이름>...     순서를 정한다
+```
+
+이름으로도 uuid 로도 받는다. uuid 를 외울 이유가 없다.
+
+설정은 `~/Library/Application Support/clfl/desktop.json` 에 둔다. 우리 설정이므로
+우리 디렉토리다. 데스크톱 앱의 파일은 읽기만 하고 절대 쓰지 않는다.
+
+파일이 없거나 깨졌으면 기본값으로 시작한다. 설정 파일 하나 때문에 메뉴바가
+안 뜨면 안 된다.

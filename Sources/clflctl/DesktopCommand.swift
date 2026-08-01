@@ -7,7 +7,7 @@ import ClflDesktop
 struct Desktop: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Claude 데스크톱 앱의 조직별 한도",
-        subcommands: [Usage.self],
+        subcommands: [Usage.self, Orgs.self, Show.self, Hide.self, Order.self],
         defaultSubcommand: Usage.self)
 
     struct Usage: AsyncParsableCommand {
@@ -23,7 +23,10 @@ struct Desktop: AsyncParsableCommand {
                 throw CheckFailed(description: "Claude 데스크톱 앱을 찾지 못했다")
             }
             let snapshot = try await reader.read()
-            let orgs = active ? snapshot.orgs.filter(\.isActive) : snapshot.orgs
+            // 설정에서 끈 조직은 빼고 사용자가 정한 순서로
+            let prefs = try DesktopPreferencesFile().load()
+            var orgs = prefs.apply(to: snapshot.orgs)
+            if active { orgs = orgs.filter(\.isActive) }
 
             if json {
                 print(try renderJSON(orgs, unreadable: snapshot.unreadable))
@@ -97,4 +100,90 @@ struct Desktop: AsyncParsableCommand {
             return right ? gap + text : text + gap
         }
     }
+}
+
+// MARK: 설정
+
+extension Desktop {
+    /// 설정 화면이 보는 목록. 숨긴 것도 함께 보여야 다시 켤 수 있다.
+    struct Orgs: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "아는 조직 전부와 표시 여부")
+
+        func run() async throws {
+            let snapshot = try await DesktopReader().read()
+            let prefs = try DesktopPreferencesFile().load()
+            let known = snapshot.knownOrgs
+            let ordered = prefs.apply(to: known).map(\.uuid)
+
+            let rows = known.map { org -> [String] in
+                let shown = !prefs.isHidden(org.uuid)
+                let position = ordered.firstIndex(of: org.uuid).map { String($0 + 1) } ?? "-"
+                return [shown ? "표시" : "숨김", position, org.name,
+                        org.plan ?? "-", org.isActive ? "활성" : "",
+                        org.error == nil ? "읽힘" : "못 읽음", org.uuid]
+            }
+            print(renderTable(["", "순서", "이름", "플랜", "", "사용량", "uuid"], rows))
+            print()
+            print("  clflctl desktop hide <이름|uuid>    목록에서 뺀다")
+            print("  clflctl desktop show <이름|uuid>    다시 넣는다")
+            print("  clflctl desktop order <이름>...     순서를 정한다")
+        }
+    }
+
+    struct Show: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(abstract: "조직을 다시 보이게 한다")
+        @Argument var target: String
+        func run() async throws { try await setVisibility(target, hidden: false) }
+    }
+
+    struct Hide: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "조직을 메뉴바에서 뺀다. 설정 목록에는 남는다")
+        @Argument var target: String
+        func run() async throws { try await setVisibility(target, hidden: true) }
+    }
+
+    struct Order: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "표시 순서를 정한다. 빠뜨린 조직은 뒤에 붙는다")
+        @Argument(help: "보고 싶은 순서대로") var targets: [String]
+
+        func run() async throws {
+            let known = try await DesktopReader().read().knownOrgs
+            let file = try DesktopPreferencesFile()
+            var prefs = file.load()
+            prefs.order = try targets.map { try resolve($0, in: known).uuid }
+            try file.save(prefs)
+
+            let shown = prefs.apply(to: known).map(\.name)
+            print("  " + shown.joined(separator: " > "))
+        }
+    }
+}
+
+/// 이름으로도 uuid 로도 지정할 수 있게 한다. uuid 를 외울 이유가 없다.
+private func resolve(_ target: String, in orgs: [OrgUsage]) throws -> OrgUsage {
+    let hits = orgs.filter {
+        $0.uuid == target || $0.name.lowercased() == target.lowercased()
+    }
+    guard hits.count == 1 else {
+        throw CheckFailed(description:
+            "'\(target)' 에 맞는 조직이 \(hits.count)개다. clflctl desktop orgs 로 확인한다")
+    }
+    return hits[0]
+}
+
+private func setVisibility(_ target: String, hidden: Bool) async throws {
+    let known = try await DesktopReader().read().knownOrgs
+    let org = try resolve(target, in: known)
+    let file = try DesktopPreferencesFile()
+    var prefs = file.load()
+    prefs.setHidden(org.uuid, hidden)
+    try file.save(prefs)
+
+    let remaining = prefs.apply(to: known)
+    print("  \(org.name) \(hidden ? "숨김" : "표시")")
+    print("  지금 보이는 조직: "
+          + (remaining.isEmpty ? "없음" : remaining.map(\.name).joined(separator: ", ")))
 }
