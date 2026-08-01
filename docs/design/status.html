@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clfl 진행 현황 - 계획, 상태, 검증 도구</title>
+<style>
+:root {
+  --ink:        #1d1d1f;
+  --ink-2:      #6e6e73;
+  --ink-3:      #86868b;
+  --canvas:     #f5f5f7;
+  --surface:    #ffffff;
+  --surface-2:  #f7f7f8;
+  --sep:        #d2d2d7;
+  --sep-soft:   #e8e8ed;
+
+  --accent:     #007aff;
+  --accent-bg:  #e8f1ff;
+  --green:      #34c759;
+  --yellow:     #ffcc00;
+  --red:        #ff3b30;
+  --green-bg:   #e3f7e8;
+  --yellow-bg:  #fdf3d7;
+  --red-bg:     #ffe8e6;
+  --green-fg:   #1f7a37;
+  --yellow-fg:  #8a6508;
+  --red-fg:     #b3261c;
+
+  --dot-ok:   #17993f;
+  --dot-warn: #bf7f00;
+  --dot-bad:  #e02017;
+  --dot-off:  #c9c9ce;
+
+  --term-bg:  #1e1e20;
+  --term-fg:  #e6e6ea;
+
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+  --hairline: inset 0 0 0 .5px rgba(0,0,0,.14);
+
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+          "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f5f5f7; --ink-2: #98989d; --ink-3: #6e6e73;
+    --canvas: #161617; --surface: #1e1e20; --surface-2: #29292b;
+    --sep: #38383a; --sep-soft: #2c2c2e;
+    --accent: #0a84ff; --accent-bg: #16283d;
+    --green: #30d158; --yellow: #ffd60a; --red: #ff453a;
+    --green-bg: #14301c; --yellow-bg: #33290f; --red-bg: #3a1815;
+    --green-fg: #5ee27f; --yellow-fg: #ffd60a; --red-fg: #ff8a7d;
+    --dot-ok: #3ce16b; --dot-warn: #ffe500; --dot-bad: #ff4a3d; --dot-off: #48484a;
+    --term-bg: #0e0e10; --term-fg: #e6e6ea;
+    --shadow: 0 1px 3px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    --hairline: inset 0 0 0 .5px rgba(255,255,255,.12);
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #f5f5f7; --ink-2: #98989d; --ink-3: #6e6e73;
+  --canvas: #161617; --surface: #1e1e20; --surface-2: #29292b;
+  --sep: #38383a; --sep-soft: #2c2c2e;
+  --accent: #0a84ff; --accent-bg: #16283d;
+  --green: #30d158; --yellow: #ffd60a; --red: #ff453a;
+  --green-bg: #14301c; --yellow-bg: #33290f; --red-bg: #3a1815;
+  --green-fg: #5ee27f; --yellow-fg: #ffd60a; --red-fg: #ff8a7d;
+  --dot-ok: #3ce16b; --dot-warn: #ffe500; --dot-bad: #ff4a3d; --dot-off: #48484a;
+  --term-bg: #0e0e10; --term-fg: #e6e6ea;
+  --shadow: 0 1px 3px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  --hairline: inset 0 0 0 .5px rgba(255,255,255,.12);
+}
+:root[data-theme="light"] {
+  --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b;
+  --canvas: #f5f5f7; --surface: #ffffff; --surface-2: #f7f7f8;
+  --sep: #d2d2d7; --sep-soft: #e8e8ed;
+  --accent: #007aff; --accent-bg: #e8f1ff;
+  --green: #34c759; --yellow: #ffcc00; --red: #ff3b30;
+  --green-bg: #e3f7e8; --yellow-bg: #fdf3d7; --red-bg: #ffe8e6;
+  --green-fg: #1f7a37; --yellow-fg: #8a6508; --red-fg: #b3261c;
+  --dot-ok: #17993f; --dot-warn: #bf7f00; --dot-bad: #e02017; --dot-off: #c9c9ce;
+  --term-bg: #1e1e20; --term-fg: #e6e6ea;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.05);
+  --hairline: inset 0 0 0 .5px rgba(0,0,0,.14);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+
+h1 { font-size: 32px; line-height: 1.2; letter-spacing: -.02em; margin: 0 0 8px; font-weight: 700; }
+h2 {
+  font-size: 13px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-2); font-weight: 600;
+  margin: 56px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--sep-soft);
+}
+h3 { font-size: 17px; margin: 28px 0 8px; font-weight: 600; letter-spacing: -.01em; }
+p  { margin: 0 0 12px; }
+.lede { color: var(--ink-2); font-size: 17px; margin-bottom: 4px; }
+.meta { color: var(--ink-3); font-size: 13px; font-family: var(--mono); }
+.note { color: var(--ink-2); font-size: 14px; }
+code {
+  font-family: var(--mono); font-size: .88em;
+  background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
+  box-shadow: var(--hairline);
+}
+
+.card {
+  background: var(--surface); border-radius: 12px; padding: 20px 22px;
+  box-shadow: var(--shadow), var(--hairline);
+}
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 28px; }
+.kpi { display: flex; align-items: center; gap: 16px; }
+.kpi .num { font-size: 30px; font-weight: 650; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.kpi .lbl { font-size: 13px; color: var(--ink-2); margin-top: 5px; }
+.kpi .sub { font-size: 12px; color: var(--ink-3); font-family: var(--mono); }
+
+/* 사다리 */
+.ladder { display: flex; flex-direction: column; gap: 2px; }
+.rung {
+  display: grid; grid-template-columns: 56px 1fr 22px; gap: 14px; align-items: center;
+  padding: 9px 14px; border-radius: 8px;
+}
+.rung:hover { background: var(--surface-2); }
+.rung .no { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.rung .what { font-size: 14px; }
+.rung .how { font-family: var(--mono); font-size: 12px; color: var(--ink-2); display: block; margin-top: 2px; }
+.rung .st { width: 14px; height: 14px; border-radius: 50%; justify-self: end; }
+.st.done { background: var(--dot-ok); }
+.st.next { background: var(--dot-warn); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot-warn) 22%, transparent); }
+.st.todo { background: transparent; box-shadow: inset 0 0 0 1.5px var(--dot-off); }
+.rung.gate { background: var(--accent-bg); }
+.rung.gate .what { font-weight: 600; }
+
+.track { display: flex; gap: 3px; margin: 4px 0 22px; }
+.track i { height: 8px; flex: 1; border-radius: 2px; background: var(--dot-off); }
+.track i.done { background: var(--dot-ok); }
+.track i.next { background: var(--dot-warn); }
+
+/* 막대 */
+.bars { display: flex; flex-direction: column; gap: 14px; }
+.bar-row { display: grid; grid-template-columns: 96px 1fr 116px; gap: 14px; align-items: center; }
+.bar-row .name { font-family: var(--mono); font-size: 13px; }
+.bar-row .val  { font-family: var(--mono); font-size: 12px; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.gauge { height: 22px; background: var(--surface-2); border-radius: 5px; overflow: hidden; display: flex; box-shadow: var(--hairline); }
+.gauge span { height: 100%; display: block; }
+.g-src  { background: var(--accent); }
+.g-test { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+.g-todo { background: repeating-linear-gradient(45deg, var(--dot-off) 0 4px, transparent 4px 8px); }
+
+.legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 12px; color: var(--ink-2); }
+.legend b { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* 도트 그리드 */
+.layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.layer .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.layer .head strong { font-family: var(--mono); font-size: 14px; }
+.layer .head em { font-style: normal; font-size: 12px; color: var(--ink-2); font-family: var(--mono); }
+.grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.grid u {
+  width: 11px; height: 11px; border-radius: 3px; display: block;
+  background: var(--dot-off);
+}
+.grid u.on { background: var(--dot-ok); }
+.layer .cap { font-size: 12px; color: var(--ink-3); margin-top: 10px; line-height: 1.5; }
+
+/* 표 */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th {
+  text-align: left; font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 600; padding: 0 12px 8px 0; border-bottom: 1px solid var(--sep-soft);
+}
+td { padding: 10px 12px 10px 0; border-bottom: 1px solid var(--sep-soft); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+td.m, th.m { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.tag {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px;
+  border-radius: 5px; font-family: var(--mono); white-space: nowrap;
+}
+.tag.ok  { background: var(--green-bg);  color: var(--green-fg); }
+.tag.now { background: var(--yellow-bg); color: var(--yellow-fg); }
+.tag.no  { background: var(--surface-2); color: var(--ink-3); box-shadow: var(--hairline); }
+.tag.hot { background: var(--red-bg); color: var(--red-fg); }
+
+/* 터미널 */
+.term {
+  background: var(--term-bg); color: var(--term-fg); border-radius: 10px;
+  padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.62;
+  overflow-x: auto; white-space: pre; box-shadow: var(--hairline);
+}
+.term .c { color: #7fd1a0; }
+.term .d { color: #8e8e96; }
+.term .w { color: #ffd166; }
+.term .r { color: #ff8a7d; }
+
+/* 흐름 */
+.flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.flow .step { position: relative; }
+.flow .when {
+  font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); font-weight: 600; margin-bottom: 6px;
+}
+.flow h4 { margin: 0 0 6px; font-size: 15px; font-family: var(--mono); }
+.flow p { font-size: 13px; color: var(--ink-2); margin: 0; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+
+.callout {
+  border-left: 3px solid var(--accent); padding: 2px 0 2px 16px;
+  color: var(--ink-2); font-size: 14px; margin: 16px 0;
+}
+.callout.warn { border-left-color: var(--yellow); }
+
+ul { margin: 8px 0; padding-left: 20px; }
+li { margin: 4px 0; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .wrap { padding: 32px 16px 64px; }
+  .two, .flow { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: 78px 1fr; }
+  .bar-row .val { grid-column: 2; text-align: left; }
+  h1 { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>clfl 진행 현황</h1>
+<p class="lede">Claude Code 사용량 한도를 관리하고 조직을 전환하는 macOS 메뉴바 앱</p>
+<p class="meta">2026-08-01 기준 &nbsp;/&nbsp; 커밋 29개 &nbsp;/&nbsp; main</p>
+
+<div class="kpis">
+  <div class="card kpi">
+    <svg width="52" height="52" viewBox="0 0 52 52" aria-label="사다리 진행률 62퍼센트">
+      <circle cx="26" cy="26" r="21" fill="none" stroke="var(--sep)" stroke-width="6"/>
+      <circle cx="26" cy="26" r="21" fill="none" stroke="var(--dot-ok)" stroke-width="6"
+              stroke-linecap="round" stroke-dasharray="81.2 131.9"
+              transform="rotate(-90 26 26)"/>
+    </svg>
+    <div>
+      <div class="num">8 <span style="font-size:17px;color:var(--ink-3)">/ 13</span></div>
+      <div class="lbl">검증 사다리</div>
+    </div>
+  </div>
+
+  <div class="card kpi">
+    <div>
+      <div class="num">3,032</div>
+      <div class="lbl">소스 줄</div>
+      <div class="sub">테스트 1,639줄</div>
+    </div>
+  </div>
+
+  <div class="card kpi">
+    <div>
+      <div class="num">171</div>
+      <div class="lbl">통과하는 테스트</div>
+      <div class="sub">실패 0, 보류 17</div>
+    </div>
+  </div>
+
+  <div class="card kpi">
+    <div>
+      <div class="num">35 <span style="font-size:17px;color:var(--ink-3)">/ 45</span></div>
+      <div class="lbl">구현된 소스 파일</div>
+      <div class="sub">남은 10개는 전부 Proxy</div>
+    </div>
+  </div>
+</div>
+
+<div class="callout">
+  판정 계층(Core)과 저장 계층(Store)이 끝났고, 네트워크 계층(Proxy)이 통째로 남았다.
+  남은 다섯 칸이 전부 실제 통신을 요구하므로 시간으로는 절반쯤이다.
+</div>
+
+
+<h2>1. 검증 사다리</h2>
+<p class="note">
+  각 칸은 <strong>실행할 명령</strong>과 <strong>통과 기준</strong>을 가진다.
+  윗 칸이 통과해야 아랫 칸으로 간다. 완성 전에 손으로 밟을 수 있어야 한다는 것이 규칙이다.
+</p>
+
+<div class="track">
+  <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
+  <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
+  <i class="next"></i><i></i><i></i><i></i><i></i>
+</div>
+
+<div class="card ladder">
+  <div class="rung">
+    <span class="no">1-5</span>
+    <span class="what">ClflCore 판정 로직
+      <span class="how">swift test --filter ClflCoreTests &nbsp;->&nbsp; 117개 통과</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6</span>
+    <span class="what">ClflStore 저장 계층
+      <span class="how">swift test --filter ClflStoreTests &nbsp;->&nbsp; 54개 통과</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6a</span>
+    <span class="what">환경 점검
+      <span class="how">clflctl doctor &nbsp;->&nbsp; 실패 항목 0</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6b</span>
+    <span class="what">조직 등록
+      <span class="how">clflctl accounts add &nbsp;->&nbsp; list 에 뜨고 Keychain 에 있음</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6c</span>
+    <span class="what">설정 주입
+      <span class="how">clflctl settings install &nbsp;->&nbsp; show 가 주입됨을 말한다</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6d</span>
+    <span class="what">선택 판정
+      <span class="how">clflctl runtime simulate + select &nbsp;->&nbsp; 표가 예상과 같다</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6e</span>
+    <span class="what">응답 분류
+      <span class="how">clflctl classify &nbsp;->&nbsp; 네 경로가 갈린다</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">6f</span>
+    <span class="what">SSE 경계
+      <span class="how">clflctl sse-peek &nbsp;->&nbsp; 주석 프레임을 건너뛴다</span></span>
+    <span class="st done"></span>
+  </div>
+  <div class="rung">
+    <span class="no">7</span>
+    <span class="what">업스트림 왕복
+      <span class="how">clflctl upstream probe &lt;id&gt; &nbsp;->&nbsp; 실제 200 과 사용량 헤더</span></span>
+    <span class="st next"></span>
+  </div>
+  <div class="rung gate">
+    <span class="no">8</span>
+    <span class="what">프록시 단일 조직 통과
+      <span class="how">clflctl serve --single &lt;id&gt; &nbsp;->&nbsp; Claude Code 데스크톱 앱으로 대화 성공</span></span>
+    <span class="st todo"></span>
+  </div>
+  <div class="rung">
+    <span class="no">9</span>
+    <span class="what">스왑
+      <span class="how">serve + runtime simulate &nbsp;->&nbsp; 스왑 발생, 트레일에 기록</span></span>
+    <span class="st todo"></span>
+  </div>
+  <div class="rung">
+    <span class="no">10</span>
+    <span class="what">컨트롤 플레인
+      <span class="how">clflctl watch &nbsp;->&nbsp; 스왑이 실시간으로 흐른다</span></span>
+    <span class="st todo"></span>
+  </div>
+  <div class="rung">
+    <span class="no">11</span>
+    <span class="what">메뉴바 앱
+      <span class="how">Xcode &nbsp;->&nbsp; 메뉴바에 같은 값이 뜬다</span></span>
+    <span class="st todo"></span>
+  </div>
+</div>
+
+<p class="note" style="margin-top:14px">
+  8번이 첫 관문이다. 여기서 MCP 도구 검색 제약과 <code>X-Claude-Session-Id</code> 헤더 존재
+  여부가 실제로 드러난다. 그 앞에 손으로 밟을 디딤돌 여섯 개(6a-6f)를 먼저 놓은 이유다.
+</p>
+
+
+<h2>2. 계층별 상태</h2>
+
+<div class="layers">
+  <div class="card layer">
+    <div class="head"><strong>ClflCore</strong><em>18 / 18</em></div>
+    <div class="grid">
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+    </div>
+    <p class="cap">헤더 재작성, 응답 분류, SSE 경계, 선택기. 의존성 0 이라 이벤트 루프 없이
+      순수 함수로 검증된다.</p>
+  </div>
+
+  <div class="card layer">
+    <div class="head"><strong>ClflStore</strong><em>8 / 8</em></div>
+    <div class="grid">
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+    </div>
+    <p class="cap">원자적 쓰기, accounts.json, runtime.json, settings.json, Keychain, jsonl.
+      전부 임시 디렉토리 단위 테스트.</p>
+  </div>
+
+  <div class="card layer">
+    <div class="head"><strong>clflctl</strong><em>9 / 9</em></div>
+    <div class="grid">
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+      <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
+    </div>
+    <p class="cap">앱 없이 단계를 실행하는 도구. doctor, settings, accounts, runtime,
+      select, classify, sse-peek.</p>
+  </div>
+
+  <div class="card layer">
+    <div class="head"><strong>ClflProxy</strong><em>1 / 10</em></div>
+    <div class="grid">
+      <u class="on"></u><u></u><u></u><u></u><u></u><u></u><u></u><u></u><u></u><u></u>
+    </div>
+    <p class="cap">스캐폴딩만. 시그니처와 불변식 주석은 서 있고 본문은 전부
+      <code>fatalError("TODO")</code> 다.</p>
+  </div>
+
+  <div class="card layer">
+    <div class="head"><strong>ClflApp</strong><em>0 / -</em></div>
+    <div class="grid">
+      <u></u><u></u><u></u><u></u><u></u><u></u>
+    </div>
+    <p class="cap">아직 없다. Apple HIG 기준 시안만 있다
+      (<a href="ui-spec.html">ui-spec.html</a>). Xcode 프로젝트가 필요하다.</p>
+  </div>
+</div>
+
+<h3>코드 규모</h3>
+<div class="card bars">
+  <div class="bar-row">
+    <span class="name">ClflCore</span>
+    <span class="gauge"><span class="g-src" style="width:53.7%"></span><span class="g-test" style="width:46.4%"></span></span>
+    <span class="val">1089 + 941</span>
+  </div>
+  <div class="bar-row">
+    <span class="name">clflctl</span>
+    <span class="gauge"><span class="g-src" style="width:41.2%"></span></span>
+    <span class="val">837 + 0</span>
+  </div>
+  <div class="bar-row">
+    <span class="name">ClflStore</span>
+    <span class="gauge"><span class="g-src" style="width:34.8%"></span><span class="g-test" style="width:32.6%"></span></span>
+    <span class="val">706 + 661</span>
+  </div>
+  <div class="bar-row">
+    <span class="name">ClflProxy</span>
+    <span class="gauge"><span class="g-todo" style="width:19.7%"></span><span class="g-test" style="width:1.8%"></span></span>
+    <span class="val">400 + 37</span>
+  </div>
+  <div class="legend">
+    <span><b class="g-src" style="background:var(--accent)"></b>구현</span>
+    <span><b style="background:color-mix(in srgb, var(--accent) 32%, transparent)"></b>테스트</span>
+    <span><b class="g-todo"></b>스캐폴딩 (본문 없음)</span>
+    <span style="color:var(--ink-3)">설계 문서는 별도로 6,041줄</span>
+  </div>
+</div>
+
+<h3>테스트 분포</h3>
+<div class="card bars">
+  <div class="bar-row">
+    <span class="name">Core</span>
+    <span class="gauge"><span style="width:100%;background:var(--dot-ok)"></span></span>
+    <span class="val">117 통과</span>
+  </div>
+  <div class="bar-row">
+    <span class="name">Store</span>
+    <span class="gauge"><span style="width:46.2%;background:var(--dot-ok)"></span><span style="width:3.4%;background:var(--dot-warn)"></span></span>
+    <span class="val">54 + 4 보류</span>
+  </div>
+  <div class="bar-row">
+    <span class="name">Proxy</span>
+    <span class="gauge"><span style="width:11.1%;background:var(--dot-off)"></span></span>
+    <span class="val">13 미구현</span>
+  </div>
+  <div class="legend">
+    <span><b style="background:var(--dot-ok)"></b>통과</span>
+    <span><b style="background:var(--dot-warn)"></b>조건부 보류 (실제 Keychain 을 건드려 기본은 건너뛴다)</span>
+    <span><b style="background:var(--dot-off)"></b>구현 대기</span>
+  </div>
+</div>
+
+
+<h2>3. 구조</h2>
+<div class="card">
+<svg viewBox="0 0 900 300" style="width:100%;height:auto" role="img"
+     aria-label="ClflCore 를 바닥으로 ClflStore 와 ClflProxy 가 쌓이고 ClflApp 과 clflctl 이 그 위에 붙는 구조">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
+    </marker>
+    <style>
+      .bx  { fill: var(--surface-2); stroke: var(--sep); stroke-width: 1; rx: 10; }
+      .bxo { fill: var(--green-bg); stroke: var(--green); stroke-width: 1.5; rx: 10; }
+      .bxd { fill: none; stroke: var(--dot-off); stroke-width: 1.5; stroke-dasharray: 5 4; rx: 10; }
+      .t   { fill: var(--ink); font: 600 14px var(--mono); }
+      .s   { fill: var(--ink-2); font: 400 11.5px var(--sans); }
+      .ln  { stroke: var(--ink-3); stroke-width: 1.2; fill: none; marker-end: url(#ar); }
+    </style>
+  </defs>
+
+  <rect class="bxo" x="250" y="228" width="400" height="56"/>
+  <text class="t" x="450" y="252" text-anchor="middle">ClflCore</text>
+  <text class="s" x="450" y="270" text-anchor="middle">의존성 0. 순수 판정 함수. 이벤트 루프 없이 테스트된다</text>
+
+  <rect class="bxo" x="250" y="140" width="180" height="56"/>
+  <text class="t" x="340" y="164" text-anchor="middle">ClflStore</text>
+  <text class="s" x="340" y="182" text-anchor="middle">파일, Keychain, 설정</text>
+
+  <rect class="bxd" x="470" y="140" width="180" height="56"/>
+  <text class="t" x="560" y="164" text-anchor="middle" fill="var(--ink-3)">ClflProxy</text>
+  <text class="s" x="560" y="182" text-anchor="middle">NIO 서버, 스왑 루프</text>
+
+  <rect class="bxd" x="470" y="42" width="180" height="56"/>
+  <text class="t" x="560" y="66" text-anchor="middle" fill="var(--ink-3)">ClflApp</text>
+  <text class="s" x="560" y="84" text-anchor="middle">SwiftUI 메뉴바</text>
+
+  <rect class="bxo" x="60" y="42" width="180" height="56"/>
+  <text class="t" x="150" y="66" text-anchor="middle">clflctl</text>
+  <text class="s" x="150" y="84" text-anchor="middle">단계별 실행과 점검</text>
+
+  <rect class="bxd" x="690" y="140" width="150" height="56"/>
+  <text class="t" x="765" y="164" text-anchor="middle" fill="var(--ink-3)">컨트롤 플레인</text>
+  <text class="s" x="765" y="182" text-anchor="middle">읽기 전용 HTTP</text>
+
+  <path class="ln" d="M340 196 L340 224"/>
+  <path class="ln" d="M560 196 L560 224"/>
+  <path class="ln" d="M470 168 L434 168"/>
+  <path class="ln" d="M560 98 L560 136"/>
+  <path class="ln" d="M150 98 L150 168 L246 168"/>
+  <path class="ln" d="M150 98 L150 256 L246 256"/>
+  <path class="ln" d="M690 168 L654 168"/>
+</svg>
+<p class="note" style="margin-top:8px">
+  화살표는 의존하는 쪽에서 의존받는 쪽으로 향한다. 실선 상자가 완성, 점선이 미구현이다.
+  <code>ClflCore</code> 에 의존성을 하나도 두지 않은 것이 이 구성의 핵심이다.
+  NIO 가 한 번 들어오면 테스트가 이벤트 루프를 요구하기 시작한다.
+</p>
+</div>
+
+
+<h2>4. 내부 상태를 검증하는 도구</h2>
+<p class="note">
+  메뉴바 앱은 관찰하기 나쁜 실행 환경이다. 화면이 좁고, 스왑은 200ms 안에 끝나며,
+  한도에 실제로 걸릴 때까지 기다릴 수 없다. 그래서 관찰과 조작을 앱 밖으로 뺐다.
+</p>
+
+<div class="flow" style="margin-top:20px">
+  <div class="card step">
+    <div class="when">요청 전</div>
+    <h4>clflctl</h4>
+    <p>터미널에서 단계를 실행한다. 앱 번들도 Xcode 도 없이 돈다.
+      지금 요청이 오면 어디로 갈지 미리 판정해 본다.</p>
+  </div>
+  <div class="card step">
+    <div class="when">요청 중</div>
+    <h4>컨트롤 플레인</h4>
+    <p>프록시가 도는 동안 내부 상태를 읽는 읽기 전용 HTTP.
+      설계만 끝났고 붙일 상태가 아직 없다.</p>
+  </div>
+  <div class="card step">
+    <div class="when">요청 후</div>
+    <h4>jsonl 로그</h4>
+    <p><code>usage.jsonl</code> 과 <code>audit.jsonl</code> 을 조인한다.
+      스왑이 유발한 캐시 재생성 비용이 여기서 나온다.</p>
+  </div>
+</div>
+
+<h3>같은 레코드 원칙</h3>
+<p class="note">
+  관찰용 코드가 실제 판정과 다른 답을 내면 없느니만 못하다. 그래서 판정 함수가
+  이유를 값으로 낸다. <code>select()</code> 는 <code>explain()</code> 의 얇은 껍질이다.
+</p>
+<div class="term">
+<span class="d">// 위 표, 컨트롤 플레인의 GET /select, 요청 트레일의 candidates 가 전부 이 하나다</span>
+<span class="c">public func</span> select(_ input: SelectionInput) -> SelectionResult {
+    explain(input).result
+}
+<span class="c">public func</span> explain(_ input: SelectionInput) -> SelectionExplanation
+</div>
+<p class="note" style="margin-top:12px">
+  두 경로로 갈라 두면 설명이 언제든 거짓말을 시작한다.
+  <code>test_explainAgreesWithSelect</code> 가 그것을 잠근다. 표에 찍히는 여유 값도
+  표시용으로 다시 계산한 것이 아니라 강등 판정이 실제로 쓴 값 그대로다.
+</p>
+
+<h3>상태를 손으로 심는다</h3>
+<p class="note">
+  한도에 걸리기를 기다릴 수 없으므로 런타임 상태를 만들어 넣고 판정을 다시 돌린다.
+</p>
+<div class="term">
+$ clflctl runtime simulate naver_team_40 <span class="w">--rate-limit 600</span>
+  naver_team_40 상태를 바꿨다. clflctl select 로 확인한다
+
+$ clflctl select
+  <span class="d">순위  id             판정  여유  이유</span>
+  <span class="d">----  -------------  ----  ----  ------------------------------------</span>
+  1     naver_team_40  <span class="r">제외</span>  -     claude-opus-4-5 쿨다운 19:40:08 까지
+  2     naver_team_52  <span class="c">선택</span>  3%    선택
+  3     ent1           후보  -     대기 (tier 1)
+
+  결과    naver_team_52 (team)
+</div>
+
+<h3>격리</h3>
+<p class="note">
+  실험이 실제 설정을 건드리면 안 된다. 디렉토리만 바꾸면 격리가 반쪽이다.
+  자격증명은 여전히 진짜 Keychain 으로 간다. 그래서 서비스 이름도 연다.
+</p>
+<div class="term">
+$ clflctl select \
+    <span class="w">--data-dir</span> /tmp/clfl-demo/data \
+    <span class="w">--claude-dir</span> /tmp/clfl-demo/claude \
+    <span class="w">--keychain-service</span> me.clfl.demo
+</div>
+
+<h3>명령</h3>
+<div class="card">
+<table>
+  <thead><tr><th class="m">명령</th><th>하는 일</th><th class="m">상태</th></tr></thead>
+  <tbody>
+    <tr><td class="m">doctor</td><td>환경 점검. 실패마다 고치는 법을 함께 말한다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">settings show/install/uninstall</td><td>settings.json 의 env 블록. 남의 키는 전부 보존한다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">accounts list/add/remove</td><td>조직 등록. 토큰은 stdin 으로만 받는다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">accounts enable/disable/priority</td><td>자동 전환 대상과 순서</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">runtime show/simulate/clear</td><td>세 창과 구속 여유. 상태를 손으로 심는다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">select</td><td>선택 판정과 후보별 이유. <code>--json</code> 지원</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">classify</td><td>응답 하나를 분류기에 먹인다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">sse-peek</td><td>첫 이벤트 프레임 경계를 찾는다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">upstream probe</td><td>실제 api.anthropic.com 왕복</td><td><span class="tag now">7단계</span></td></tr>
+    <tr><td class="m">serve</td><td>프록시를 앱 없이 띄운다</td><td><span class="tag no">8단계</span></td></tr>
+    <tr><td class="m">watch</td><td>컨트롤 플레인을 구독해 실시간으로 본다</td><td><span class="tag no">10단계</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+
+<h2>5. 컨트롤 플레인</h2>
+<p class="note">
+  프록시가 도는 동안 내부 상태를 읽는 읽기 전용 HTTP 표면이다. 프록시 포트에
+  <code>/_clfl/...</code> 같은 경로를 얹지 않고 별도 포트를 쓴다.
+</p>
+
+<div class="two">
+  <div class="card">
+    <h3 style="margin-top:0">왜 별도 포트인가</h3>
+    <ul style="font-size:14px;color:var(--ink-2)">
+      <li><strong>표면이 겹친다.</strong> Anthropic API 밖의 경로를 가로채기 시작하면
+        클라이언트가 새 엔드포인트를 쓸 때 조용히 충돌한다</li>
+      <li><strong>수명이 다르다.</strong> 프록시가 포트 바인딩에 실패한 순간이 바로
+        상태를 봐야 할 때인데, 거기 매달려 있으면 아무것도 못 본다</li>
+      <li><strong>노출을 묶지 않는다.</strong> 하나가 새면 둘 다 샌다</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">보안</h3>
+    <ul style="font-size:14px;color:var(--ink-2)">
+      <li><code>127.0.0.1</code> 에만 바인딩</li>
+      <li>읽기 전용. 상태를 바꾸는 경로가 없다</li>
+      <li>자격증명을 싣지 않는다. <code>RouterSnapshot</code> 타입 자체가 토큰을 갖지 않는다</li>
+      <li><strong>기본 꺼짐.</strong> 켠 사람만 대가를 진다</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+<table>
+  <thead><tr><th class="m">GET</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td class="m">/health</td><td>떠 있는지, 프록시가 어느 포트에 붙었는지, 얼마나 됐는지</td></tr>
+    <tr><td class="m">/state</td><td><code>RouterSnapshot</code>. 조직, 우선순위, 런타임, 활성, 지속 조건</td></tr>
+    <tr><td class="m">/select?model=&amp;start=</td><td>지금 요청이 오면 어디로 가는지. 4절 표와 같은 레코드</td></tr>
+    <tr><td class="m">/requests?limit=50</td><td>최근 요청의 결정 트레일. 메모리 링 버퍼 200개</td></tr>
+    <tr><td class="m">/events</td><td>SSE. 스냅샷 변화와 <code>RoutingEvent</code> 를 실시간으로</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>audit.jsonl 과 무엇이 다른가</h3>
+<p class="note">
+  <code>audit.jsonl</code> 은 <strong>사건</strong>을 남기고 트레일은 <strong>판단 과정</strong>을
+  남긴다. 스왑이 일어난 것은 audit 에 있지만, 왜 team2 를 건너뛰고 ent1 로 갔는지는 없다.
+</p>
+<div class="term">
+{"at":"...","sessionId":"...","model":"claude-opus-4-5",
+ <span class="w">"candidates"</span>:[{"id":"team1","disposition":"cooling","headroom":null},
+               {"id":"team2","disposition":"chosen","headroom":0.41}],
+ <span class="w">"attempts"</span>:[{"account":"team1","status":429,"errorType":"rate_limit_error"},
+               {"account":"team2","status":200,"ttfbMillis":840}],
+ "outcome":"swapped"}
+</div>
+
+
+<h2>6. 남은 작업</h2>
+
+<div class="stack">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag now">7단계</span> &nbsp; UpstreamExecutor + SSEPeek</h3>
+      <span class="meta">ClflProxy 2개 파일</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      처음으로 <code>api.anthropic.com</code> 에 실제로 붙는다. 이 단계의 유일한 함정은
+      <strong>압축 자동 해제</strong>다. AsyncHTTPClient 는 기본이 꺼짐인데, 끄면 SSE peek 이
+      gzip 바이트를 읽어 프레임 경계도 <code>error.type</code> 도 찾지 못하고 스왑 판정 자체가 죽는다.
+    </p>
+    <p class="meta">통과 기준: clflctl upstream probe 가 200 과 사용량 헤더를 받는다</p>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--accent)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag hot">첫 관문</span> &nbsp; 8단계. ProxyServer 단일 조직</h3>
+      <span class="meta">ClflProxy 4개 파일</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      스왑 없이 한 조직으로만 통과시킨다. 여기서 세 가지가 처음 드러난다.
+      MCP 도구 검색을 되살린 것이 실제로 먹히는지, <code>X-Claude-Session-Id</code> 헤더가
+      오는지, 원격 제어 제약이 어떻게 나타나는지.
+    </p>
+    <p class="meta">통과 기준: Claude Code 데스크톱 앱으로 대화가 성립한다</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag no">9단계</span> &nbsp; Router + RequestPipeline 스왑 루프</h3>
+      <span class="meta">ClflProxy 4개 파일</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      401 분기가 자격증명 종류에 따라 갈린다. oauth 이고 이번 요청에서 아직 갱신하지
+      않았으면 갱신 1회 후 <strong>같은 조직으로</strong> 재시도하고 시도 목록에 넣지 않는다.
+      만료된 토큰이 조직을 태우지 않게 하는 것이 부드러운 전환의 상당 부분이다.
+    </p>
+    <p class="meta">통과 기준: simulate 로 만든 쿨다운에서 스왑이 일어나고 트레일에 남는다</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag no">10-11단계</span> &nbsp; 컨트롤 플레인과 메뉴바 앱</h3>
+      <span class="meta">Xcode 프로젝트 신규</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      앱은 <code>Router.changes</code> 를 구독해 100ms 단위로 다시 그린다.
+      시안은 이미 <a href="ui-spec.html">ui-spec.html</a> 에 있다. 기본 표시는
+      코드 + 2줄 숫자 + 3줄 도트 블록이다.
+    </p>
+    <p class="meta">통과 기준: 메뉴바 숫자가 clflctl runtime show 와 일치한다</p>
+  </div>
+</div>
+
+
+<h2>7. 도구가 이미 잡아낸 것</h2>
+<p class="note">
+  검증 계층을 만들자마자 셋이 드러났다. 이것이 앱보다 도구를 먼저 만드는 이유다.
+</p>
+
+<div class="card">
+<table>
+  <thead><tr><th>발견</th><th>처리</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>취소된 debounce 타이머가 한 번 더 썼다.</strong>
+        <code>try? await Task.sleep</code> 이 취소를 삼키고 그대로 진행해서,
+        <code>flush()</code> 가 막 쓴 파일 위에 유령 쓰기가 겹쳤다</td>
+      <td><span class="tag ok">고침</span> 남은 임시 파일을 테스트가 잡아냈다</td>
+    </tr>
+    <tr>
+      <td><strong>상태 코드만으로는 스왑하지 않는다.</strong> 본문 없이 429 만 주면
+        통과 판정이 나온다. 분류기가 옳지만 도구가 이유를 말하지 않았다</td>
+      <td><span class="tag ok">고침</span> 추출한 <code>error.type</code> 을 항상 함께 찍는다</td>
+    </tr>
+    <tr>
+      <td><strong>tier 1 안의 순서가 미정이다.</strong> 잔여 3% 인 조직이 읽기 없는
+        조직보다 앞선다. 둘 다 tier 1 이고 우선순위가 앞서기 때문이다</td>
+      <td><span class="tag now">보류</span> 실측 없이 정하지 않는다</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <strong>열린 질문.</strong> 3% 짜리 조직은 거의 확실히 429 를 맞는다. 읽기가 없는 조직은
+  알 수 없다. 아는 실패와 모르는 상태를 같은 칸에 두고 우선순위로 자르면, 곧 실패할 것을
+  알면서 그쪽으로 보내는 셈이다. 반응형 경로가 받아내지만 캐시는 이미 잃는다.
+  <br><br>
+  <strong>갈래 하나</strong> - 지금 그대로 둔다. 우선순위는 사용자 의사이고, 읽기가 없다는
+  것은 안 써봤다는 뜻일 수 있다.
+  <strong>갈래 둘</strong> - tier 1 을 쪼개서 읽기 없음을 잔여 낮음보다 앞에 둔다.
+  선제 강등이 대화 시작에만 걸리므로 영향 범위가 좁다.
+  <br><br>
+  <code>usage.jsonl</code> 과 <code>audit.jsonl</code> 을 조인하면 스왑이 유발한 캐시 재생성
+  비용이 실측으로 나온다. 8단계 이후에 정한다.
+</div>
+
+
+<h2>8. 문서</h2>
+<div class="card">
+<table>
+  <thead><tr><th class="m">파일</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td class="m"><a href="01-architecture.md">01-architecture</a></td><td>설계 원칙, 프로세스 수명, settings.json 소유권, 포트</td></tr>
+    <tr><td class="m"><a href="02-domain-model.md">02-domain-model</a></td><td>도메인 타입, 선택 규칙, 영속화 분할, 메뉴바 표시 코드</td></tr>
+    <tr><td class="m"><a href="03-request-flow.md">03-request-flow</a></td><td>요청 하나의 전 생애와 스왑 루프</td></tr>
+    <tr><td class="m"><a href="04-implementation.md">04-implementation</a></td><td>의존성 결정, 타겟별 공개 API, 동시성 규칙, 작업 순서</td></tr>
+    <tr><td class="m"><a href="05-account-registration.md">05-account-registration</a></td><td>조직 등록 흐름</td></tr>
+    <tr><td class="m"><a href="06-ccswitcher-comparison.md">06-ccswitcher-comparison</a></td><td>유사 앱과의 차이. 이메일 중복 제거가 왜 문제였는지</td></tr>
+    <tr><td class="m"><a href="07-oauth-credentials.md">07-oauth-credentials</a></td><td>자격증명 두 종류, 갱신, Keychain 접근</td></tr>
+    <tr><td class="m"><a href="08-verification.md">08-verification</a></td><td>검증 사다리, 같은 레코드 원칙, 컨트롤 플레인</td></tr>
+    <tr><td class="m"><a href="ui-spec.html">ui-spec.html</a></td><td>Apple HIG 기준 UI 시안</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p class="meta" style="margin-top:48px;text-align:center">
+  clfl &nbsp;/&nbsp; 이 문서는 저장소 상태를 손으로 갱신한다. 자동 생성이 아니다.
+</p>
+
+</div>
+</body>
+</html>
