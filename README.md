@@ -1,9 +1,28 @@
 # clfl
 
-macOS 메뉴바 앱 - Claude Code 데스크톱 앱을 위한 다중 계정 rate-limit 라우터.
+macOS 메뉴바 앱 - Claude Code 데스크톱 앱의 **사용량 한도를 관리하고 조직 간 전환**한다.
 
 [claulay](https://pages.oss.navercorp.com/chanyeong-cho/claulay/index.html)(Node/TypeScript CLI)의
-프록시 코어를 Swift로 포팅하고, CLI가 담당하던 부분을 네이티브 메뉴바 UI로 대체하는 것이 목표다.
+프록시 코어를 Swift로 포팅하고, CLI가 담당하던 부분을 네이티브 메뉴바 UI로 대체한다.
+
+## 무엇을 위한 도구인가
+
+한도 관리에 집중한다. **API 비용을 얼마 썼는지는 다루지 않는다.**
+
+- 조직마다 5시간과 7일 잔여가 얼마인지
+- 어디로 넘어가야 하는지, 언제 넘어가야 하는지
+- 모델 하나가 막혔을 때 같은 조직의 다른 모델은 계속 쓸 수 있는지
+
+비슷한 앱인 [CCSwitcher](https://github.com/XueshiQiao/CCSwitcher)가 이미 성숙하고,
+프록시를 쓰지 않아 제약도 없다. 그래도 clfl 을 만드는 이유는 셋이다.
+
+1. **한 이메일 아래 조직이 여럿인 환경.** CCSwitcher 는 이메일로 계정을 구분하므로
+   같은 SSO 로그인의 조직 여러 개를 등록할 수 없다
+2. **모델별 한도.** 계정 단위 전환으로는 `fable` 주간이 소진돼도 `opus` 는 멀쩡한
+   상황을 표현하지 못한다
+3. **진행 중인 요청 구제.** 자격증명만 바꾸는 방식은 이미 날아간 요청을 되돌릴 수 없다
+
+자세한 대조는 [06 문서](docs/design/06-ccswitcher-comparison.md).
 
 ---
 

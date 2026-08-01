@@ -58,11 +58,16 @@ struct AccountRuntime: Codable, Sendable {
 }
 
 struct RateLimitSnapshot: Codable, Sendable {
+    /// 헤더가 주는 것은 사용률이다. 잔여는 1 - used 로 표시 직전에 뒤집는다(7절).
+    /// 선택 로직도 잔여를 쓰므로 편의 프로퍼티를 둔다.
     var fiveHourUsedRatio: Double?      // 0.0 ~ 1.0
     var fiveHourResetAt: Date?
     var sevenDayUsedRatio: Double?
     var sevenDayResetAt: Date?
     var observedAt: Date
+
+    var fiveHourRemaining: Double? { fiveHourUsedRatio.map { 1 - $0 } }
+    var sevenDayRemaining: Double? { sevenDayUsedRatio.map { 1 - $0 } }
 }
 ```
 
@@ -157,7 +162,8 @@ struct SelectionInput: Sendable {
     let tried: Set<AccountID>           // 이 요청에서 이미 시도한 계정
     let activeID: AccountID?
     let isConversationStart: Bool       // 선제 강등을 적용할지
-    let proactiveThreshold: Double      // 잔여 기준. 예: 0.15
+    let proactiveThreshold: Double      // 잔여 기준. 기본 0.15
+    let proactiveHysteresis: Double     // tier 0 진입선을 올린다. 기본 0.10
 }
 
 func select(_ input: SelectionInput) -> SelectionResult
@@ -184,16 +190,101 @@ func select(_ input: SelectionInput) -> SelectionResult
 ### 선제 강등
 
 quota 가 차기 전에 미리 전환하되, **제외가 아니라 2단계 정렬**로 처리한다.
+제외가 아닌 이유는 전 계정이 임계값을 넘었을 때 가용 계정이 0이 되면 안 되기 때문이다.
+강등은 가용성을 절대 줄이지 않는다.
+
+#### 묶는 창은 둘 중 더 빡빡한 쪽이다
+
+계정을 묶는 것은 5시간과 7일 중 **먼저 바닥나는 쪽**이다. 잔여 기준이므로 최솟값을
+쓴다(사용률 기준으로 보면 최댓값과 같다).
+
+```swift
+/// 두 창 중 더 빡빡한 쪽의 잔여 비율. 없으면 nil.
+///
+/// resetsAt 이 지난 창의 읽기는 버린다. 그 창은 이미 리셋됐으므로 스냅샷이 말하는
+/// 소비는 존재하지 않는다. 아직 안 지난 창이면 소비는 늘기만 하므로 묵은 값도
+/// 유효한 하한이다.
+///
+/// requireKnownReset 은 resetsAt 을 모를 때의 처리를 가른다.
+///   활성 계정 판단  -> true.  만료를 모르는 묵은 낮은 값이 강등을 유발하면 안 된다
+///   후보 계정 판단  -> false. 묵은 낮은 값은 그 후보를 뒤로 밀 뿐이라 안전하다
+func bindingHeadroom(
+    _ s: RateLimitSnapshot?, now: Date, requireKnownReset: Bool
+) -> Double? {
+    guard let s else { return nil }
+    func usable(_ remaining: Double?, _ resetsAt: Date?) -> Double? {
+        guard let remaining else { return nil }
+        guard let resetsAt else { return requireKnownReset ? nil : remaining }
+        return resetsAt < now ? nil : remaining
+    }
+    return [usable(s.fiveHourRemaining,  s.fiveHourResetAt),
+            usable(s.sevenDayRemaining,  s.sevenDayResetAt)].compactMap { $0 }.min()
+}
+```
+
+**이걸 빠뜨리면 7일이 먼저 바닥나는 경우를 통째로 놓친다.** [시안](ui-spec.html)의
+전환 직후 예시가 정확히 그 경우다. 5시간 53%, 7일 0%.
+
+#### 2단계 정렬과 hysteresis
 
 ```
-tier 0 : 5h 잔여 >= 임계값        (선호)
-tier 1 : 5h 잔여 <  임계값        (tier 0 이 비었을 때만)
+tier 0 : bindingHeadroom >= threshold + hysteresis     (선호)
+tier 1 : 그 외 (읽기 없음 포함)                          (tier 0 이 비었을 때만)
 
 각 tier 안에서는 priority 순서 유지
 ```
 
-제외가 아니라 강등인 이유: 전 계정이 임계값을 넘었을 때 가용 계정이 0이 되면 안 된다.
-강등은 가용성을 절대 줄이지 않는다.
+hysteresis 가 없으면 임계값 바로 위아래에 있는 두 계정이 대화마다 자리를 바꾼다.
+전환은 프롬프트 캐시를 버리는 행위라 왕복 자체가 손해다.
+
+기본값은 threshold 15%, hysteresis 10% 다. 즉 **25% 이상 남아야 tier 0** 이고,
+한 번 tier 1 로 내려간 계정은 25% 를 회복해야 다시 선호된다.
+
+#### 읽기 없는 계정은 제외가 아니라 tier 1
+
+CCSwitcher 는 읽기 없는 후보를 **부적격**으로 뺀다. 라운드로빈 폴링이라 "샘플 없음" 이
+"아직 차례가 아님" 을 뜻하고, 이걸 폴백으로 쓴 탓에 자동 전환이 이미 소진된 계정에
+착지한 적이 있기 때문이다.
+
+**우리는 제외하지 않고 tier 1 로 내린다.** 이유가 다르다.
+
+- CCSwitcher 는 선제 전환만 한다. 후보를 빼도 그냥 제자리에 있으면 그만이다
+- clfl 은 반응형 경로가 함께 있다. 후보를 풀에서 빼버리면 429 를 맞았을 때 넘어갈 곳이
+  사라진다. **가용성을 줄이는 대가가 그쪽보다 크다**
+
+그리고 우리는 등록할 때 검증 요청으로 첫 스냅샷을 채우므로
+([05 문서](05-account-registration.md) 3-3절) "읽기 없음" 자체가 드물다.
+
+### 3-4. 선제 전환 가드
+
+반응형 스왑과 선제 전환은 **가드가 달라야 한다.**
+
+| | 반응형 (429/401) | 선제 전환 |
+|---|---|---|
+| 트리거 | 서버가 거절했다 | 우리가 판단했다 |
+| 쿨다운 | **걸지 않는다** | 건다 |
+| 재진입 가드 | 불필요 (요청당 `tried` 로 충분) | 필요 |
+
+**반응형에 쿨다운을 걸면 안 된다.** 429 는 그 계정을 지금 쓸 수 없다는 서버의 사실
+통보다. 쿨다운 때문에 넘어가지 못하면 요청이 그냥 실패한다.
+
+선제 전환은 우리 판단이므로 틀릴 수 있고, 틀렸을 때 왕복하면 캐시를 반복해서 버린다.
+
+```swift
+actor Router {
+    private var lastProactiveSwitchAt: Date?
+    private var isEvaluatingProactive = false
+
+    private let proactiveCooldown: TimeInterval = 300
+}
+```
+
+적용 규칙:
+
+- 쿨다운 안이면 선제 강등을 **건너뛴다**. 후보는 priority 순서 그대로 간다
+- **수동 전환과 반응형 스왑도 쿨다운을 재시작한다.** 방금 계정이 바뀌었는데 곧바로
+  선제 판단이 또 옮기면 사용자가 영문을 모른다
+- 평가 중 재진입은 무시한다. 동시 요청이 여럿이므로 실제로 겹친다
 
 ### 왜 대화 시작에만 적용하나
 
