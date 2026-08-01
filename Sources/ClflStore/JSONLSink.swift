@@ -37,8 +37,10 @@ public final class JSONLSink: EventSinking, @unchecked Sendable {
     public func drain() { queue.sync {} }
 
     private func enqueue<T: Encodable & Sendable>(_ value: T, to url: URL) {
-        guard var line = try? encoder.encode(value) else { return }
-        line.append(0x0A)
+        guard var encoded = try? encoder.encode(value) else { return }
+        encoded.append(0x0A)
+        // 큐로 넘기기 전에 불변으로 굳힌다. var 를 캡처하면 경합 경고가 난다
+        let line = encoded
         queue.async { Self.appendLine(line, to: url) }
     }
 

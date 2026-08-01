@@ -47,7 +47,8 @@ public actor RuntimeFile {
             // 취소를 삼키면 안 된다. try? 로 넘기면 flush 가 막 쓴 파일 위로
             // 취소된 타이머가 한 번 더 쓴다.
             do { try await Task.sleep(for: debounce) } catch { return }
-            await self.writeCurrent()
+            // Task 가 액터 격리를 물려받으므로 직접 호출이다
+            self.writeCurrent()
         }
     }
 

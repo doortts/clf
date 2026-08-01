@@ -182,6 +182,18 @@ clflctl runtime clear                                # 되돌린다
 
 ## 6. clflctl 명령 요약
 
+### 설치
+
+`.build/debug/clflctl` 은 상대 경로라 저장소 밖에서 부를 수 없고, 빌드를 다시
+돌리면 자리가 바뀔 수 있다. 릴리스로 빌드해 PATH 에 링크한다.
+
+```bash
+./scripts/install-clflctl.sh
+```
+
+기본 대상은 `~/.local/bin` 이고 `CLFL_BIN_DIR` 로 바꾼다. 심볼릭 링크라
+다시 빌드하면 링크가 새 바이너리를 가리킨다.
+
 ```
 clflctl doctor                          환경 점검. 실패마다 고치는 법을 함께 말한다
 
