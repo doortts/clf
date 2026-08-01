@@ -72,8 +72,7 @@ struct OrgCard: View {
                 Text(kind.label)
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
-                PercentPill(limit: limit)
-                CapsuleGauge(limit: limit)
+                UsageGauge(limit: limit)
             }
             Text(BarText.until(limit?.resetsAt))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)

@@ -44,13 +44,10 @@ extension UsageBand {
         }
     }
 
-    /// 등급색으로 채운 알약 위에 얹을 글자색.
-    var onFillColor: Color {
-        switch self {
-        case .ample, .low: return .black       // 초록과 노랑은 밝다
-        case .empty:       return .white
-        case .normal:      return .primary
-        }
+    /// 게이지 알약을 칠할 색. 정상 구간은 눈길을 끌지 않아야 하므로
+    /// 등급색 대신 회색이다.
+    var gaugeTint: Color {
+        self == .normal ? .secondary : fillColor
     }
 
     /// 면으로 칠할 때는 시스템 색을 그대로 쓴다.
@@ -187,54 +184,65 @@ struct RetroBar: View {
     }
 }
 
-/// 테두리 안에 채우는 게이지. 팝오버가 쓴다.
+/// 숫자와 게이지가 한 알약 안에 있다. 팝오버가 쓴다.
 ///
-/// 바깥은 등급색 테두리만 두른 알약, 안쪽은 그만큼 채운 알약이다. 사이에
-/// 틈을 둬서 채운 양과 전체가 따로 읽힌다.
-struct CapsuleGauge: View {
+/// ```
+/// +--------------------------------------------+
+/// |  88%   ( ==================------- )       |
+/// +--------------------------------------------+
+/// ```
+///
+/// 바깥 알약을 등급색으로 꽉 채우고 오른쪽 안쪽을 **파낸다.** 파낸 자리 안에
+/// 다시 등급색으로 채우고, 숫자는 왼쪽 등급색 위에 그대로 얹는다.
+///
+/// 파낸 자리를 배경색으로 칠하지 않고 `destinationOut` 으로 뚫는다. 팝오버
+/// 배경은 단색이 아니라 vibrancy 재질이라 색으로 흉내내면 어긋난다.
+struct UsageGauge: View {
     let limit: UsageLimit?
-    var height: CGFloat = 13
-    var stroke: CGFloat = 1.5
-    /// 테두리와 채움 사이. 이게 없으면 가득 찼을 때 테두리가 사라져 보인다.
-    var inset: CGFloat = 2
+    var height: CGFloat = 18
+    /// 숫자가 앉는 왼쪽 자리.
+    var numberArea: CGFloat = 44
+    /// 바깥 알약과 파낸 자리 사이.
+    var trackInset: CGFloat = 2.5
+    /// 파낸 자리와 채움 사이. 이게 없으면 가득 찼을 때 테두리가 사라져
+    /// 100% 와 그냥 칠한 막대가 구별이 안 된다.
+    var fillInset: CGFloat = 1.5
 
     var body: some View {
-        let band = limit?.band
-        let tint = band?.fillColor ?? .secondary
+        let tint = limit?.band.gaugeTint ?? Color.secondary.opacity(0.5)
         GeometryReader { geo in
-            let inner = geo.size.width - (stroke + inset) * 2
-            let ratio = Double(limit?.percentRemaining ?? 0) / 100
+            let trackWidth = max(0, geo.size.width - numberArea - trackInset)
+            let trackHeight = height - trackInset * 2
+            let boxWidth = max(0, trackWidth - fillInset * 2)
+            let boxHeight = trackHeight - fillInset * 2
+
             ZStack(alignment: .leading) {
-                Capsule().strokeBorder(tint.opacity(limit == nil ? 0.35 : 1), lineWidth: stroke)
+                ZStack(alignment: .leading) {
+                    Capsule().fill(tint)
+                    Capsule()
+                        .frame(width: trackWidth, height: trackHeight)
+                        .offset(x: numberArea)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
+
                 if let limit, limit.percentRemaining > 0 {
+                    // 1% 라도 남았으면 보이게 최소 폭을 준다
                     Capsule()
                         .fill(tint)
-                        // 1% 라도 남았으면 보이게 한다. 0 으로 그리면 소진과 같아진다
-                        .frame(width: max(height - (stroke + inset) * 2, inner * ratio),
-                               height: height - (stroke + inset) * 2)
-                        .padding(.leading, stroke + inset)
+                        .frame(width: max(boxHeight,
+                                          boxWidth * Double(limit.percentRemaining) / 100),
+                               height: boxHeight)
+                        .offset(x: numberArea + fillInset)
                 }
+
+                // 글자는 전부 검정. 노랑 위 흰 글자가 안 보인다
+                Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
+                    .font(.system(size: 12, weight: .bold).monospacedDigit())
+                    .foregroundStyle(.black)
+                    .frame(width: numberArea, height: height)
             }
         }
         .frame(height: height)
-    }
-}
-
-/// 잔여를 담은 알약. 게이지 왼쪽에 붙는다.
-struct PercentPill: View {
-    let limit: UsageLimit?
-    var width: CGFloat = 46
-    var height: CGFloat = 13
-
-    var body: some View {
-        let band = limit?.band
-        Text(limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown)
-            .font(.system(size: 11, weight: .bold).monospacedDigit())
-            .foregroundStyle(band?.onFillColor ?? .secondary)
-            .frame(width: width, height: height)
-            .background(
-                Capsule().fill(band.map { $0 == .normal
-                    ? Color.primary.opacity(0.12) : $0.fillColor } ?? Color.primary.opacity(0.08))
-            )
     }
 }
