@@ -367,7 +367,7 @@ code {
 /* account table inside settings */
 .atable { border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; }
 .arow {
-  display: grid; grid-template-columns: 20px 30px 1fr 90px 118px 26px;
+  display: grid; grid-template-columns: 20px 30px 1fr 84px 40px 108px 26px;
   align-items: center; gap: 10px; padding: 8px 11px;
   border-bottom: 1px solid var(--hair); font-size: 12.5px;
 }
@@ -375,6 +375,11 @@ code {
   font-family: var(--mono); font-size: 11px; font-weight: 600;
   color: var(--accent); letter-spacing: .03em;
 }
+/* 자동 전환에서 뺀 계정. 지워진 것이 아니라 잠시 빠진 것으로 읽혀야 한다 */
+.arow.paused .code, .arow.paused .id { opacity: .45; }
+.switch.sm { width: 28px; height: 17px; }
+.switch.sm::after { width: 13px; height: 13px; }
+.prow.paused .id { opacity: .5; }
 .arow:last-child { border-bottom: none; }
 .arow.head {
   background: color-mix(in srgb, var(--ground) 60%, var(--surface));
@@ -469,7 +474,8 @@ footer a { color: var(--muted); }
   .field { grid-template-columns: 1fr; }
   .field > label { text-align: left; padding-top: 0; }
   /* 상태 셀은 숨기므로 남는 5개에 맞춰 열을 다시 센다 */
-  .arow { grid-template-columns: 18px 26px 1fr 74px 24px; gap: 8px; }
+  .arow { grid-template-columns: 18px 26px 1fr 40px 24px; gap: 8px; }
+  .arow .hide-m { display: none; }
   .arow .hide-s { display: none; }
   .snum { font-size: 26px; }
 }
@@ -602,6 +608,10 @@ footer a { color: var(--muted); }
     <div class="fcard">
       <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13V6M8 13V3M13 13V9"/></svg>사용량과 전환 비용</div>
       <div class="fd">계정별 토큰 사용량에 캐시 생성/조회를 함께 기록한다. 전환 시각과 맞물려 보면 전환이 실제로 얼마를 태웠는지 나온다.</div>
+    </div>
+    <div class="fcard">
+      <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="4" width="11" height="8" rx="4"/><circle cx="6" cy="8" r="2.2"/></svg>빼둘 계정 지정</div>
+      <div class="fd">특정 계정을 자동 전환 대상에서 뺀다. 계정과 토큰은 그대로 남고 순서 자리도 지킨다. 지우는 것과 잠시 빼두는 것은 다른 일이다.</div>
     </div>
     <div class="fcard">
       <div class="ft"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>Keychain 보관</div>
@@ -835,6 +845,11 @@ footer a { color: var(--muted); }
             <span class="who"><span class="id">ent1</span><span class="meta">사용 중</span></span>
             <span class="minitrack"><span class="fill ok" style="width:88%;display:block;height:100%"></span></span>
           </div>
+          <div class="prow paused">
+            <span class="ord">5</span>
+            <span class="who"><span class="id">personal</span><span class="meta">자동 전환 제외</span></span>
+            <span class="pill">제외</span>
+          </div>
         </div>
       </div>
 
@@ -912,13 +927,14 @@ footer a { color: var(--muted); }
         <div class="hint">위에서부터 먼저 사용합니다. 끌어서 순서를 바꾸세요.</div>
         <div class="atable">
           <div class="arow head">
-            <span></span><span>코드</span><span>계정</span><span>요금제</span><span class="hide-s">상태</span><span></span>
+            <span></span><span>코드</span><span>계정</span><span class="hide-m">요금제</span><span>자동</span><span class="hide-s">상태</span><span></span>
           </div>
           <div class="arow">
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
             <span class="code">T1</span>
             <span class="id">team1</span>
-            <span class="pill plan">team</span>
+            <span class="hide-m"><span class="pill plan">team</span></span>
+            <span class="switch sm on" title="자동 전환"></span>
             <span class="hide-s"><span class="pill warn">쿨다운 6일</span></span>
             <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
           </div>
@@ -926,7 +942,8 @@ footer a { color: var(--muted); }
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
             <span class="code">T2</span>
             <span class="id">team2</span>
-            <span class="pill plan">team</span>
+            <span class="hide-m"><span class="pill plan">team</span></span>
+            <span class="switch sm on" title="자동 전환"></span>
             <span class="hide-s"><span class="pill ok">대기</span></span>
             <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
           </div>
@@ -934,7 +951,8 @@ footer a { color: var(--muted); }
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
             <span class="code">T3</span>
             <span class="id">team3</span>
-            <span class="pill plan">team</span>
+            <span class="hide-m"><span class="pill plan">team</span></span>
+            <span class="switch sm on" title="자동 전환"></span>
             <span class="hide-s"><span class="pill crit">인증 실패</span></span>
             <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
           </div>
@@ -942,8 +960,18 @@ footer a { color: var(--muted); }
             <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
             <span class="code">EN</span>
             <span class="id">ent1</span>
-            <span class="pill plan">enterprise</span>
+            <span class="hide-m"><span class="pill plan">enterprise</span></span>
+            <span class="switch sm on" title="자동 전환"></span>
             <span class="hide-s"><span class="pill ok">사용 중</span></span>
+            <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
+          </div>
+          <div class="arow paused">
+            <span class="grip"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.1"/><circle cx="10" cy="4" r="1.1"/><circle cx="6" cy="8" r="1.1"/><circle cx="10" cy="8" r="1.1"/><circle cx="6" cy="12" r="1.1"/><circle cx="10" cy="12" r="1.1"/></svg></span>
+            <span class="code">PE</span>
+            <span class="id">personal</span>
+            <span class="hide-m"><span class="pill plan">team</span></span>
+            <span class="switch sm" title="자동 전환"></span>
+            <span class="hide-s"><span class="pill">자동 전환 제외</span></span>
             <button class="iconbtn" type="button" title="더 보기"><svg class="glyph" viewBox="0 0 16 16" fill="currentColor"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button>
           </div>
         </div>
@@ -953,12 +981,44 @@ footer a { color: var(--muted); }
           <button class="btn" type="button">claulay 에서 가져오기</button>
         </div>
         <div class="hint">
+          <b>자동</b> 을 끄면 그 계정은 자동 전환에 쓰이지 않습니다. 계정과 토큰은 그대로
+          남고 순서 자리도 지킵니다. 다른 계정이 모두 소진돼도 꺼둔 계정을 대신 끌어다
+          쓰지 않습니다.
+        </div>
+        <div class="hint">
           토큰은 Keychain 에 저장됩니다. 터미널에서 <code>claude setup-token</code> 으로 받은
           값을 붙여넣으세요.
         </div>
       </div>
     </div>
     <p class="caption">계정 탭. 끌어서 순서 변경</p>
+  </div>
+
+  <div class="col">
+    <h3>빼둔 계정은 소진 상황에서도 끌어오지 않는다</h3>
+    <p>
+      <strong>자동</strong> 을 끄면 그 계정은 선택 후보에서 아예 빠진다. 계정과 토큰은
+      그대로 남고 순서 자리도 지킨다. 지우면 토큰을 다시 발급받고 순서도 다시 잡아야
+      하니, 잠시 빼두는 것과 없애는 것은 다른 일이다.
+    </p>
+    <p>
+      중요한 것은 <strong>다른 계정이 모두 소진돼도 꺼둔 계정을 대신 쓰지 않는다</strong>는
+      점이다. 데이터 이그레스가 걱정돼서 뺀 계정을 마지막 수단이라며 조용히 끌어다 쓰면
+      사용자가 뺀 이유 자체를 배신하는 것이다. 대신 배너에 무엇을 켜면 풀리는지 알려주고
+      켜는 버튼을 준다. 결정은 사용자가 한다.
+    </p>
+    <p>
+      제외는 계정의 건강 상태와 다른 축이다. 쿨다운과 인증 실패는 계정이 처한 상태이고
+      제외는 사용자의 의사다. 그래서 한 계정이 제외이면서 동시에 쿨다운일 수 있고,
+      목록은 둘을 함께 보여준다.
+    </p>
+    <div class="note">
+      <span class="nt">마지막 하나는 막는다</span>
+      <p>
+        전부 빼면 모든 요청이 실패한다. 마지막 자동 전환 대상을 끄려 하면 확인을 받고,
+        그래도 0개가 되면 배너와 점검 항목에 띄운다.
+      </p>
+    </div>
   </div>
 
   <div class="stage">
@@ -1137,7 +1197,7 @@ footer a { color: var(--muted); }
           <div class="check">
             <span class="st" style="color:var(--ok)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3.5 8.5 3 3 6-6.5"/></svg></span>
             <span>쓸 수 있는 계정 3개</span>
-            <span class="det">전체 4개</span>
+            <span class="det">전체 5개, 자동 전환 대상 4개</span>
           </div>
           <div class="check">
             <span class="st" style="color:var(--warn)"><svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2.5 14.5 13.5h-13L8 2.5Z"/><path d="M8 6.6v3M8 11.6v.2"/></svg></span>

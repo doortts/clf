@@ -23,7 +23,7 @@
    |
    +---> [4a] Router.select(model:tried:isConversationStart:)
    |            |
-   |            +-- .exhausted --------------------------> [7] 종단
+   |            +-- .exhausted(unblockable:) ------------> [7] 종단
    |            +-- .wait(until) --+
    |            |                  |  grace 예산 내인가
    |            |                  +-- yes -> 대기 후 [4a] 재시도
@@ -70,6 +70,7 @@
    v
 [7] 종단 (풀 소진): 마지막 실패 응답을 원문 그대로 재생
        세션당 poolExhausted 사건 1건만 기록
+       unblockable 이 비어있지 않으면 배너에 "무엇을 켜면 풀리는지" 를 싣는다
 ```
 
 ### 불변식
@@ -163,6 +164,8 @@ Claude Code 가 죽은 포트를 향해 요청을 보낸다.
 | 429 rate_limit | 분류 | (계정, 모델) 쿨다운 | 카드에 모델별 표시 |
 | 일시 과부하 429 연쇄 | transient 판정 | 5초 쿨다운 + grace 대기 후 재훑기 | 조용히 |
 | 전 계정 진짜 소진 | 선택 `.exhausted` | 마지막 실패 응답 원문 재생 | `poolExhausted` 조건 + 알림 |
+| 소진됐으나 제외해 둔 계정에 여유 있음 | `.exhausted(unblockable:)` | **끌어다 쓰지 않는다.** 뺀 이유를 배신하지 않기 위함 | 배너에 "무엇을 켜면 풀리는지" 와 켜기 버튼 |
+| 자동 전환 대상 0개 | 선택 진입 시 | 모든 요청 실패 | `autoSwitchAllDisabled` 조건 + 알림 |
 | cross-plan 스왑 | 선택 결과 | 그대로 진행 (warn and allow) | `crossPlanActive` 조건 배너 |
 | body 8 MiB 초과 | 버퍼링 [1] | 스왑 불가. 그대로 통과 | 타임라인 기록 |
 | 요청 body 에 model 없음 | 파싱 [2] | 모델 쿨다운 스코프를 계정 전체로 승격 | 없음 |
@@ -194,6 +197,7 @@ Claude Code 가 죽은 포트를 향해 요청을 보낸다.
 | Keychain | 계정 수만큼 토큰이 있는가 | 누락 계정에 재등록 버튼 |
 | 계정 | 우선순위 체인이 비어있지 않은가 | 설정 열기 |
 | 유효 계정 | invalid 가 아닌 계정이 1개 이상 | 재로그인 안내 |
+| 자동 전환 대상 | `autoSwitch` 가 켜진 계정이 1개 이상 | 계정 목록 열기 |
 | 저장소 | Application Support 쓰기 가능 | 권한 안내 |
 | 로그인 항목 | 등록되어 있는가 | 정보성. 등록 버튼 |
 

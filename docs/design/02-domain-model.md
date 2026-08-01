@@ -18,6 +18,10 @@ struct Account: Codable, Identifiable, Sendable {
     var plan: Plan
     var baseURL: URL?               // nil 이면 https://api.anthropic.com
     var note: String?
+
+    /// false 면 자동 전환 후보에서 뺀다. 계정과 토큰은 그대로 남는다.
+    /// 기본값이 true 라 기존 계정의 동작은 바뀌지 않는다. 자세한 것은 3-3절.
+    var autoSwitch: Bool = true
 }
 ```
 
@@ -128,8 +132,9 @@ enum SelectionResult: Sendable {
     case selected(Selection)
     /// 회복 가능한 계정이 있으나 아직 쿨다운 중. grace 예산 안에서 대기 후 재훑기.
     case wait(until: Date)
-    /// 전부 invalid. 시간이 지나도 회복되지 않는다.
-    case exhausted
+    /// 시간으로 회복되지 않는다. 자동 전환에서 제외해 둔 계정 중 지금 쓸 수 있는
+    /// 것이 있으면 함께 실어 보낸다. UI 가 "이번만 사용" 을 제안할 근거가 된다.
+    case exhausted(unblockable: [AccountID])
 }
 ```
 
@@ -145,7 +150,7 @@ struct SelectionInput: Sendable {
     let tried: Set<AccountID>           // 이 요청에서 이미 시도한 계정
     let activeID: AccountID?
     let isConversationStart: Bool       // 선제 강등을 적용할지
-    let proactiveThreshold: Double      // 예: 0.85
+    let proactiveThreshold: Double      // 잔여 기준. 예: 0.15
 }
 
 func select(_ input: SelectionInput) -> SelectionResult
@@ -154,16 +159,18 @@ func select(_ input: SelectionInput) -> SelectionResult
 순서:
 
 1. 후보 = `priority` 순서에서 `tried` 를 뺀 것
-2. `invalid` 제외
-3. `cooling(account)` 제외
-4. `cooling(model)` 제외 (요청 모델과 일치할 때만)
-5. **선제 강등** (아래 참고). 제외가 아니라 후순위로 민다
-6. 남은 것 중 최상위 반환
-7. 아무것도 없으면
+2. **`autoSwitch == false` 제외** (3-3절). 건강 상태와 무관한 사용자 의사이므로 맨 앞에서 거른다
+3. `invalid` 제외
+4. `cooling(account)` 제외
+5. `cooling(model)` 제외 (요청 모델과 일치할 때만)
+6. **선제 강등** (아래 참고). 제외가 아니라 후순위로 민다
+7. 남은 것 중 최상위 반환
+8. 아무것도 없으면
    - 시간으로 회복 가능한 계정이 있으면 -> `.wait(가장 이른 해제 시각)`
-   - 전부 invalid 면 -> `.exhausted`
+   - 없으면 -> `.exhausted(unblockable:)`. `unblockable` 은 `autoSwitch` 만 켜면
+     지금 바로 쓸 수 있는 계정 목록이다
 
-7번의 구분이 중요하다. claulay 는 이 구분이 없어서 일시 과부하와 진짜 소진이 같은 경로로
+8번의 구분이 중요하다. claulay 는 이 구분이 없어서 일시 과부하와 진짜 소진이 같은 경로로
 흘렀고, 시작 시 풀 전체가 60초 암전되는 증상을 낳았다
 ([포팅 02](../porting/02-response-classification.md) 4절).
 
@@ -172,8 +179,8 @@ func select(_ input: SelectionInput) -> SelectionResult
 quota 가 차기 전에 미리 전환하되, **제외가 아니라 2단계 정렬**로 처리한다.
 
 ```
-tier 0 : 5h 사용률 <= 임계값        (선호)
-tier 1 : 5h 사용률 >  임계값        (tier 0 이 비었을 때만)
+tier 0 : 5h 잔여 >= 임계값        (선호)
+tier 1 : 5h 잔여 <  임계값        (tier 0 이 비었을 때만)
 
 각 tier 안에서는 priority 순서 유지
 ```
@@ -206,6 +213,48 @@ protocol ConversationStartDetecting {
 
 > 검증 필요: 데스크톱 앱이 이 헤더를 보내는지, `--resume` 시 세션 id 가 유지되는지
 > 실측해야 한다. 안 보내면 선제 전환은 "새 대화" 버튼 같은 명시적 신호가 필요해진다.
+
+### 3-3. 자동 전환에서 빼기
+
+`Account.autoSwitch = false` 인 계정은 선택 후보에서 아예 빠진다. 계정, 토큰,
+우선순위 자리, 지금까지의 사용 기록은 전부 그대로 남는다.
+
+**왜 삭제가 아니라 제외인가.** 지우면 토큰을 다시 발급받아야 하고 순서도 다시 잡아야
+한다. 잠시 빼두는 것과 없애는 것은 다른 행위다.
+
+쓰는 상황:
+
+- 데이터 이그레스 때문에 enterprise 계정을 자동 전환 대상에서 빼고 싶을 때
+- 크레딧을 아끼려고 특정 계정을 예비로 남겨둘 때
+- 개인 계정에 업무 트래픽이 가지 않게 하고 싶을 때
+- 문제를 좁히려고 한 계정만 잠시 빼고 볼 때
+
+**건강 상태와 다른 축이다.** 제외는 사용자의 의사이고 쿨다운과 인증 실패는 계정의
+상태다. 그래서 `Availability` 에 case 를 추가하지 않고 별도 불리언으로 둔다. 제외된
+계정이 동시에 쿨다운일 수도 있고, UI 는 두 가지를 함께 보여준다.
+
+```swift
+/// 자동 전환 후보인지. 건강 상태와 무관하게 사용자 의사만 본다.
+func isAutoEligible(_ a: Account) -> Bool { a.autoSwitch }
+```
+
+#### 소진 상황에서도 끌어다 쓰지 않는다
+
+자동 전환 대상이 전부 소진됐는데 제외해 둔 계정에 여유가 있으면, **그래도 쓰지
+않는다.** 데이터 이그레스가 걱정돼서 뺀 계정을 마지막 수단이라며 조용히 끌어다 쓰면
+사용자가 뺀 이유 자체를 배신하는 것이다.
+
+대신 `.exhausted(unblockable:)` 에 그 계정 목록을 실어 보내서, UI 가 무엇을 켜면
+풀리는지 알려주고 사용자가 직접 고르게 한다.
+
+#### 마지막 하나를 뺄 때는 막는다
+
+전부 빼면 모든 요청이 실패한다. 두 겹으로 막는다.
+
+- 설정 창에서 마지막 자동 전환 대상을 끄려 하면 확인을 받는다
+- 그래도 0개가 되면 `autoSwitchAllDisabled` 조건이 켜지고 배너와 점검 항목에 뜬다
+
+`autoSwitch` 는 설정이므로 `accounts.json` 에 저장한다. `AccountRuntime` 이 아니다.
 
 ---
 
@@ -250,6 +299,8 @@ enum Condition: Hashable, Sendable {
     case crossPlanActive(from: AccountID, to: AccountID)
     case accountInvalid(AccountID)
     case poolExhausted
+    /// 자동 전환 대상이 0개다. 모든 요청이 실패한다.
+    case autoSwitchAllDisabled
     case proxyDetached          // settings.json 에 우리 값이 없다
 }
 
