@@ -616,7 +616,7 @@ func shortCodes(for ids: [AccountID]) -> [AccountID: String] {
 public enum MenuBarDisplayMode: String, Codable, Sendable {
     /// 기본값. 세 창을 가로로 늘어놓고 숫자를 붙인다. 약 308pt
     case barsHorizontal
-    /// 같은 세 창을 쌓는다. 숫자 없음. 약 92pt
+    /// 같은 도트 블록의 세 줄에 세 창을 나눠 준다. 숫자 없음. 약 110pt
     case barsVertical
     /// 사용 중 조직과 직전 조직의 숫자만. 약 87pt
     case numbers
@@ -628,12 +628,25 @@ public enum MenuBarDisplayMode: String, Codable, Sendable {
 | 모드 | 보이는 것 | 막대 치수 | 직전 조직 |
 |---|---|---|---|
 | `barsHorizontal` (기본) | 세 창 + 숫자 10pt | 52x10pt | 안 보인다. 폭이 없다 |
-| `barsVertical` | 세 창만. 위부터 5시간, 주간, 모델별 | 34x4pt 세 줄, 간격 2pt | 안 보인다 |
+| `barsVertical` | 세 창만. 위부터 5시간, 주간, 모델별 | **52x9pt 한 블록**, 3pt 줄 셋 | 안 보인다 |
 | `numbers` | 두 줄 숫자 (5시간, 주간) | 없음 | 보인다 |
 | `codeOnly` | 코드만 | 없음 | 안 보인다 |
 
-`barsVertical` 은 숫자를 버리는 대신 폭을 3분의 1 로 줄인다. 숫자가 없어도 **어느 창이
-비었는지는 위치로 읽힌다.** 순서가 고정이기 때문이다.
+`barsVertical` 은 **가로 모드의 막대 하나와 발자국이 똑같다.** 도트 격자가 3pt 짜리 세 줄로
+이루어져 있으므로, 그 세 줄을 세 창에 하나씩 나눠 주면 막대 하나 크기에 셋이 들어간다.
+
+```
+가로 모드   [::::::::::......] 88%  [::::::::.........] 69%  [:................] 8%
+            <---- 52x9pt ---->
+
+세로 모드   [::::::::::......]   <- 5시간 88%
+            [::::::::.........]  <- 주간 69%
+            [:................]  <- Fable 8%
+            <---- 52x9pt ---->   같은 블록. 줄마다 다른 창
+```
+
+숫자를 버리는 대신 폭이 308pt 에서 110pt 가 된다. 숫자가 없어도 **어느 창이 비었는지는
+위치로 읽힌다.** 순서가 고정이기 때문이다.
 
 셋 다 **사용 중인 조직을 먼저** 보여준다. 다른 점은 폭과 정보량의 맞바꿈뿐이다.
 
@@ -647,8 +660,9 @@ public enum MenuBarDisplayMode: String, Codable, Sendable {
 채움  8%   [::........................]
 ```
 
-- 격자 간격 3pt (세로 모드는 2.5pt). 빈 칸과 채운 칸이 **같은 background-size 와
-  position** 을 써야 한 줄로 읽힌다. 채움 층을 트랙의 `left: 0` 에 붙여 격자를 맞춘다
+- 격자 간격 3pt 짜리 세 줄이 막대 하나(9pt)를 이룬다. 빈 칸과 채운 칸이 **같은
+  background-size 와 position** 을 써야 한 줄로 읽힌다. 채움 층을 트랙의 `left: 0` 에
+  붙이고 `background-position: 0 0` 으로 맞춘다
 - 작은 크기에서 솔리드 막대보다 눈금이 읽힌다. 4pt 짜리 실선은 색만 보이지만
   도트는 남은 칸 수가 보인다
 - **NSProgressIndicator 의 기본 모양은 아니다.** 의도적인 이탈이다

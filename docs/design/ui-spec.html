@@ -201,25 +201,38 @@ code {
 /* 도트 텍스처 막대. 빈 칸과 채운 칸이 같은 격자 위에 있어야 한 줄로 읽힌다.
    그래서 두 층이 같은 background-size 와 position 을 쓰고 fill 은 left:0 에 붙인다 */
 .mb-bar {
-  width: 52px; height: 10px; display: block; position: relative; overflow: hidden;
+  /* 도트 격자 3pt 짜리 세 줄 = 9pt. 이 세 줄이 텍스처의 전부다 */
+  width: 52px; height: 9px; display: block; position: relative; overflow: hidden;
   flex: none; color: rgba(255,255,255,.28);
   background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
-  background-size: 3px 3px; background-position: 0 center;
+  background-size: 3px 3px; background-position: 0 0;
 }
 .mb-bar i {
   position: absolute; inset: 0 auto 0 0; display: block; min-width: 3px;
   background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
-  background-size: 3px 3px; background-position: 0 center;
+  background-size: 3px 3px; background-position: 0 0;
 }
 .mb-bar i.ok   { color: #6fe094; }
 .mb-bar i.warn { color: #ffd60a; }
 .mb-bar i.bad  { color: #ff8a7d; }
 
-/* 세로 변형. 세 창을 한 항목 안에 쌓는다. 숫자를 빼고 폭을 줄인다 */
-.mb-vbars { display: inline-flex; flex-direction: column; gap: 2px; }
-.mb-vbars .mb-bar { width: 34px; height: 4px; }
-.mb-vbars .mb-bar,
-.mb-vbars .mb-bar i { background-size: 2.5px 2.5px; }
+/* 세로 변형. 가로 막대와 **똑같은 도트 블록**을 쓰되 세 줄 각각이 다른 창이다.
+   위부터 5시간, 주간, 모델별 주간. 크기가 같으므로 나란히 두고 비교할 수 있다 */
+.mb-grid { display: inline-flex; flex-direction: column; gap: 0; flex: none; }
+.mb-row {
+  width: 52px; height: 3px; display: block; position: relative; overflow: hidden;
+  color: rgba(255,255,255,.28);
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 3px 3px; background-position: 0 0;
+}
+.mb-row i {
+  position: absolute; inset: 0 auto 0 0; display: block; min-width: 3px;
+  background-image: radial-gradient(currentColor 1.05px, transparent 1.15px);
+  background-size: 3px 3px; background-position: 0 0;
+}
+.mb-row i.ok   { color: #6fe094; }
+.mb-row i.warn { color: #ffd60a; }
+.mb-row i.bad  { color: #ff8a7d; }
 .mb-pct {
   font-family: var(--mono); font-size: 10px; font-variant-numeric: tabular-nums;
   letter-spacing: -.02em;
@@ -781,7 +794,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       </div>
       <figcaption>
         <div class="name">막대 3개. 기본값</div>
-        <div class="dims">사용 중인 조직만 / 왼쪽부터 5시간, 주간, 모델별 주간 / 막대 52x10pt 도트 격자 3pt, 숫자 10pt</div>
+        <div class="dims">사용 중인 조직만 / 왼쪽부터 5시간, 주간, 모델별 주간 / 막대 52x9pt, 도트 격자 3pt</div>
       </figcaption>
     </figure>
 
@@ -800,36 +813,28 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
     <figure class="spec w">
       <div class="mb">
         <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">EN</span>
-          <span class="mb-vbars" style="margin-left:7px" title="위부터 5시간, 주간, 모델별 주간">
-            <span class="mb-bar"><i class="ok" style="width:88%"></i></span>
-            <span class="mb-bar"><i class="ok" style="width:69%"></i></span>
-            <span class="mb-bar"><i class="warn" style="width:8%"></i></span>
-          </span>
+          <span class="mb-grid" style="margin-left:7px" title="위부터 5시간, 주간, 모델별 주간"><span class="mb-row"><i class="ok" style="width:88%"></i></span><span class="mb-row"><i class="ok" style="width:69%"></i></span><span class="mb-row"><i class="warn" style="width:8%"></i></span></span>
         </span>
         <span class="grow"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
       <figcaption>
-        <div class="name">막대 세로. 셋을 한 번에 쌓는다</div>
-        <div class="dims">위부터 5시간, 주간, 모델별 주간 / 34x4pt 세 줄, 간격 2pt / 숫자를 빼고 폭을 3분의 1 로</div>
+        <div class="name">막대 세로. 같은 블록의 세 줄을 세 창에 나눠 준다</div>
+        <div class="dims">가로 막대와 같은 52x9pt 도트 블록 / 세 줄이 각각 5시간, 주간, 모델별 주간</div>
       </figcaption>
     </figure>
 
     <figure class="spec w">
       <div class="mb">
         <span class="mb-item sel"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg><span class="mb-code">T1</span>
-          <span class="mb-vbars" style="margin-left:7px" title="위부터 5시간, 주간, 모델별 주간">
-            <span class="mb-bar"><i class="ok" style="width:53%"></i></span>
-            <span class="mb-bar"><i class="ok" style="width:41%"></i></span>
-            <span class="mb-bar"><i class="bad" style="width:0%"></i></span>
-          </span>
+          <span class="mb-grid" style="margin-left:7px" title="위부터 5시간, 주간, 모델별 주간"><span class="mb-row"><i class="ok" style="width:53%"></i></span><span class="mb-row"><i class="ok" style="width:41%"></i></span><span class="mb-row"><i class="bad" style="width:0%"></i></span></span>
         </span>
         <span class="grow"></span>
         <span class="mb-sys"><span>목 9:41</span></span>
       </div>
       <figcaption>
         <div class="name">세로 모드에서 맨 아래가 바닥난 상태</div>
-        <div class="dims">숫자가 없어도 어느 창이 비었는지 위치로 읽힌다</div>
+        <div class="dims">맨 아랫줄이 비었다. 숫자가 없어도 어느 창인지 위치로 읽힌다</div>
       </figcaption>
     </figure>
 
@@ -991,7 +996,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       <thead><tr><th>모드</th><th>보이는 것</th><th>대략 폭</th></tr></thead>
       <tbody>
         <tr><td><strong>막대 가로</strong> (기본)</td><td>사용 중인 조직의 세 창을 막대와 숫자로</td><td>308pt</td></tr>
-        <tr><td>막대 세로</td><td>같은 세 창을 쌓아서. 숫자 없음</td><td>92pt</td></tr>
+        <tr><td>막대 세로</td><td>같은 도트 블록의 세 줄에 세 창을 나눠 준다. 숫자 없음</td><td>110pt</td></tr>
         <tr><td>숫자만</td><td>사용 중 조직과 직전 조직의 숫자</td><td>87pt</td></tr>
         <tr><td>코드만</td><td>사용 중 조직의 코드</td><td>46pt</td></tr>
       </tbody>
@@ -1211,14 +1216,10 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
                 <span class="radio"><i></i><span class="rl">
                   <span class="rh"><span>막대 세로</span>
                     <span class="mb" style="width:auto;height:22px;padding:0 6px;gap:0;box-shadow:none;border-radius:4px">
-                      <span class="mb-vbars">
-                        <span class="mb-bar"><i class="ok" style="width:88%"></i></span>
-                        <span class="mb-bar"><i class="ok" style="width:69%"></i></span>
-                        <span class="mb-bar"><i class="warn" style="width:8%"></i></span>
-                      </span>
+                      <span class="mb-grid"><span class="mb-row"><i class="ok" style="width:88%"></i></span><span class="mb-row"><i class="ok" style="width:69%"></i></span><span class="mb-row"><i class="warn" style="width:8%"></i></span></span>
                     </span>
                   </span>
-                  <span class="help">같은 세 창을 쌓습니다. 숫자를 빼고 폭을 3분의 1 로</span>
+                  <span class="help">같은 블록의 세 줄을 세 창에 나눠 줍니다. 막대 하나 크기에 셋이 들어갑니다</span>
                 </span></span>
                 <span class="radio"><i></i><span class="rl">
                   <span class="rh"><span>숫자만</span></span>
