@@ -9,17 +9,36 @@ import ClflStore
 /// **보여줄 것을 담지 않고 숨길 것을 담는다.** 그래야 조직이 새로 생겼을 때
 /// 자동으로 보인다. 보여줄 목록만 저장하면 새 조직이 설정을 열기 전까지
 /// 영영 안 보인다.
+/// 메뉴바 막대에 무엇을 그릴지.
+public enum BarContent: String, Codable, Sendable, CaseIterable {
+    /// 활성 조직 하나만. 조직이 셋이면 막대가 너무 길어진다
+    case activeOnly = "active_only"
+    /// 보이기로 한 조직 전부
+    case allVisible = "all_visible"
+
+    public var label: String {
+        switch self {
+        case .activeOnly: return "활성 조직만"
+        case .allVisible: return "보이는 조직 전부"
+        }
+    }
+}
+
 public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var version: Int
     /// 사용자가 명시적으로 끈 조직.
     public var hidden: Set<String>
     /// 사용자가 정한 순서. 여기 없는 조직은 뒤에 붙는다.
     public var order: [String]
+    /// 막대에 그릴 범위. 팝오버는 이것과 무관하게 보이는 조직을 전부 보여준다.
+    public var barContent: BarContent
 
-    public init(version: Int = 1, hidden: Set<String> = [], order: [String] = []) {
+    public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
+                barContent: BarContent = .activeOnly) {
         self.version = version
         self.hidden = hidden
         self.order = order
+        self.barContent = barContent
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -28,6 +47,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
         hidden = try c.decodeIfPresent(Set<String>.self, forKey: .hidden) ?? []
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
+        barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .activeOnly
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }
@@ -52,6 +72,17 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
             let b = rank[$1.uuid] ?? Int.max
             return a == b ? $0.name < $1.name : a < b
         }
+    }
+
+    /// 막대에 그릴 조직. 팝오버에는 `apply(to:)` 결과를 전부 쓴다.
+    ///
+    /// 숨긴 조직은 여기에도 안 나온다. 설정이 두 곳에 따로 있으면 헷갈린다.
+    public func barOrgs(from orgs: [OrgUsage]) -> [OrgUsage] {
+        let shown = apply(to: orgs)
+        guard barContent == .activeOnly else { return shown }
+        // 활성 조직을 숨겨뒀거나 활성이 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다
+        if let active = shown.first(where: \.isActive) { return [active] }
+        return Array(shown.prefix(1))
     }
 }
 

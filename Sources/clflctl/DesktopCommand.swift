@@ -7,7 +7,7 @@ import ClflDesktop
 struct Desktop: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Claude 데스크톱 앱의 조직별 한도",
-        subcommands: [Usage.self, Orgs.self, Show.self, Hide.self, Order.self],
+        subcommands: [Usage.self, Orgs.self, Show.self, Hide.self, Order.self, Bar.self],
         defaultSubcommand: Usage.self)
 
     struct Usage: AsyncParsableCommand {
@@ -125,9 +125,14 @@ extension Desktop {
             }
             print(renderTable(["", "순서", "이름", "플랜", "", "사용량", "uuid"], rows))
             print()
+            let bar = prefs.barOrgs(from: known).map(\.name).joined(separator: ", ")
+            print("  막대: \(prefs.barContent.label) (\(bar.isEmpty ? "비어 있음" : bar))")
+            print("  팝오버에는 보이는 조직이 전부 나온다")
+            print()
             print("  clflctl desktop hide <이름|uuid>    목록에서 뺀다")
             print("  clflctl desktop show <이름|uuid>    다시 넣는다")
             print("  clflctl desktop order <이름>...     순서를 정한다")
+            print("  clflctl desktop bar <active|all>   막대에 그릴 범위")
         }
     }
 
@@ -158,6 +163,31 @@ extension Desktop {
 
             let shown = prefs.apply(to: known).map(\.name)
             print("  " + shown.joined(separator: " > "))
+        }
+    }
+
+    /// 막대에 활성 하나만 그릴지 보이는 것 전부를 그릴지.
+    struct Bar: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "메뉴바 막대에 그릴 범위를 정한다")
+        @Argument(help: "active 또는 all") var mode: String
+
+        func run() async throws {
+            let content: BarContent
+            switch mode.lowercased() {
+            case "active", "active_only": content = .activeOnly
+            case "all", "all_visible":    content = .allVisible
+            default:
+                throw CheckFailed(description: "'\(mode)' 를 모른다. active 또는 all")
+            }
+            let file = try DesktopPreferencesFile()
+            var prefs = file.load()
+            prefs.barContent = content
+            try file.save(prefs)
+
+            let known = try await DesktopReader().read().knownOrgs
+            let bar = prefs.barOrgs(from: known).map(\.name).joined(separator: ", ")
+            print("  막대: \(content.label) (\(bar.isEmpty ? "비어 있음" : bar))")
         }
     }
 }
