@@ -64,7 +64,7 @@ struct Doctor: AsyncParsableCommand {
         // 11절 규칙: 한 대화는 한 계정만 가리킨다. 어긴 것을 아무도 안 잡아서
         // 여기에 뒀다. docs/design/13-multi-instance.md 12절
         check("대화-계정 짝") {
-            let stores = FolderOverlap.stores(inside: DesktopReader.defaultSupportDirectory)
+            let stores = SessionDuplicate.stores(inside: DesktopReader.defaultSupportDirectory)
             if stores.isEmpty { return (true, "데스크톱 세션 폴더가 없다") }
             let shared = SessionDuplicate.scan(stores: stores)
             return (shared.isEmpty, SessionDuplicate.detail(shared))

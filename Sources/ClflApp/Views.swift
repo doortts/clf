@@ -377,7 +377,7 @@ struct SettingsPane: View {
 struct PopoverView: View {
     @ObservedObject var model: UsageModel
     @State private var showingSettings = false
-    @StateObject private var overlap = OverlapModel()
+    @StateObject private var sharedSessions = SharedSessionModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -430,8 +430,8 @@ struct PopoverView: View {
                 }
             }
 
-            // 겹칠 때만 나타난다. 폴더마다 세션이 하나뿐인 평소에는 없다
-            OverlapSection(model: overlap, names: model.accountNames)
+            // 겹칠 때만 나타난다. 대화마다 계정이 하나뿐인 평소에는 없다
+            SharedSessionSection(model: sharedSessions, names: model.accountNames)
 
             if showingSettings {
                 SettingsPane(model: model)
@@ -475,8 +475,8 @@ struct PopoverView: View {
             model.clearNotice()
             // 계정은 로컬 파일이라 공짜다. 열자마자 지금 값을 본다
             await model.refreshActiveNow()
-            // 겹치는 폴더도 로컬 파일이다. 열 때 한 번만 훑는다
-            overlap.refresh()
+            // 겹친 세션도 로컬 파일이다. 열 때 한 번만 훑는다
+            sharedSessions.refresh()
             await model.refresh()
         }
     }
