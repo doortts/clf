@@ -49,7 +49,9 @@ Swift 6 툴체인과 macOS 13 이상이 필요하다. Xcode 프로젝트는 없�
 
 톱니를 누르면 팝오버 안에서 펼쳐진다.
 
-- **막대 범위**: 활성 계정만 / 보이는 계정 전부
+- **막대 범위**: 창이 열려있는 계정만 / 설정에서 지정한 계정.
+  앞은 기본 창과 우리가 띄운 창을 따라가고, 뒤는 아래 목록에서 켠 것을 그린다.
+  기준이 다르므로 창이 열린 계정을 목록에서 꺼 뒀어도 앞 항목에는 나온다
 - **자세히**: 기본 / 도트만 / 숫자만 / 코드만
 - 계정별 체크박스와 순서
 - 로그인할 때 실행
@@ -109,7 +111,7 @@ clflctl desktop usage              계정별 잔여
 clflctl desktop usage --json       기계가 읽을 형태로
 clflctl desktop orgs               아는 계정과 표시 여부
 clflctl desktop hide <이름|uuid>    목록에서 뺀다
-clflctl desktop bar <active|all>   막대에 그릴 범위
+clflctl desktop bar <window|chosen> 막대에 그릴 범위
 ```
 
 메뉴바 숫자와 `clflctl desktop usage` 는 항상 같은 값을 낸다.

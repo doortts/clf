@@ -166,19 +166,20 @@ extension Desktop {
         }
     }
 
-    /// 막대에 활성 하나만 그릴지 보이는 것 전부를 그릴지.
+    /// 창이 열린 계정만 그릴지 설정에서 고른 계정을 그릴지.
     struct Bar: AsyncParsableCommand {
         static let configuration = CommandConfiguration(
             abstract: "메뉴바 막대에 그릴 범위를 정한다")
-        @Argument(help: "active 또는 all") var mode: String
+        @Argument(help: "window 또는 chosen") var mode: String
 
         func run() async throws {
             let content: BarContent
             switch mode.lowercased() {
-            case "active", "active_only": content = .activeOnly
-            case "all", "all_visible":    content = .allVisible
+            // 옛 이름도 받는다. 손에 익은 것을 갑자기 막을 이유가 없다
+            case "window", "windowed", "active", "active_only": content = .windowed
+            case "chosen", "all", "all_visible":                content = .chosen
             default:
-                throw CheckFailed(description: "'\(mode)' 를 모른다. active 또는 all")
+                throw CheckFailed(description: "'\(mode)' 를 모른다. window 또는 chosen")
             }
             let file = try DesktopPreferencesFile()
             var prefs = file.load()
@@ -186,7 +187,13 @@ extension Desktop {
             try file.save(prefs)
 
             let known = try await DesktopReader().read().knownOrgs
-            let bar = prefs.barOrgs(from: known).map(\.name).joined(separator: ", ")
+            // 메뉴바와 같은 답을 내야 한다. 창이 떠 있는지도 같이 본다
+            let running = AltInstance.scanInstances()
+            let windowed = Set(known.filter { org in
+                AltInstance.slug(org.name).map { running[$0] != nil } ?? false
+            }.map(\.uuid))
+            let bar = prefs.barOrgs(from: known, withWindow: windowed)
+                .map(\.name).joined(separator: ", ")
             print("  막대: \(content.label) (\(bar.isEmpty ? "비어 있음" : bar))")
         }
     }

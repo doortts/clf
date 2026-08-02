@@ -236,8 +236,7 @@ final class UsageModel: ObservableObject {
 
         known = reassignActive(to: uuid, in: known)
         orgs = prefs.apply(to: known)
-        barOrgs = prefs.barOrgs(from: known)
-        redrawBar()
+        rebuildBar()
 
         // 첫 관측은 전환이 아니다. 시작할 때 도는 읽기와 겹치면 요청만 두 배다
         guard !first else { return }
@@ -301,8 +300,24 @@ final class UsageModel: ObservableObject {
     /// 인스턴스가 죽으면 밑줄이 남아 거짓말을 한다.
     private func setInstances(_ live: [String: Int32]) {
         let before = focusedUUID
+        let hadWindows = windowedUUIDs
         instances = live
-        if focusedUUID != before { redrawBar() }
+        // 창이 뜨거나 닫히면 '창이 열려있는 계정만' 의 답이 바뀐다
+        if windowedUUIDs != hadWindows { rebuildBar() }
+        else if focusedUUID != before { redrawBar() }
+    }
+
+    /// 우리가 띄운 별도 창이 붙어 있는 계정.
+    private var windowedUUIDs: Set<String> {
+        Set(known.filter { org in
+            AltInstance.slug(org.name).map { instances[$0] != nil } ?? false
+        }.map(\.uuid))
+    }
+
+    /// 막대에 올릴 계정을 다시 고르고 다시 그린다.
+    private func rebuildBar() {
+        barOrgs = prefs.barOrgs(from: known, withWindow: windowedUUIDs)
+        redrawBar()
     }
 
     private func redrawBar() {
@@ -336,8 +351,7 @@ final class UsageModel: ObservableObject {
             known = mergeKeepingLastGood(fresh: snapshot.knownOrgs, previous: known)
             if !snapshot.names.isEmpty { cachedNames = snapshot.names }
             orgs = prefs.apply(to: known)
-            barOrgs = prefs.barOrgs(from: known)
-        redrawBar()
+            rebuildBar()
             if !snapshot.throttled { readAt = snapshot.readAt }
             failure = nil
         } catch {
@@ -395,7 +409,6 @@ final class UsageModel: ObservableObject {
     private func persist() {
         try? file?.save(prefs)
         orgs = prefs.apply(to: known)
-        barOrgs = prefs.barOrgs(from: known)
-        redrawBar()
+        rebuildBar()
     }
 }

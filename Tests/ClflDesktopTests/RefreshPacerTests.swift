@@ -113,35 +113,46 @@ final class BarContentTests: XCTestCase {
         OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: "enterprise", limits: some(30)),
     ]
 
-    /// 조직이 셋이면 막대가 길어진다. 기본은 활성 하나만.
-    func test_defaultIsActiveOnly() {
+    /// 기본은 창이 열려 있는 계정만. 셋을 다 그리면 막대가 길어진다.
+    func test_defaultIsWindowedOnly() {
         let prefs = DesktopPreferences()
-        XCTAssertEqual(prefs.barContent, .activeOnly)
+        XCTAssertEqual(prefs.barContent, .windowed)
         XCTAssertEqual(prefs.barOrgs(from: orgs).map(\.uuid), ["t40"])
     }
 
-    func test_allVisibleShowsEveryShownOrg() {
+    /// 별도 창을 띄운 계정도 창이 열린 것이다. 기본 창 계정과 함께 나온다.
+    func test_windowedIncludesSeparateWindows() {
+        let prefs = DesktopPreferences()
+        XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid),
+                       ["t40", "t52"])
+    }
+
+    /// 창이 열려 있으면 설정에서 껐어도 막대에 올린다. 이 항목은 설정이
+    /// 아니라 창을 보는 것이다.
+    func test_windowedIgnoresTheHiddenList() {
         var prefs = DesktopPreferences()
-        prefs.barContent = .allVisible
+        prefs.hidden = ["t52"]
+        XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid),
+                       ["t40", "t52"])
+    }
+
+    func test_chosenShowsEveryPickedOrg() {
+        var prefs = DesktopPreferences()
+        prefs.barContent = .chosen
         XCTAssertEqual(prefs.barOrgs(from: orgs).map(\.uuid), ["t40", "ent", "t52"])
     }
 
-    /// 숨긴 조직은 막대에도 안 나온다. 설정이 두 곳에 따로 있으면 헷갈린다.
-    func test_hiddenOrgsStayHiddenInBar() {
+    /// 설정에서 끈 계정은 그 항목에서만 빠진다. 창이 떠 있어도 마찬가지다.
+    func test_chosenFollowsTheHiddenList() {
         var prefs = DesktopPreferences()
-        prefs.barContent = .allVisible
+        prefs.barContent = .chosen
         prefs.hidden = ["t52"]
-        XCTAssertEqual(prefs.barOrgs(from: orgs).map(\.uuid), ["t40", "ent"])
+        XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid),
+                       ["t40", "ent"])
     }
 
-    /// 활성 조직을 숨겨두면 막대가 빈다. 빈 막대보다는 보이는 것 중 첫째를 쓴다.
-    func test_activeOnlyFallsBackWhenActiveIsHidden() {
-        var prefs = DesktopPreferences()
-        prefs.hidden = ["t40"]
-        XCTAssertEqual(prefs.barOrgs(from: orgs).map(\.uuid), ["ent"])
-    }
-
-    func test_activeOnlyFallsBackWhenNothingIsActive() {
+    /// 창이 하나도 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다.
+    func test_windowedFallsBackWhenNoWindowIsOpen() {
         let idle = orgs.map {
             OrgUsage(uuid: $0.uuid, name: $0.name, isActive: false, plan: $0.plan,
                      limits: $0.limits)
@@ -153,7 +164,7 @@ final class BarContentTests: XCTestCase {
     /// 먹고 알려주는 것이 없다.
     func test_unreadableOrgsStayOffTheBar() {
         var prefs = DesktopPreferences()
-        prefs.barContent = .allVisible
+        prefs.barContent = .chosen
         let mixed = orgs.dropLast() + [
             OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: nil, limits: [:],
                      error: "앱에서 이 조직을 한 번 열면 사용량이 읽힌다")]
@@ -170,7 +181,7 @@ final class BarContentTests: XCTestCase {
     /// 낡은 값은 값이다. 429 로 갱신을 못 했다고 막대에서 사라지면 안 된다.
     func test_staleOrgsKeepTheirSlot() {
         var prefs = DesktopPreferences()
-        prefs.barContent = .allVisible
+        prefs.barContent = .chosen
         let stale = [OrgUsage(uuid: "t40", name: "TEAM_40", isActive: true, plan: "team",
                               limits: Self.some(10), error: "요청이 너무 잦다", isStale: true)]
         XCTAssertEqual(prefs.barOrgs(from: stale).count, 1)
@@ -187,23 +198,34 @@ final class BarContentTests: XCTestCase {
 
     func test_emptyWhenEverythingHidden() {
         var prefs = DesktopPreferences()
+        prefs.barContent = .chosen
         prefs.hidden = ["t40", "t52", "ent"]
         XCTAssertTrue(prefs.barOrgs(from: orgs).isEmpty)
     }
 
     func test_barContentSurvivesRoundTrip() throws {
         var prefs = DesktopPreferences()
-        prefs.barContent = .allVisible
+        prefs.barContent = .chosen
         let data = try JSONEncoder().encode(prefs)
         XCTAssertEqual(try JSONDecoder().decode(DesktopPreferences.self, from: data).barContent,
-                       .allVisible)
+                       .chosen)
+    }
+
+    /// 이름을 바꾸기 전에 저장된 파일도 읽는다. 설정이 초기화되면 안 된다.
+    func test_readsTheOldNames() throws {
+        func read(_ raw: String) throws -> BarContent {
+            try JSONDecoder().decode(DesktopPreferences.self,
+                                     from: Data(#"{"barContent":"\#(raw)"}"#.utf8)).barContent
+        }
+        XCTAssertEqual(try read("active_only"), .windowed)
+        XCTAssertEqual(try read("all_visible"), .chosen)
     }
 
     /// 옛 파일에는 이 항목이 없다. 기본값으로 읽혀야 한다.
     func test_missingBarContentDefaults() throws {
         let sparse = Data(#"{"version":1}"#.utf8)
         XCTAssertEqual(try JSONDecoder().decode(DesktopPreferences.self, from: sparse).barContent,
-                       .activeOnly)
+                       .windowed)
     }
 }
 

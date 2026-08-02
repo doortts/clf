@@ -226,6 +226,12 @@ struct SettingsPane: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
+            // 두 항목의 기준이 달라서 이름만으로는 안 갈린다. 고른 쪽이
+            // 무엇을 보고 정하는지 한 줄로 붙인다
+            Text(model.prefs.barContent.detail)
+                .font(.system(size: 10)).foregroundStyle(.secondary)
+                .padding(.top, -4)
+
             Picker("자세히", selection: Binding(
                 get: { model.prefs.barDetail },
                 set: { model.setBarDetail($0) }

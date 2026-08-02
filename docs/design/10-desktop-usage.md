@@ -238,8 +238,8 @@ clflctl desktop order <이름>...     순서를 정한다
 나머지는 팝오버로 내린다. 전부 보고 싶으면 바꿀 수 있다.
 
 ```
-clflctl desktop bar active    활성 계정만 (기본)
-clflctl desktop bar all       보이는 계정 전부
+clflctl desktop bar window    창이 열려있는 계정만 (기본)
+clflctl desktop bar chosen    설정에서 지정한 계정
 ```
 
 숨긴 계정은 막대에도 안 나온다. 표시 여부를 두 곳에서 따로 정하면 헷갈린다.

@@ -76,16 +76,38 @@ public enum GaugeDirection: String, Codable, Sendable, CaseIterable {
 }
 
 /// 메뉴바 막대에 무엇을 그릴지.
+/// 막대에 어느 계정을 올릴지 정하는 두 갈래.
+///
+/// 하나는 **지금 창이 떠 있는가**를 보고, 하나는 **사용자가 설정에서 골랐는가**
+/// 를 본다. 기준이 아예 다르므로 한쪽이 다른 쪽의 부분집합이 아니다. 창이
+/// 열린 계정을 설정에서 꺼 뒀어도 첫째 항목에는 나온다.
 public enum BarContent: String, Codable, Sendable, CaseIterable {
-    /// 활성 계정 하나만. 계정이 셋이면 막대가 너무 길어진다
-    case activeOnly = "active_only"
-    /// 보이기로 한 계정 전부
-    case allVisible = "all_visible"
+    /// 지금 창이 떠 있는 계정. 기본 창이 쓰는 계정과 우리가 띄운 별도 창들.
+    case windowed
+    /// 설정 목록에서 켜 둔 계정 전부.
+    case chosen
 
     public var label: String {
         switch self {
-        case .activeOnly: return "활성 계정만"
-        case .allVisible: return "보이는 계정 전부"
+        case .windowed: return "창이 열려있는 계정만"
+        case .chosen:   return "설정에서 지정한 계정"
+        }
+    }
+
+    /// 무엇을 보고 고르는지 한 줄로. 설정 화면이 이 말을 옆에 붙인다.
+    public var detail: String {
+        switch self {
+        case .windowed: return "기본 창과 우리가 띄운 창을 따라간다"
+        case .chosen:   return "아래 목록에서 켠 계정을 그대로 그린다"
+        }
+    }
+
+    /// 옛 파일에는 `active_only` / `all_visible` 로 적혀 있다. 이름을 바꿨다고
+    /// 설정이 초기화되면 안 된다.
+    public init(from decoder: Decoder) throws {
+        switch try decoder.singleValueContainer().decode(String.self) {
+        case "chosen", "all_visible": self = .chosen
+        default:                      self = .windowed
         }
     }
 }
@@ -104,7 +126,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var gaugeDirection: GaugeDirection
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
-                barContent: BarContent = .activeOnly, barDetail: BarDetail = .full,
+                barContent: BarContent = .windowed, barDetail: BarDetail = .full,
                 gaugeDirection: GaugeDirection = .remaining) {
         self.version = version
         self.hidden = hidden
@@ -120,7 +142,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
         hidden = try c.decodeIfPresent(Set<String>.self, forKey: .hidden) ?? []
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
-        barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .activeOnly
+        barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .windowed
         barDetail = try c.decodeIfPresent(BarDetail.self, forKey: .barDetail) ?? .full
         gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .remaining
     }
@@ -136,13 +158,17 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     /// 순서를 안 정했으면 활성 계정이 먼저, 나머지는 이름순이다. 정했으면
     /// 그쪽이 이긴다. 활성 계정 우선은 기본값일 뿐 사용자 의사를 덮지 않는다.
     public func apply(to orgs: [OrgUsage]) -> [OrgUsage] {
-        let shown = orgs.filter { !hidden.contains($0.uuid) }
+        ordered(orgs.filter { !hidden.contains($0.uuid) })
+    }
+
+    /// 차례만 매긴다. 숨긴 목록은 안 본다.
+    func ordered(_ orgs: [OrgUsage]) -> [OrgUsage] {
         guard !order.isEmpty else {
-            return shown.sorted { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
+            return orgs.sorted { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
         }
         // 순서에 있는 것부터, 없는 것은 뒤에 이름순으로. 사라진 계정 항목은 무시된다
         let rank = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
-        return shown.sorted {
+        return orgs.sorted {
             let a = rank[$0.uuid] ?? Int.max
             let b = rank[$1.uuid] ?? Int.max
             return a == b ? $0.name < $1.name : a < b
@@ -151,17 +177,21 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
 
     /// 막대에 그릴 계정. 팝오버에는 `apply(to:)` 결과를 전부 쓴다.
     ///
-    /// 숨긴 계정은 여기에도 안 나온다. 설정이 두 곳에 따로 있으면 헷갈린다.
+    /// `withWindow` 는 우리가 띄운 별도 창이 붙어 있는 계정의 uuid 다. 기본
+    /// 창이 쓰는 계정은 `isActive` 로 알 수 있어 따로 넘기지 않는다.
     ///
-    /// **사용량을 모르는 계정도 안 올린다.** `?` 와 빈 게이지는 자리만 먹고
+    /// **사용량을 모르는 계정은 안 올린다.** `?` 와 빈 게이지는 자리만 먹고
     /// 알려주는 것이 없다. 팝오버와 설정에는 그대로 남는다. 거기서는 왜 못
     /// 읽는지까지 말할 수 있다.
-    public func barOrgs(from orgs: [OrgUsage]) -> [OrgUsage] {
-        let shown = apply(to: orgs).filter(\.hasUsage)
-        guard barContent == .activeOnly else { return shown }
-        // 활성 계정을 숨겨뒀거나 활성이 없으면 막대가 빈다. 빈 막대보다는 첫째를 쓴다
-        if let active = shown.first(where: \.isActive) { return [active] }
-        return Array(shown.prefix(1))
+    public func barOrgs(from orgs: [OrgUsage], withWindow: Set<String> = []) -> [OrgUsage] {
+        let readable = orgs.filter(\.hasUsage)
+        guard barContent == .windowed else { return apply(to: readable) }
+
+        // 창을 보는 항목이므로 숨긴 목록은 안 본다. 두 항목의 기준이 다르다
+        let open = ordered(readable.filter { $0.isActive || withWindow.contains($0.uuid) })
+        guard open.isEmpty else { return open }
+        // 창이 하나도 없으면 막대가 빈다. 빈 막대보다는 보이는 것 중 첫째를 쓴다
+        return Array(apply(to: readable).prefix(1))
     }
 }
 
