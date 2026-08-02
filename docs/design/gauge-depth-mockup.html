@@ -1,0 +1,128 @@
+<meta charset="utf-8">
+<title>팝오버 게이지 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 24px; max-width:780px; }
+  h2 { font-size:13px; margin:24px 0 10px; }
+  .grid { display:flex; gap:26px; padding:16px; border-radius:12px; background:#2c2c2e; width:max-content; }
+  .grid.light { background:#f2f2f7; color:#1c1c1e; }
+  .colhead { font-size:10px; color:#98989d; margin-bottom:8px; height:12px; }
+  .grid.light .colhead { color:#6b6b70; }
+  .line { height:26px; display:flex; align-items:center; }
+  .name { font-size:11px; color:#98989d; width:66px; }
+  .grid.light .name { color:#6b6b70; }
+  .pill { position:relative; width:210px; height:18px; border-radius:9px; display:flex;
+          align-items:center; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px; border-radius:6.5px; }
+  .clip { position:absolute; left:45.5px; top:4px; right:4px; height:11px;
+          border-radius:5.5px; overflow:hidden; }
+  .clip .fill { display:block; height:100%; }
+  .fill.round { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px;
+                min-width:11px; }
+  table { border-collapse:collapse; margin-top:10px; font-size:12px; }
+  th, td { text-align:left; padding:5px 14px 5px 0; border-bottom:1px solid #3a3a3c; }
+  th { color:#98989d; font-weight:500; }
+  code { font-size:11px; color:#98989d; }
+  .note { margin-top:22px; color:#98989d; max-width:780px; }
+  .note b { color:#f2f2f7; }
+</style>
+
+<h1>팝오버 게이지</h1>
+<p class="lede">
+  세 가지를 바꿨다. 바깥 알약을 25% 어둡게 깔아 막대가 그 위에 떠 보이게 하고,
+  막대의 오른쪽 끝을 둥글리지 않고 수직으로 끊고, 어두워진 바탕에서 검은 숫자가
+  묻히는 회색과 빨강만 흰 숫자로 돌린다.
+</p>
+
+<h2>어두운 화면</h2><div class='grid dark'><div class='col'><div class='colhead'>&nbsp;</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div></div><div class='col'><div class='colhead'>지금</div><div class='line'><div class="pill" style="background:#30D158">
+      <span class="num" style="color:#000">100%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="fill round" style="background:#30D158;width:calc((100% - 49px) * 1.00)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#30D158">
+      <span class="num" style="color:#000">76%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="fill round" style="background:#30D158;width:calc((100% - 49px) * 0.76)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#30D158">
+      <span class="num" style="color:#000">93%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="fill round" style="background:#30D158;width:calc((100% - 49px) * 0.93)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#98989D">
+      <span class="num" style="color:#000">41%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="fill round" style="background:#98989D;width:calc((100% - 49px) * 0.41)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#FFD60A">
+      <span class="num" style="color:#000">12%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="fill round" style="background:#FFD60A;width:calc((100% - 49px) * 0.12)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#FF453A">
+      <span class="num" style="color:#000">3%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="fill round" style="background:#FF453A;width:calc((100% - 49px) * 0.03)"></span>
+    </div></div></div><div class='col'><div class='colhead'>바꾼 뒤</div><div class='line'><div class="pill" style="background:#249d42">
+      <span class="num" style="color:#000">100%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="clip"><span class="fill" style="background:#30D158;width:100%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#249d42">
+      <span class="num" style="color:#000">76%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="clip"><span class="fill" style="background:#30D158;width:76%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#249d42">
+      <span class="num" style="color:#000">93%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="clip"><span class="fill" style="background:#30D158;width:93%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#727276">
+      <span class="num" style="color:#fff">41%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="clip"><span class="fill" style="background:#98989D;width:41%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#bfa008">
+      <span class="num" style="color:#000">12%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="clip"><span class="fill" style="background:#FFD60A;width:12%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#bf342c">
+      <span class="num" style="color:#fff">3%</span>
+      <span class="track" style="background:#2c2c2e"></span><span class="clip"><span class="fill" style="background:#FF453A;width:3%"></span></span>
+    </div></div></div></div>
+<h2>밝은 화면</h2><div class='grid light'><div class='col'><div class='colhead'>&nbsp;</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div></div><div class='col'><div class='colhead'>지금</div><div class='line'><div class="pill" style="background:#34C759">
+      <span class="num" style="color:#000">100%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="fill round" style="background:#34C759;width:calc((100% - 49px) * 1.00)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#34C759">
+      <span class="num" style="color:#000">76%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="fill round" style="background:#34C759;width:calc((100% - 49px) * 0.76)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#34C759">
+      <span class="num" style="color:#000">93%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="fill round" style="background:#34C759;width:calc((100% - 49px) * 0.93)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#8E8E93">
+      <span class="num" style="color:#000">41%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="fill round" style="background:#8E8E93;width:calc((100% - 49px) * 0.41)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#FFCC00">
+      <span class="num" style="color:#000">12%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="fill round" style="background:#FFCC00;width:calc((100% - 49px) * 0.12)"></span>
+    </div></div><div class='line'><div class="pill" style="background:#FF3B30">
+      <span class="num" style="color:#000">3%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="fill round" style="background:#FF3B30;width:calc((100% - 49px) * 0.03)"></span>
+    </div></div></div><div class='col'><div class='colhead'>바꾼 뒤</div><div class='line'><div class="pill" style="background:#279543">
+      <span class="num" style="color:#000">100%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="clip"><span class="fill" style="background:#34C759;width:100%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#279543">
+      <span class="num" style="color:#000">76%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="clip"><span class="fill" style="background:#34C759;width:76%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#279543">
+      <span class="num" style="color:#000">93%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="clip"><span class="fill" style="background:#34C759;width:93%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#6a6a6e">
+      <span class="num" style="color:#fff">41%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="clip"><span class="fill" style="background:#8E8E93;width:41%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#bf9900">
+      <span class="num" style="color:#000">12%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="clip"><span class="fill" style="background:#FFCC00;width:12%"></span></span>
+    </div></div><div class='line'><div class="pill" style="background:#bf2c24">
+      <span class="num" style="color:#fff">3%</span>
+      <span class="track" style="background:#f2f2f7"></span><span class="clip"><span class="fill" style="background:#FF3B30;width:3%"></span></span>
+    </div></div></div></div>
+
+<h2>숫자 대비</h2>
+<table><tr><th>화면</th><th>구간</th><th>바깥 색</th><th>검정 대비</th><th>흰색 대비</th><th>쓰는 쪽</th></tr><tr><td>어두운 화면</td><td>초록</td><td><code>#249d42</code></td><td>6.0</td><td>3.5</td><td><b>검정 6.0</b></td></tr><tr><td>어두운 화면</td><td>회색</td><td><code>#727276</code></td><td>4.4</td><td>4.8</td><td><b>흰색 4.8</b></td></tr><tr><td>어두운 화면</td><td>노랑</td><td><code>#bfa008</code></td><td>8.2</td><td>2.5</td><td><b>검정 8.2</b></td></tr><tr><td>어두운 화면</td><td>빨강</td><td><code>#bf342c</code></td><td>3.7</td><td>5.6</td><td><b>흰색 5.6</b></td></tr><tr><td>밝은 화면</td><td>초록</td><td><code>#279543</code></td><td>5.5</td><td>3.8</td><td><b>검정 5.5</b></td></tr><tr><td>밝은 화면</td><td>회색</td><td><code>#6a6a6e</code></td><td>3.9</td><td>5.4</td><td><b>흰색 5.4</b></td></tr><tr><td>밝은 화면</td><td>노랑</td><td><code>#bf9900</code></td><td>7.8</td><td>2.7</td><td><b>검정 7.8</b></td></tr><tr><td>밝은 화면</td><td>빨강</td><td><code>#bf2c24</code></td><td>3.6</td><td>5.8</td><td><b>흰색 5.8</b></td></tr></table>
+
+<p class="note">
+  <b>노랑은 검정으로 남긴다.</b> 어둡게 해도 여전히 밝은 색이라 흰 글자는
+  대비가 2.5 뿐이고 검정은 8.2 다. 초록도 검정이 8.0 으로 넉넉하다.
+  회색과 빨강만 검정이 4.5 아래로 떨어져 흰 글자로 바꾼다.
+</p>
+<p class="note">
+  끝이 곧아지면서 <b>최소 폭도 줄였다.</b> 예전에는 1% 라도 남으면 막대 높이만큼
+  (약 5% 어치) 그렸다. 이제 2pt 만 그린다. 끝이 값을 정확히 가리키는데 시작이
+  부풀어 있으면 앞뒤가 안 맞는다.
+</p>
