@@ -184,6 +184,13 @@ struct SettingsPane: View {
                     .font(.system(size: 9)).foregroundStyle(.tertiary)
             }
         }
+        // 결과는 누른 자리 바로 아래 둔다. 위에 있으면 눈이 안 간다
+        if let notice = model.instanceNotice {
+            Text(notice)
+                .font(.system(size: 10)).foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
     }
 
     private func boxLabel(_ text: String, color: Color, filled: Bool) -> some View {
@@ -310,11 +317,6 @@ struct PopoverView: View {
                     .font(.system(size: 10)).foregroundStyle(.red)
                     .padding(.bottom, 6)
             }
-            if let failure = model.launchError {
-                Text(failure)
-                    .font(.system(size: 10)).foregroundStyle(.orange)
-                    .padding(.bottom, 6)
-            }
             if let wait = model.waitText {
                 Text("요청이 몰려 쉬는 중. \(wait) 다시 읽는다")
                     .font(.system(size: 10)).foregroundStyle(.secondary)
@@ -354,7 +356,11 @@ struct PopoverView: View {
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
-        .task { await model.refresh() }
+        .task {
+            // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
+            model.clearNotice()
+            await model.refresh()
+        }
     }
 
     private func stamp(_ date: Date) -> String {

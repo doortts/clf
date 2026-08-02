@@ -24,8 +24,8 @@ final class UsageModel: ObservableObject {
     @Published private(set) var running: Set<String> = []
     /// 띄우는 중인 계정. 245MB 를 푸느라 십수 초 걸린다.
     @Published private(set) var opening: Set<String> = []
-    /// 띄우다 실패한 이유.
-    @Published private(set) var launchError: String?
+    /// 창을 띄우거나 지운 결과. 팝오버를 다시 열면 사라진다.
+    @Published private(set) var instanceNotice: String?
     /// 삭제 확인을 기다리는 중. 되돌릴 수 없어서 먼저 보여준다.
     @Published private(set) var purgePlan: PurgePlan?
 
@@ -107,7 +107,7 @@ final class UsageModel: ObservableObject {
     func launch(_ org: OrgUsage) {
         guard slot(org).isActionable, let slug = AltInstance.slug(org.name) else { return }
         opening.insert(slug)
-        launchError = nil
+        instanceNotice = nil
         let launcher = self.launcher
         let uuid = org.uuid
         let name = org.name
@@ -119,7 +119,7 @@ final class UsageModel: ObservableObject {
             } catch {
                 await MainActor.run {
                     self?.opening.remove(slug)
-                    self?.launchError = "\(name) 창을 못 띄웠다. \(error)"
+                    self?.instanceNotice = "\(name) 창을 못 띄웠다. \(error)"
                 }
                 return
             }
@@ -136,7 +136,7 @@ final class UsageModel: ObservableObject {
             }
             await MainActor.run {
                 self?.opening.remove(slug)
-                self?.launchError = "\(name) 창이 안 떴다"
+                self?.instanceNotice = "\(name) 창이 안 떴다"
             }
         }
     }
@@ -149,7 +149,7 @@ final class UsageModel: ObservableObject {
             let plan = await Task.detached { launcher.plan(running: live) }.value
             await MainActor.run {
                 if plan.isEmpty {
-                    self?.launchError = plan.keptRunning.isEmpty
+                    self?.instanceNotice = plan.keptRunning.isEmpty
                         ? "지울 것이 없다"
                         : "떠 있는 창의 것뿐이라 지울 것이 없다. 창을 먼저 닫는다"
                 } else {
@@ -160,6 +160,12 @@ final class UsageModel: ObservableObject {
     }
 
     func cancelPurge() { purgePlan = nil }
+
+    /// 팝오버를 다시 열면 지난 결과를 지운다. 한 번 읽으면 끝인 말이다.
+    func clearNotice() {
+        instanceNotice = nil
+        purgePlan = nil
+    }
 
     /// 확인을 받은 뒤에만 지운다.
     func confirmPurge() {
@@ -172,7 +178,7 @@ final class UsageModel: ObservableObject {
             await MainActor.run {
                 var say = "\(r.removed)개를 지웠다. \(PurgePlan.size(r.freedBytes)) 확보"
                 if r.keptRunning > 0 { say += ". 떠 있는 \(r.keptRunning)개는 남겼다" }
-                self?.launchError = say
+                self?.instanceNotice = say
             }
         }
     }
