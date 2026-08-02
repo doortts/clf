@@ -48,7 +48,11 @@ public struct SessionStore: Sendable {
     static let baseDir = "claude-code-sessions"
 
     public let root: URL
+    /// 이 자리가 어느 계정 것인지. 겹친 곳을 말할 때 이름이 필요하다.
+    public let account: String
+
     public init(dataDirectory: URL, person: String, account: String) {
+        self.account = account
         self.root = dataDirectory
             .appendingPathComponent(Self.baseDir, isDirectory: true)
             .appendingPathComponent(person, isDirectory: true)

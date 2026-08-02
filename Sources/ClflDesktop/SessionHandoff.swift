@@ -104,11 +104,14 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     public let hasTranscript: Bool
     /// 작업 폴더가 아직 있는지. worktree 를 지우면 없어진다.
     public let folderExists: Bool
+    /// 이 대화를 두 계정 이상이 가리키고 있는지. 11절 규칙을 어긴 상태다.
+    public let sharedRecord: Bool
 
     public var id: String { fileName }
 
     public init(fileName: String, cliSessionID: String, title: String, folder: String,
-                lastActivityAt: Date?, hasTranscript: Bool, folderExists: Bool = true) {
+                lastActivityAt: Date?, hasTranscript: Bool, folderExists: Bool = true,
+                sharedRecord: Bool = false) {
         self.fileName = fileName
         self.cliSessionID = cliSessionID
         self.title = title
@@ -116,6 +119,7 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
         self.lastActivityAt = lastActivityAt
         self.hasTranscript = hasTranscript
         self.folderExists = folderExists
+        self.sharedRecord = sharedRecord
     }
 
     /// 제목을 못 읽었으면 폴더 이름으로 대신한다. 빈 줄을 보여주지 않는다.
@@ -123,6 +127,7 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
 
     public static let noTranscript = "기록이 없어 옮겨도 빈 세션이 됩니다"
     public static let noFolder = "작업 폴더가 없어 그 자리에서 일할 수 없습니다"
+    public static let sharedByAccounts = "두 계정이 함께 가리키고 있습니다"
 
     /// 넘기기 전에 알아야 할 것. 없으면 `nil`.
     ///
@@ -131,6 +136,8 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     /// 아예 없는 쪽을 말한다. 그게 더 큰 문제다.
     public var warning: String? {
         if !hasTranscript { return Self.noTranscript }
+        // 겹침이 폴더 없음보다 앞이다. 겹친 쪽으로 넘기면 이름이 부딪혀 막힌다
+        if sharedRecord { return Self.sharedByAccounts }
         if !folderExists { return Self.noFolder }
         return nil
     }
@@ -144,7 +151,8 @@ extension SessionStore {
                             .appendingPathComponent(".claude/projects"),
                           folderExists: (String) -> Bool = {
                               FileManager.default.fileExists(atPath: $0)
-                          }) -> [SessionSummary] {
+                          },
+                          sharedTranscripts: Set<String> = []) -> [SessionSummary] {
         let fm = FileManager.default
         return fileNames().compactMap { name -> SessionSummary? in
             guard let data = fm.contents(atPath: root.appendingPathComponent(name).path),
@@ -164,7 +172,8 @@ extension SessionStore {
                 },
                 hasTranscript: transcript != nil,
                 // 경로를 모르면 없다고 하지 않는다. 지어낸 경고는 진짜 경고를 묻는다
-                folderExists: cwd.isEmpty || folderExists(cwd))
+                folderExists: cwd.isEmpty || folderExists(cwd),
+                sharedRecord: sharedTranscripts.contains(cli))
         }
         .sorted { ($0.lastActivityAt ?? .distantPast) > ($1.lastActivityAt ?? .distantPast) }
     }

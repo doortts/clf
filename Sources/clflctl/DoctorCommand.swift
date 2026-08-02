@@ -1,6 +1,7 @@
 import Foundation
 import ArgumentParser
 import ClflCore
+import ClflDesktop
 import ClflStore
 
 /// 무엇이 준비됐고 무엇이 빠졌는지 한 화면에.
@@ -58,6 +59,15 @@ struct Doctor: AsyncParsableCommand {
                 return (true, "\(c.subscriptionType ?? "종류 미상"), \(usage)")
             }
             return (false, "비어 있음. claude auth login 후 캡처한다")
+        }
+
+        // 11절 규칙: 한 대화는 한 계정만 가리킨다. 어긴 것을 아무도 안 잡아서
+        // 여기에 뒀다. docs/design/13-multi-instance.md 12절
+        check("대화-계정 짝") {
+            let stores = FolderOverlap.stores(inside: DesktopReader.defaultSupportDirectory)
+            if stores.isEmpty { return (true, "데스크톱 세션 폴더가 없다") }
+            let shared = SessionDuplicate.scan(stores: stores)
+            return (shared.isEmpty, SessionDuplicate.detail(shared))
         }
 
         let doc = try await paths.accountsFile().load()

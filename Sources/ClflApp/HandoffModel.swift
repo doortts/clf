@@ -89,9 +89,14 @@ final class HandoffModel: ObservableObject {
             sessions = []
             return
         }
+        // 11절 규칙을 어긴 대화를 미리 찾는다. 목록에서 그 줄에 표시한다
+        let shared = Set(SessionDuplicate.scan(stores: FolderOverlap.stores(inside: primary))
+            .map(\.transcriptID))
+
         // 같은 세션이 자리마다 있다. 파일 이름으로 하나로 친다
         var seen = Set<String>()
-        sessions = stores.flatMap { $0.summaries() }.filter { seen.insert($0.fileName).inserted }
+        sessions = stores.flatMap { $0.summaries(sharedTranscripts: shared) }
+            .filter { seen.insert($0.fileName).inserted }
             .sorted { ($0.lastActivityAt ?? .distantPast) > ($1.lastActivityAt ?? .distantPast) }
     }
 
