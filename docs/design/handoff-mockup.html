@@ -1,0 +1,185 @@
+<meta charset="utf-8">
+<title>세션 넘기기 - 시안</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    background: #1c1c1e; color: #f2f2f7; margin: 0; padding: 40px;
+    font: 13px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif;
+    display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start;
+  }
+  .caption { width: 100%; max-width: 900px; color: #98989d; margin: 0 0 8px; }
+  .caption b { color: #f2f2f7; font-weight: 600; }
+  .win {
+    width: 460px; background: #2c2c2e; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.09);
+    box-shadow: 0 18px 44px rgba(0,0,0,.55); overflow: hidden;
+  }
+  .title {
+    height: 38px; display: flex; align-items: center; justify-content: center;
+    background: #333336; border-bottom: 1px solid rgba(255,255,255,.07);
+    font-size: 13px; font-weight: 600; position: relative;
+  }
+  .dots { position: absolute; left: 12px; display: flex; gap: 8px; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: #4a4a4d; }
+  .dots i:first-child { background: #ff5f57; }
+  .pad { padding: 14px; }
+  .lede { color: #98989d; font-size: 12px; margin: 0 0 12px; }
+
+  .route { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .pick {
+    flex: 1; min-width: 0; background: #3a3a3c; border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px; padding: 6px 9px; display: flex; align-items: center;
+    justify-content: space-between; font-size: 12px; font-weight: 600;
+  }
+  .pick small { color: #98989d; font-weight: 400; display: block; font-size: 10px; }
+  .pick .chev { color: #8e8e93; margin-left: 8px; }
+  .arrow { color: #8e8e93; font-size: 15px; flex: none; }
+
+  .list {
+    border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+    background: rgba(0,0,0,.22); overflow: hidden;
+  }
+  .row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .row:last-child { border-bottom: 0; }
+  .row.on { background: rgba(10,132,255,.20); }
+  .box {
+    width: 14px; height: 14px; border-radius: 3px; flex: none;
+    border: 1px solid rgba(255,255,255,.35);
+  }
+  .row.on .box { background: #0a84ff; border-color: #0a84ff; }
+  .row.on .box::after { content: "\2713"; color: #fff; font-size: 10px; display: block;
+    text-align: center; line-height: 13px; }
+  .meta { min-width: 0; flex: 1; }
+  .name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub { font-size: 10px; color: #8e8e93; margin-top: 1px; }
+  .when { font-size: 10px; color: #8e8e93; flex: none; }
+  .warn { color: #ffd60a; }
+  .empty { padding: 22px; text-align: center; color: #8e8e93; font-size: 12px; }
+
+  .note {
+    margin-top: 12px; font-size: 11px; color: #98989d; line-height: 1.55;
+    background: rgba(255,255,255,.05); border-radius: 6px; padding: 8px 10px;
+  }
+  .note b { color: #f2f2f7; font-weight: 600; }
+  .done { border-left: 2px solid #30d158; }
+  .foot { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .spacer { flex: 1; }
+  .btn {
+    border-radius: 6px; padding: 5px 14px; font-size: 12px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,.14); background: #3a3a3c; color: #f2f2f7;
+  }
+  .btn.go { background: #0a84ff; border-color: #0a84ff; }
+  .btn.dim { opacity: .4; }
+  .btn.small { padding: 3px 9px; font-size: 11px; font-weight: 500; }
+</style>
+
+<p class="caption">
+  <b>세션 넘기기</b> - 대화는 복사하지 않는다. 420바이트짜리 레코드 파일 하나를
+  계정 폴더 사이로 옮기는 것이 전부다. 그래서 크기도 진행 상태도 상관없다.
+</p>
+
+<div class="win">
+  <div class="title"><div class="dots"><i></i><i></i><i></i></div>세션 넘기기</div>
+  <div class="pad">
+    <p class="lede">고른 세션이 어느 계정 것인지만 바꾼다. 대화 내용은 그대로 있다.</p>
+
+    <div class="route">
+      <div class="pick"><span>NAVER_TEAM_40<small>기본 창</small></span><span class="chev">v</span></div>
+      <span class="arrow">-&gt;</span>
+      <div class="pick"><span>NAVER_TEAM_52<small>별도 창 실행중</small></span><span class="chev">v</span></div>
+    </div>
+
+    <div class="list">
+      <div class="row on">
+        <span class="box"></span>
+        <span class="meta">
+          <span class="name">clfl 메뉴바 앱 만들기</span>
+          <span class="sub">clfl</span>
+        </span>
+        <span class="when">2시간 전</span>
+      </div>
+      <div class="row">
+        <span class="box"></span>
+        <span class="meta">
+          <span class="name">프록시가 왜 안 먹는지 확인</span>
+          <span class="sub">clfl</span>
+        </span>
+        <span class="when">어제</span>
+      </div>
+      <div class="row">
+        <span class="box"></span>
+        <span class="meta">
+          <span class="name">claulay</span>
+          <span class="sub warn">기록 없음 - 옮겨도 빈 세션이다</span>
+        </span>
+        <span class="when">3일 전</span>
+      </div>
+    </div>
+
+    <div class="note">
+      옮기면 <b>NAVER_TEAM_40</b> 목록에서 빠지고 <b>NAVER_TEAM_52</b> 에 나타난다.
+      한 계정만 그 대화를 가리키므로 두 창이 같은 파일을 함께 쓰는 일이 없다.
+    </div>
+
+    <div class="foot">
+      <span class="spacer"></span>
+      <button class="btn">취소</button>
+      <button class="btn go">1개 옮기기</button>
+    </div>
+  </div>
+</div>
+
+<div class="win">
+  <div class="title"><div class="dots"><i></i><i></i><i></i></div>세션 넘기기</div>
+  <div class="pad">
+    <p class="lede">고른 세션이 어느 계정 것인지만 바꾼다. 대화 내용은 그대로 있다.</p>
+
+    <div class="route">
+      <div class="pick"><span>NAVER_TEAM_40<small>기본 창</small></span><span class="chev">v</span></div>
+      <span class="arrow">-&gt;</span>
+      <div class="pick"><span>NAVER_TEAM_52<small>별도 창 실행중</small></span><span class="chev">v</span></div>
+    </div>
+
+    <div class="list">
+      <div class="row">
+        <span class="box"></span>
+        <span class="meta">
+          <span class="name">프록시가 왜 안 먹는지 확인</span>
+          <span class="sub">clfl</span>
+        </span>
+        <span class="when">어제</span>
+      </div>
+      <div class="row">
+        <span class="box"></span>
+        <span class="meta">
+          <span class="name">claulay</span>
+          <span class="sub warn">기록 없음 - 옮겨도 빈 세션이다</span>
+        </span>
+        <span class="when">3일 전</span>
+      </div>
+    </div>
+
+    <div class="note done">
+      <b>1개를 옮겼다.</b><br>
+      기본 창은 재시작해야 목록에서 빠진다. NAVER_TEAM_52 창도 다시 띄워야 보인다.
+      <div class="foot" style="margin-top:8px">
+        <button class="btn small">NAVER_TEAM_52 창 다시 띄우기</button>
+        <span class="spacer"></span>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span class="spacer"></span>
+      <button class="btn">닫기</button>
+      <button class="btn go dim">옮기기</button>
+    </div>
+  </div>
+</div>
+
+<p class="caption" style="margin-top:24px">
+  대상 계정에 창이 없으면 <b>"다음에 띄우면 보인다"</b> 한 줄로 끝난다.
+  원본과 대상이 같으면 옮기기 단추가 꺼진다.
+</p>

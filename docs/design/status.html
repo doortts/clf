@@ -243,11 +243,11 @@ a:hover { text-decoration: underline; }
 <div class="wrap">
 
 <h1>clfl 진행 현황</h1>
-<p class="lede">Claude Code 데스크톱 앱의 조직별 잔여 한도를 보여주는 macOS 메뉴바 앱</p>
+<p class="lede">Claude Code 데스크톱 앱의 계정별 잔여 한도를 보여주는 macOS 메뉴바 앱</p>
 <p class="meta">2026-08-02 기준 &nbsp;/&nbsp; 커밋 54개 &nbsp;/&nbsp; main</p>
 
 <div class="callout" style="border-left:3px solid var(--accent)">
-  <strong>방향이 바뀌었다.</strong> 원래는 한도에 걸리면 조직을 자동으로 바꿔주는
+  <strong>방향이 바뀌었다.</strong> 원래는 한도에 걸리면 계정을 자동으로 바꿔주는
   프록시였다. 두 번 막혔다. 데스크톱 앱은 <code>ANTHROPIC_BASE_URL</code> 을 무시해
   프록시를 안 타고, 쿠키로 바꿀 수는 있지만 재시작이 필요해 작업 중 대화 이력이
   끊긴다. 문제보다 해법이 크다.
@@ -298,7 +298,7 @@ a:hover { text-decoration: underline; }
 </div>
 
 <div class="callout">
-  메뉴바 앱이 돈다. <code>~/Applications/clfl.app</code> 에서 세 조직의 잔여를 읽어
+  메뉴바 앱이 돈다. <code>~/Applications/clfl.app</code> 에서 세 계정의 잔여를 읽어
   5분마다 갱신한다. 막대에 뜨는 숫자와 <code>clflctl desktop usage</code> 가 같은
   값을 낸다.
 </div>
@@ -341,7 +341,7 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="rung">
     <span class="no">6b</span>
-    <span class="what">조직 등록
+    <span class="what">계정 등록
       <span class="how">clflctl accounts add &nbsp;->&nbsp; list 에 뜨고 Keychain 에 있음</span></span>
     <span class="st done"></span>
   </div>
@@ -377,7 +377,7 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="rung gate">
     <span class="no">8</span>
-    <span class="what">프록시 단일 조직 통과
+    <span class="what">프록시 단일 계정 통과
       <span class="how">데스크톱 앱은 ANTHROPIC_BASE_URL 을 무시한다 &nbsp;->&nbsp; 요청 0건</span></span>
     <span class="st blocked"></span>
   </div>
@@ -389,14 +389,14 @@ a:hover { text-decoration: underline; }
   </div>
   <div class="rung">
     <span class="no">9</span>
-    <span class="what">데스크톱 앱 조직 전환
+    <span class="what">데스크톱 앱 계정 전환
       <span class="how">쿠키 + 재시작으로 된다. 이력이 끊겨 안 쓰기로 결정</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">10</span>
-    <span class="what">조직 전부의 사용량 읽기
-      <span class="how">clflctl desktop usage &nbsp;->&nbsp; 세 조직의 창 세 개가 다 나온다</span></span>
+    <span class="what">계정 전부의 사용량 읽기
+      <span class="how">clflctl desktop usage &nbsp;->&nbsp; 세 계정의 창 세 개가 다 나온다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
@@ -478,7 +478,7 @@ a:hover { text-decoration: underline; }
       <u class="on"></u><u class="on"></u><u class="on"></u>
       <u></u><u></u><u></u><u></u><u></u>
     </div>
-    <p class="cap">서버, 릴레이, 단일 조직 핸들러까지 들어갔다. 남은 다섯은
+    <p class="cap">서버, 릴레이, 단일 계정 핸들러까지 들어갔다. 남은 다섯은
       Router, 스왑 루프, 토큰 갱신, Usage API 다.</p>
   </div>
 
@@ -704,7 +704,7 @@ $ ./scripts/install-clflctl.sh
   <tbody>
     <tr><td class="m">doctor</td><td>환경 점검. 실패마다 고치는 법을 함께 말한다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">settings show/install/uninstall</td><td>settings.json 의 env 블록. 남의 키는 전부 보존한다</td><td><span class="tag ok">됨</span></td></tr>
-    <tr><td class="m">accounts list/add/remove</td><td>조직 등록. 토큰은 stdin 으로만 받고 ANSI 와 장식을 걷어낸다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">accounts list/add/remove</td><td>계정 등록. 토큰은 stdin 으로만 받고 ANSI 와 장식을 걷어낸다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">accounts enable/disable/priority</td><td>자동 전환 대상과 순서</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">runtime show/simulate/clear</td><td>세 창과 구속 여유. 상태를 손으로 심는다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">select</td><td>선택 판정과 후보별 이유. <code>--json</code> 지원</td><td><span class="tag ok">됨</span></td></tr>
@@ -712,8 +712,8 @@ $ ./scripts/install-clflctl.sh
     <tr><td class="m">sse-peek</td><td>첫 이벤트 프레임 경계를 찾는다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">upstream probe</td><td>실제 api.anthropic.com 왕복. 압축 해제와 사용량 헤더를 확인한다</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">serve</td><td>프록시를 앱 없이 띄운다. 끝낼 때 settings.json 을 되돌린다</td><td><span class="tag ok">됨</span></td></tr>
-    <tr><td class="m">desktop usage</td><td>조직별 잔여 세 창. --json 은 그대로 UI 입력이다</td><td><span class="tag ok">됨</span></td></tr>
-    <tr><td class="m">desktop orgs/show/hide/order</td><td>메뉴바에 보여줄 조직과 차례</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">desktop usage</td><td>계정별 잔여 세 창. --json 은 그대로 UI 입력이다</td><td><span class="tag ok">됨</span></td></tr>
+    <tr><td class="m">desktop orgs/show/hide/order</td><td>메뉴바에 보여줄 계정과 차례</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">desktop bar</td><td>막대에 활성 하나만 그릴지 전부 그릴지</td><td><span class="tag ok">됨</span></td></tr>
     <tr><td class="m">watch</td><td>컨트롤 플레인을 구독해 실시간으로 본다</td><td><span class="tag no">10단계</span></td></tr>
   </tbody>
@@ -760,7 +760,7 @@ $ ./scripts/install-clflctl.sh
   <thead><tr><th class="m">GET</th><th>내용</th></tr></thead>
   <tbody>
     <tr><td class="m">/health</td><td>떠 있는지, 프록시가 어느 포트에 붙었는지, 얼마나 됐는지</td></tr>
-    <tr><td class="m">/state</td><td><code>RouterSnapshot</code>. 조직, 우선순위, 런타임, 활성, 지속 조건</td></tr>
+    <tr><td class="m">/state</td><td><code>RouterSnapshot</code>. 계정, 우선순위, 런타임, 활성, 지속 조건</td></tr>
     <tr><td class="m">/select?model=&amp;start=</td><td>지금 요청이 오면 어디로 가는지. 4절 표와 같은 레코드</td></tr>
     <tr><td class="m">/requests?limit=50</td><td>최근 요청의 결정 트레일. 메모리 링 버퍼 200개</td></tr>
     <tr><td class="m">/events</td><td>SSE. 스냅샷 변화와 <code>RoutingEvent</code> 를 실시간으로</td></tr>
@@ -792,13 +792,13 @@ $ ./scripts/install-clflctl.sh
       <span class="meta">ClflDesktop. 테스트 60여개</span>
     </div>
     <p class="note" style="margin-top:10px">
-      데스크톱 앱의 <code>config.json</code> 에서 조직별 OAuth 토큰을 꺼낸다. 거기 담긴
+      데스크톱 앱의 <code>config.json</code> 에서 계정별 OAuth 토큰을 꺼낸다. 거기 담긴
       토큰에는 <code>user:profile</code> 스코프가 있어 Usage API 를 부를 수 있다.
       <code>setup-token</code> 이 주는 토큰으로는 403 이다.
     </p>
     <p class="note">
       <strong>추론 요청이 아니라 토큰을 소모하지 않는다.</strong> 그래서 주기적으로 물어도
-      된다. 앱에서 한 번이라도 연 조직은 활성이 아니어도 읽힌다.
+      된다. 앱에서 한 번이라도 연 계정은 활성이 아니어도 읽힌다.
     </p>
   </div>
 
@@ -827,7 +827,7 @@ $ ./scripts/install-clflctl.sh
     </div>
     <p class="note" style="margin-top:10px">
       설정은 <strong>보여줄 것이 아니라 숨길 것을 담는다.</strong> 보여줄 목록만 저장하면
-      조직이 새로 생겼을 때 설정을 열기 전까지 영영 안 보인다.
+      계정이 새로 생겼을 때 설정을 열기 전까지 영영 안 보인다.
     </p>
     <p class="note">
       갱신은 5분이 기본이고 세 번 연속 그대로면 10분으로 늘린다. 429 를 받으면
@@ -845,6 +845,25 @@ $ ./scripts/install-clflctl.sh
       번들에 아이콘이 없다. 그리고 지금은 임시 서명이라 다른 기계에 옮기면 Gatekeeper
       가 막는다. 남에게 줄 생각이면 공증이 필요하다.
     </p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0"><span class="tag ok">완료</span> &nbsp; 계정마다 창 하나, 그리고 세션 넘기기</h3>
+      <span class="meta">AltInstance, AltLauncher, SessionMirror, SessionHandoff</span>
+    </div>
+    <p class="note" style="margin-top:10px">
+      데스크톱 앱은 <code>CLAUDE_USER_DATA_DIR</code> 로 데이터 디렉토리를 바꿀 수 있고
+      단일 인스턴스 잠금이 없다. 그래서 계정마다 창을 하나씩 띄운다. 씨앗은 44K 다.
+      쿠키에 계정을 미리 박아 두므로 <strong>새 창에서 다시 로그인하지 않는다.</strong>
+    </p>
+    <p class="note">
+      넘기기는 <strong>대화를 복사하지 않는다.</strong> 대화는
+      <code>~/.claude/projects</code> 에 있고 계정 표시가 없다. 어느 계정 것인지는
+      420바이트짜리 레코드가 어느 폴더에 있느냐로만 정해지므로, 그 파일 하나를
+      옮기면 끝난다. 크기도 진행 상태도 상관없다.
+    </p>
+    <p class="meta">docs/design/13-multi-instance.md 11절</p>
   </div>
 
   <div class="card">
@@ -896,8 +915,8 @@ $ ./scripts/install-clflctl.sh
       <td><span class="tag ok">고침</span> hex 출력을 알아보고 되돌린다</td>
     </tr>
     <tr>
-      <td><strong>tier 1 안의 순서가 미정이다.</strong> 잔여 3% 인 조직이 읽기 없는
-        조직보다 앞선다. 둘 다 tier 1 이고 우선순위가 앞서기 때문이다</td>
+      <td><strong>tier 1 안의 순서가 미정이다.</strong> 잔여 3% 인 계정이 읽기 없는
+        계정보다 앞선다. 둘 다 tier 1 이고 우선순위가 앞서기 때문이다</td>
       <td><span class="tag now">보류</span> 실측 없이 정하지 않는다</td>
     </tr>
   </tbody>
@@ -937,7 +956,7 @@ $ claude setup-token | clflctl accounts add naver_team_40 --plan team
 </div>
 
 <div class="callout warn">
-  <strong>열린 질문.</strong> 3% 짜리 조직은 거의 확실히 429 를 맞는다. 읽기가 없는 조직은
+  <strong>열린 질문.</strong> 3% 짜리 계정은 거의 확실히 429 를 맞는다. 읽기가 없는 계정은
   알 수 없다. 아는 실패와 모르는 상태를 같은 칸에 두고 우선순위로 자르면, 곧 실패할 것을
   알면서 그쪽으로 보내는 셈이다. 반응형 경로가 받아내지만 캐시는 이미 잃는다.
   <br><br>
@@ -961,11 +980,11 @@ $ claude setup-token | clflctl accounts add naver_team_40 --plan team
     <tr><td class="m"><a href="02-domain-model.md">02-domain-model</a></td><td>도메인 타입, 선택 규칙, 영속화 분할, 메뉴바 표시 코드</td></tr>
     <tr><td class="m"><a href="03-request-flow.md">03-request-flow</a></td><td>요청 하나의 전 생애와 스왑 루프</td></tr>
     <tr><td class="m"><a href="04-implementation.md">04-implementation</a></td><td>의존성 결정, 타겟별 공개 API, 동시성 규칙, 작업 순서</td></tr>
-    <tr><td class="m"><a href="05-account-registration.md">05-account-registration</a></td><td>조직 등록 흐름</td></tr>
+    <tr><td class="m"><a href="05-account-registration.md">05-account-registration</a></td><td>계정 등록 흐름</td></tr>
     <tr><td class="m"><a href="06-ccswitcher-comparison.md">06-ccswitcher-comparison</a></td><td>유사 앱과의 차이. 이메일 중복 제거가 왜 문제였는지</td></tr>
     <tr><td class="m"><a href="07-oauth-credentials.md">07-oauth-credentials</a></td><td>자격증명 두 종류, 갱신, Keychain 접근</td></tr>
     <tr><td class="m"><a href="08-verification.md">08-verification</a></td><td>검증 사다리, 같은 레코드 원칙, 실측 기록. 프록시가 막힌 근거</td></tr>
-    <tr><td class="m"><a href="09-desktop-org-switch.md">09-desktop-org-switch</a></td><td>조직 전환 조사와 자동 전환을 안 하기로 한 결론</td></tr>
+    <tr><td class="m"><a href="09-desktop-org-switch.md">09-desktop-org-switch</a></td><td>계정 전환 조사와 자동 전환을 안 하기로 한 결론</td></tr>
     <tr><td class="m"><a href="10-desktop-usage.md">10-desktop-usage</a></td><td>토큰 캐시, user:profile 스코프, 설정, 갱신 주기</td></tr>
     <tr><td class="m"><a href="11-menubar-app.md">11-menubar-app</a></td><td>번들 조립, 막대와 팝오버, 로그인 항목, 429</td></tr>
     <tr><td class="m"><a href="ui-spec.html">ui-spec.html</a></td><td>Apple HIG 기준 UI 시안</td></tr>

@@ -96,6 +96,23 @@ public enum BarText {
         return minutes > 0 ? "\(minutes)분 뒤" : "곧"
     }
 
+    /// 마지막으로 쓴 때를 사람이 읽는 말로. `until` 의 반대 방향이다.
+    ///
+    /// 단위 하나면 된다. 목록에서 순서를 가늠하는 값이라 "2시간 13분 전" 처럼
+    /// 정확할 이유가 없다.
+    public static func since(_ date: Date?, from now: Date = Date()) -> String {
+        guard let date else { return "" }
+        // 시계가 어긋나면 미래로 찍힌다. 음수를 그대로 보여주면 고장으로 보인다
+        let past = max(0, Int(now.timeIntervalSince(date)))
+        switch past {
+        case ..<60:      return "방금"
+        case ..<3600:    return "\(past / 60)분 전"
+        case ..<86_400:  return "\(past / 3600)시간 전"
+        case ..<172_800: return "어제"
+        default:         return "\(past / 86_400)일 전"
+        }
+    }
+
     /// 남은 시간에 리셋 시각을 곁들인다.
     ///
     /// **하루를 넘는 창에만 붙인다.** `5일 1시간 뒤` 만으로는 그게 언제인지

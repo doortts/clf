@@ -80,17 +80,26 @@ public struct SessionStore: Sendable {
 }
 
 extension SessionMirror {
+    /// 트랜스크립트 파일. 프로젝트 폴더가 여럿이라 찾아야 한다.
+    public static func transcriptPath(_ id: String,
+                                      projects: URL = FileManager.default
+                                          .homeDirectoryForCurrentUser
+                                          .appendingPathComponent(".claude/projects")) -> URL? {
+        let fm = FileManager.default
+        guard let dirs = try? fm.contentsOfDirectory(atPath: projects.path) else { return nil }
+        for dir in dirs {
+            let url = projects.appendingPathComponent(dir).appendingPathComponent("\(id).jsonl")
+            if fm.fileExists(atPath: url.path) { return url }
+        }
+        return nil
+    }
+
     /// 트랜스크립트가 실제로 있는지 본다. 없으면 옮겨도 빈 세션이다.
     public static func transcriptExists(_ id: String,
                                         projects: URL = FileManager.default
                                             .homeDirectoryForCurrentUser
                                             .appendingPathComponent(".claude/projects")) -> Bool {
-        let fm = FileManager.default
-        guard let dirs = try? fm.contentsOfDirectory(atPath: projects.path) else { return false }
-        return dirs.contains { dir in
-            fm.fileExists(atPath: projects.appendingPathComponent(dir)
-                .appendingPathComponent("\(id).jsonl").path)
-        }
+        transcriptPath(id, projects: projects) != nil
     }
 
     /// 한쪽에만 있는 레코드를 다른 쪽으로 복사한다. 덮지 않는다.

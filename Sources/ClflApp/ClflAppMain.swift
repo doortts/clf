@@ -16,11 +16,17 @@ struct ClflMenuBarApp: App {
             // 라벨을 뷰로 주면 MenuBarExtra 가 템플릿으로 그려 색이 날아간다.
             // 구운 이미지로 넘겨야 등급 색이 남는다
             if let image = model.barImage {
-                Image(nsImage: image).onAppear { model.start() }
+                Image(nsImage: image).onAppear { begin() }
             } else {
-                Text(BarText.label(for: model.barOrgs)).onAppear { model.start() }
+                Text(BarText.label(for: model.barOrgs)).onAppear { begin() }
             }
         }
         .menuBarExtraStyle(.window)
+    }
+
+    /// 넘기기 창은 팝오버를 눌러야 뜨지만, 모델은 미리 걸어 둔다.
+    private func begin() {
+        model.start()
+        HandoffWindow.install(HandoffModel(usage: model))
     }
 }

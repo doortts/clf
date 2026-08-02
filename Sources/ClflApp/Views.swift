@@ -353,6 +353,11 @@ struct PopoverView: View {
                 Text(model.readAt.map { stamp($0) } ?? "-")
                     .font(.system(size: 9)).foregroundStyle(.tertiary)
                 Spacer()
+                Button { HandoffWindow.open() } label: {
+                    Label("세션 넘기기", systemImage: "arrow.left.arrow.right")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .accessibilityLabel("세션을 다른 계정으로 넘긴다")
                 Button { NSApplication.shared.terminate(nil) } label: {
                     Label("종료", systemImage: "power")
                         .font(.system(size: 10, weight: .medium))

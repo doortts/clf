@@ -1,0 +1,269 @@
+import XCTest
+@testable import ClflDesktop
+
+/// 세션을 다른 계정으로 옮긴다.
+///
+/// 트랜스크립트는 손대지 않는다. 420바이트짜리 레코드 파일 하나를 계정
+/// 폴더 사이로 옮기는 것이 전부다. 옮기면 한 계정만 그 대화를 가리키므로
+/// 두 창이 같은 파일을 쓰는 일도 없다. docs/design/13-multi-instance.md
+final class HandoffPlanTests: XCTestCase {
+
+    /// 대상에 같은 이름이 있으면 덮으면 안 된다. 저쪽이 먼저 쓰던 것이다.
+    func test_detectsCollision() {
+        XCTAssertTrue(SessionHandoff.collides("local_a.json", in: ["local_a.json"]))
+        XCTAssertFalse(SessionHandoff.collides("local_a.json", in: ["local_b.json"]))
+        XCTAssertFalse(SessionHandoff.collides("local_a.json", in: []))
+    }
+
+    /// 같은 계정으로는 옮길 것이 없다.
+    func test_sameAccountIsNotAMove() {
+        XCTAssertFalse(SessionHandoff.canMove(from: "acct", to: "acct"))
+        XCTAssertTrue(SessionHandoff.canMove(from: "a", to: "b"))
+    }
+}
+
+/// 목록에 뜨는 제목을 찾는다.
+final class TranscriptTitleTests: XCTestCase {
+    private var dir: URL!
+
+    override func setUpWithError() throws {
+        dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("title-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    }
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: dir) }
+
+    private func write(_ lines: [String]) throws -> URL {
+        let url = dir.appendingPathComponent("t.jsonl")
+        try (lines.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
+    func test_readsAiTitle() throws {
+        let f = try write([#"{"type":"ai-title","aiTitle":"기본 산술 계산"}"#])
+        XCTAssertEqual(TranscriptTitle.of(f), "기본 산술 계산")
+    }
+
+    /// 사용자가 이름을 바꿨으면 그쪽이 이긴다. 앱도 그 순서로 본다.
+    func test_customTitleWins() throws {
+        let f = try write([#"{"type":"ai-title","aiTitle":"자동 제목"}"#,
+                           #"{"type":"custom-title","customTitle":"내가 지은 이름"}"#])
+        XCTAssertEqual(TranscriptTitle.of(f), "내가 지은 이름")
+    }
+
+    /// 나중 것이 이긴다. 제목은 여러 번 바뀔 수 있다.
+    func test_lastOneWins() throws {
+        let f = try write([#"{"type":"ai-title","aiTitle":"처음"}"#,
+                           #"{"type":"ai-title","aiTitle":"나중"}"#])
+        XCTAssertEqual(TranscriptTitle.of(f), "나중")
+    }
+
+    /// 제목이 없으면 빈 문자열. 지어내지 않는다.
+    func test_noTitle() throws {
+        XCTAssertEqual(TranscriptTitle.of(try write([#"{"type":"mode"}"#])), "")
+    }
+
+    func test_missingFile() {
+        XCTAssertEqual(TranscriptTitle.of(dir.appendingPathComponent("없다.jsonl")), "")
+    }
+
+    /// **파일을 통째로 안 읽는다.** 트랜스크립트는 73MB 도 된다.
+    /// 제목은 앞이나 뒤에 있으므로 양끝만 본다.
+    func test_findsTitleInATailOfALargeFile() throws {
+        let url = dir.appendingPathComponent("big.jsonl")
+        var body = ""
+        for i in 0..<20_000 { body += #"{"type":"user","n":\#(i)}"# + "\n" }
+        body += #"{"type":"ai-title","aiTitle":"끝에 있는 제목"}"# + "\n"
+        try body.write(to: url, atomically: true, encoding: .utf8)
+        let size = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int ?? 0
+        XCTAssertGreaterThan(size, TranscriptTitle.edgeBytes)
+        XCTAssertEqual(TranscriptTitle.of(url), "끝에 있는 제목")
+    }
+}
+
+/// 실제 파일로 옮겨본다.
+final class HandoffMoveTests: XCTestCase {
+    private var root: URL!
+    private var a: SessionStore!
+    private var b: SessionStore!
+
+    override func setUpWithError() throws {
+        root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("handoff-\(UUID().uuidString)")
+        a = SessionStore(dataDirectory: root, person: "p", account: "A")
+        b = SessionStore(dataDirectory: root, person: "p", account: "B")
+        try FileManager.default.createDirectory(at: a.root, withIntermediateDirectories: true)
+    }
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: root) }
+
+    private func put(_ store: SessionStore, _ name: String, cli: String = "c1") throws {
+        try FileManager.default.createDirectory(at: store.root, withIntermediateDirectories: true)
+        try Data(#"{"sessionId":"s","cliSessionId":"\#(cli)"}"#.utf8)
+            .write(to: store.root.appendingPathComponent(name))
+    }
+
+    func test_movesTheRecord() throws {
+        try put(a, "local_x.json")
+        try SessionHandoff.move("local_x.json", from: a, to: b)
+        XCTAssertEqual(a.fileNames(), [])
+        XCTAssertEqual(b.fileNames(), ["local_x.json"])
+    }
+
+    /// 대상 폴더가 없어도 만든다. 그 계정 창을 아직 안 띄웠을 수 있다.
+    func test_createsTargetFolder() throws {
+        try put(a, "local_x.json")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: b.root.path))
+        try SessionHandoff.move("local_x.json", from: a, to: b)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: b.root.path))
+    }
+
+    /// 덮지 않는다. 저쪽이 먼저 쓰던 것을 잃으면 안 된다.
+    func test_refusesToOverwrite() throws {
+        try put(a, "local_x.json")
+        try put(b, "local_x.json")
+        XCTAssertThrowsError(try SessionHandoff.move("local_x.json", from: a, to: b))
+        // 실패했으면 원본이 그대로 있어야 한다
+        XCTAssertEqual(a.fileNames(), ["local_x.json"])
+    }
+
+    func test_missingSource() {
+        XCTAssertThrowsError(try SessionHandoff.move("local_없다.json", from: a, to: b))
+    }
+}
+
+/// 한 계정의 레코드는 자리가 여럿이다. 기본 데이터 디렉토리에 있고,
+/// 그 계정으로 띄운 별도 창이 있으면 거기에도 있다. 옮기면 전부 옮겨야
+/// 한 창에만 남는 일이 없다.
+final class HandoffSiteTests: XCTestCase {
+    private var home: URL!
+    private var primary: URL!
+
+    override func setUpWithError() throws {
+        home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sites-\(UUID().uuidString)")
+        primary = home.appendingPathComponent("Primary")
+        try FileManager.default.createDirectory(at: primary, withIntermediateDirectories: true)
+    }
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: home) }
+
+    private func store(_ dir: URL, _ account: String) -> SessionStore {
+        SessionStore(dataDirectory: dir, person: "p", account: account)
+    }
+    private func put(_ store: SessionStore, _ name: String) throws {
+        try FileManager.default.createDirectory(at: store.root, withIntermediateDirectories: true)
+        try Data(#"{"sessionId":"s","cliSessionId":"c1"}"#.utf8)
+            .write(to: store.root.appendingPathComponent(name))
+    }
+
+    func test_primaryOnlyWhenNoWindow() {
+        let s = SessionHandoff.stores(account: "u1", name: "A",
+                                      primary: primary, person: "p", home: home)
+        XCTAssertEqual(s.count, 1)
+        XCTAssertEqual(s[0].root, store(primary, "u1").root)
+    }
+
+    func test_includesTheWindowDirectory() throws {
+        let alt = home.appendingPathComponent(AltInstance.prefix + "A")
+        try FileManager.default.createDirectory(at: alt, withIntermediateDirectories: true)
+        let s = SessionHandoff.stores(account: "u1", name: "A",
+                                      primary: primary, person: "p", home: home)
+        XCTAssertEqual(s.map(\.root), [store(primary, "u1").root, store(alt, "u1").root])
+    }
+
+    /// 자리마다 다 옮긴다. 한 군데만 옮기면 남은 창이 계속 보여준다.
+    func test_movesEveryCopy() throws {
+        let altA = home.appendingPathComponent(AltInstance.prefix + "A")
+        try FileManager.default.createDirectory(at: altA, withIntermediateDirectories: true)
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        for s in from { try put(s, "local_x.json") }
+
+        try SessionHandoff.move("local_x.json", from: from, to: to)
+
+        XCTAssertEqual(from.flatMap { $0.fileNames() }, [])
+        XCTAssertEqual(to.flatMap { $0.fileNames() }, ["local_x.json"])
+    }
+
+    /// 어느 한 자리에만 있어도 옮긴다. 창을 늦게 띄웠으면 그럴 수 있다.
+    func test_movesWhenOnlyOneSiteHasIt() throws {
+        let altA = home.appendingPathComponent(AltInstance.prefix + "A")
+        try FileManager.default.createDirectory(at: altA, withIntermediateDirectories: true)
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        try put(from[1], "local_x.json")
+
+        try SessionHandoff.move("local_x.json", from: from,
+                                to: SessionHandoff.stores(account: "u2", name: "B",
+                                                          primary: primary, person: "p", home: home))
+        XCTAssertEqual(from.flatMap { $0.fileNames() }, [])
+        XCTAssertEqual(store(primary, "u2").fileNames(), ["local_x.json"])
+    }
+
+    /// 대상 한 자리에라도 이미 있으면 손대지 않는다.
+    func test_collisionLeavesEverythingAlone() throws {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try put(from[0], "local_x.json")
+        try put(to[0], "local_x.json")
+        XCTAssertThrowsError(try SessionHandoff.move("local_x.json", from: from, to: to))
+        XCTAssertEqual(from[0].fileNames(), ["local_x.json"])
+    }
+}
+
+/// 옮긴 뒤 무슨 말을 해줘야 하나. 앱은 세션 목록을 메모리에 들고 있어서
+/// 파일만 바꿔서는 화면이 안 바뀐다.
+final class HandoffAdviceTests: XCTestCase {
+    private func advice(_ from: InstanceSlot, _ to: InstanceSlot) -> HandoffAdvice {
+        .after(moved: 1, source: ("A", from), target: ("B", to))
+    }
+
+    func test_primarySourceAsksForARestart() {
+        let a = advice(.primary, .none)
+        XCTAssertTrue(a.needsPrimaryRestart)
+        XCTAssertEqual(a.relaunch, [])
+    }
+
+    func test_primaryTargetAlsoAsksForARestart() {
+        XCTAssertTrue(advice(.none, .primary).needsPrimaryRestart)
+    }
+
+    /// 별도 창은 우리가 띄운 것이라 다시 띄울 수 있다. 단추로 보여준다.
+    func test_offersToRelaunchWindows() {
+        XCTAssertEqual(advice(.running, .running).relaunch, ["A", "B"])
+        XCTAssertFalse(advice(.running, .running).needsPrimaryRestart)
+    }
+
+    /// 창이 없는 쪽은 할 일이 없다. 다음에 띄우면 그냥 보인다.
+    func test_noWindowNeedsNothing() {
+        let a = advice(.none, .none)
+        XCTAssertFalse(a.needsPrimaryRestart)
+        XCTAssertEqual(a.relaunch, [])
+        XCTAssertTrue(a.text.contains("다음에"))
+    }
+
+    func test_countsWhatMoved() {
+        XCTAssertTrue(HandoffAdvice.after(moved: 3, source: ("A", .none), target: ("B", .none))
+            .text.hasPrefix("3개"))
+    }
+}
+
+/// 마지막으로 쓴 때를 사람이 읽는 말로. `until` 의 반대 방향이다.
+final class SinceTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+    private func ago(_ seconds: TimeInterval) -> String {
+        BarText.since(now.addingTimeInterval(-seconds), from: now)
+    }
+
+    func test_justNow() { XCTAssertEqual(ago(30), "방금") }
+    func test_minutes() { XCTAssertEqual(ago(600), "10분 전") }
+    func test_hours() { XCTAssertEqual(ago(7200), "2시간 전") }
+    func test_yesterday() { XCTAssertEqual(ago(90_000), "어제") }
+    func test_days() { XCTAssertEqual(ago(3 * 86_400), "3일 전") }
+    /// 시계가 어긋나 미래로 찍힐 수 있다. "-2분 전" 을 보여주면 고장으로 보인다
+    func test_futureReadsAsNow() { XCTAssertEqual(ago(-600), "방금") }
+    func test_noDate() { XCTAssertEqual(BarText.since(nil, from: now), "") }
+}
