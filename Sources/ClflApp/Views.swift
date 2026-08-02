@@ -25,6 +25,14 @@ struct OrgCard: View {
     /// 방금 앞에 있던 창의 계정. 팝오버를 여는 순간 찾을 카드라 배경을 깐다.
     var focused = false
 
+    @Environment(\.colorScheme) private var scheme
+
+    /// 포커스 카드 색. 어두운 팝오버에서는 청록이 기본 점의 파랑, 게이지의
+    /// 빨강/주황/초록과 제일 잘 갈린다. 밝은 팝오버에서는 그 청록이 배경에
+    /// 묻혀 카드가 안 읽히므로 보라를 그대로 쓴다.
+    /// docs/design/focus-card-theme-mockup.html
+    private var focusTint: Color { scheme == .dark ? .teal : .purple }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -66,17 +74,16 @@ struct OrgCard: View {
             }
         }
         .padding(.vertical, 10)
-        // 방금까지 보던 창의 계정이 한눈에 잡히게 카드를 깐다. 청록은
-        // 이 카드 전용이다. 점, 배지, 메뉴바 밑줄의 파랑(악센트)과 게이지의
+        // 방금까지 보던 창의 계정이 한눈에 잡히게 카드를 깐다. 이 색은
+        // 카드 전용이다. 점, 배지, 메뉴바 밑줄의 파랑(악센트)과 게이지의
         // 빨강/주황/초록에서 색을 갈라 카드만 "방금 그 창" 을 말한다.
-        // docs/design/focus-card-theme-mockup.html 1번
         .background {
             if focused {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.teal.opacity(0.15))
+                    .fill(focusTint.opacity(0.15))
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color.teal.opacity(0.60), lineWidth: 1)
+                            .strokeBorder(focusTint.opacity(0.60), lineWidth: 1)
                     }
                     .padding(.horizontal, -8)
             }
