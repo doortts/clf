@@ -214,6 +214,59 @@ final class HandoffSiteTests: XCTestCase {
     }
 }
 
+/// 옮기기 전에 무슨 말을 해줘야 하나.
+///
+/// 예전 문구는 "옮기면 목록에서 빠진다" 였는데 거짓이었다. 목록 갱신이
+/// 더하기만 해서 재시작 전까지 안 빠진다. docs/design/13-multi-instance.md 12절
+final class HandoffPlanTextTests: XCTestCase {
+    private func plan(_ from: InstanceSlot, _ to: InstanceSlot) -> HandoffPlan {
+        .before(source: ("A", from), target: ("B", to))
+    }
+
+    func test_saysWhereItGoesAndWhatIsUntouched() {
+        let m = plan(.none, .none).moves
+        XCTAssertTrue(m.contains("B"))
+        XCTAssertTrue(m.contains("대화 내용"))
+    }
+
+    /// 기본 창에서 보내면 재시작을 권한다. 이것이 이 안내의 요점이다.
+    func test_primarySourceRecommendsARestart() {
+        let note = plan(.primary, .none).sourceNote
+        XCTAssertNotNil(note)
+        XCTAssertTrue(note!.contains("재시작"))
+        XCTAssertTrue(note!.contains("남아"))
+    }
+
+    /// 왜 재시작해야 하는지도 말한다. 이유 없는 권고는 안 지켜진다.
+    func test_saysWhyTheRestartMatters() {
+        XCTAssertTrue(plan(.primary, .none).sourceNote!.contains("누르면"))
+    }
+
+    /// 별도 창은 우리가 다시 띄운다. 사용자가 할 일이 없다.
+    func test_runningSourceIsHandledByUs() {
+        let note = plan(.running, .none).sourceNote
+        XCTAssertTrue(note!.contains("다시 띄워"))
+        XCTAssertFalse(note!.contains("재시작"))
+    }
+
+    /// 창이 없으면 할 말이 없다. 빈 줄을 만들지 않는다.
+    func test_noWindowSaysNothing() {
+        XCTAssertNil(plan(.none, .none).sourceNote)
+        XCTAssertNil(plan(.none, .none).targetNote)
+    }
+
+    /// 받는 쪽이 기본 창이면 나타나게 하려고 재시작이 필요하다. 방향만 다르다.
+    func test_primaryTargetAlsoNeedsARestart() {
+        XCTAssertTrue(plan(.none, .primary).targetNote!.contains("재시작"))
+    }
+
+    func test_linesDropTheEmptyOnes() {
+        XCTAssertEqual(plan(.none, .none).lines.count, 1)
+        XCTAssertEqual(plan(.primary, .none).lines.count, 2)
+        XCTAssertEqual(plan(.running, .primary).lines.count, 3)
+    }
+}
+
 /// 옮긴 뒤 무슨 말을 해줘야 하나. 앱은 세션 목록을 메모리에 들고 있어서
 /// 파일만 바꿔서는 화면이 안 바뀐다.
 final class HandoffAdviceTests: XCTestCase {

@@ -57,6 +57,12 @@ final class HandoffModel: ObservableObject {
 
     func account(_ uuid: String) -> Account? { accounts.first { $0.uuid == uuid } }
 
+    /// 옮기기 전에 보여줄 안내. 계정이 둘 다 정해져야 만들 수 있다.
+    var plan: HandoffPlan? {
+        guard let from = account(source), let to = account(target) else { return nil }
+        return .before(source: (from.name, from.slot), target: (to.name, to.slot))
+    }
+
     var canMove: Bool {
         !working && !picked.isEmpty && SessionHandoff.canMove(from: source, to: target)
     }

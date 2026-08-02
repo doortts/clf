@@ -219,6 +219,54 @@ extension SessionHandoff {
     }
 }
 
+/// 옮기기 전에 보여줄 안내. `HandoffAdvice` 의 반대쪽이다.
+///
+/// 저쪽은 옮긴 뒤 할 일을 말하고 이쪽은 옮기면 무슨 일이 생기는지 미리 말한다.
+///
+/// **보낸 쪽 창에 줄이 남는다는 것을 먼저 알려야 한다.** 목록에서 바로 빠질
+/// 것처럼 말하면 거짓이다. 앱의 목록 갱신은 더하기만 해서 사라진 레코드를
+/// 지우지 않는다. 남은 줄은 누르면 열리고 그러면 두 창이 같은 대화에 쓴다.
+/// docs/design/13-multi-instance.md 12절
+public struct HandoffPlan: Sendable, Equatable {
+    public let moves: String
+    /// 보낸 쪽에 남는 줄을 어떻게 하나. 할 말이 없으면 `nil`.
+    public let sourceNote: String?
+    /// 받는 쪽에 언제 나타나나. 할 말이 없으면 `nil`.
+    public let targetNote: String?
+
+    /// 화면에 뿌릴 줄들. 빈 것은 뺀다.
+    public var lines: [String] { [moves, sourceNote, targetNote].compactMap { $0 } }
+
+    public static func before(source: (name: String, slot: InstanceSlot),
+                              target: (name: String, slot: InstanceSlot)) -> HandoffPlan {
+        HandoffPlan(moves: "옮기면 그 대화는 \(target.name) 것이 된다. 대화 내용은 손대지 않는다.",
+                    sourceNote: leaving(source),
+                    targetNote: arriving(target))
+    }
+
+    /// 보낸 쪽. 기본 창은 사용자가 닫아야 하고 별도 창은 우리가 닫는다.
+    private static func leaving(_ a: (name: String, slot: InstanceSlot)) -> String? {
+        switch a.slot {
+        case .primary:
+            return "옮긴 뒤 \(a.name) 기본 창을 재시작하는 것이 좋다. 그 전까지 이 대화가"
+                + " 목록에 남아 있고, 그 줄을 누르면 열려서 두 창이 같은 대화에 쓰게 된다."
+        case .running:
+            return "\(a.name) 창은 옮긴 뒤 다시 띄워 준다. 그래야 목록에서 빠진다."
+        case .opening, .none, .unavailable:
+            return nil
+        }
+    }
+
+    /// 받는 쪽. 이쪽은 나타나게 하려고 필요하다. 방향만 다르고 이유는 같다.
+    private static func arriving(_ a: (name: String, slot: InstanceSlot)) -> String? {
+        switch a.slot {
+        case .primary: return "\(a.name) 기본 창도 재시작해야 목록에 나타난다."
+        case .running: return "\(a.name) 창은 다시 띄워 준다."
+        case .opening, .none, .unavailable: return nil
+        }
+    }
+}
+
 /// 옮긴 뒤에 남는 일.
 ///
 /// 데스크톱 앱은 세션 목록을 메모리에 들고 있다. 레코드 파일만 바꾸면 화면은

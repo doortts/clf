@@ -115,9 +115,16 @@ struct HandoffView: View {
                     }
                 }
             }
+        } else if let plan = model.plan {
+            // 보낸 쪽에 할 일이 남으면 노란 띠를 세운다. 그냥 설명이 아니라 권고다
+            box(plan.sourceNote == nil ? nil : Color.yellow) {
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(plan.lines, id: \.self) { wrapped($0) }
+                }
+            }
         } else {
             box(nil) {
-                wrapped(plan)
+                wrapped("계정이 둘은 있어야 넘길 수 있다.")
             }
         }
     }
@@ -129,13 +136,6 @@ struct HandoffView: View {
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .multilineTextAlignment(.leading)
-    }
-
-    private var plan: String {
-        guard let from = model.account(model.source), let to = model.account(model.target)
-        else { return "계정이 둘은 있어야 넘길 수 있다." }
-        return "옮기면 \(from.name) 목록에서 빠지고 \(to.name) 에 나타난다. "
-            + "한 계정만 그 대화를 가리키므로 두 창이 같은 파일을 함께 쓰는 일이 없다."
     }
 
     private func box(_ accent: Color?, @ViewBuilder content: () -> some View) -> some View {
