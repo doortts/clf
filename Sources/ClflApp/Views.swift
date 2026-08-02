@@ -467,6 +467,10 @@ struct PopoverView: View {
                 .accessibilityLabel("clfl 종료")
             }
             .buttonStyle(.borderless)
+            // 카드 영역과 하단 조작 줄은 다른 얘기다. 선 대신 여백으로
+            // 구획을 만든다. 설정을 편 상태에는 위에 선과 간격이 이미 있다.
+            // docs/design/footer-gap-mockup.html A안
+            .padding(.top, showingSettings ? 0 : 16)
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)

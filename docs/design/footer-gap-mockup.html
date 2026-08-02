@@ -1,0 +1,153 @@
+<meta charset="utf-8">
+<title>하단 줄 간격 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:760px; }
+  h2 { font-size:13px; margin:26px 0 10px; }
+  .row { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .variant { display:flex; flex-direction:column; gap:8px; }
+  .vname { font-size:10px; color:#98989d; max-width:300px; }
+  .vname b { color:#f2f2f7; font-weight:600; }
+
+  /* 팝오버 재현. 카드 아랫부분만 잘라서 보여준다 */
+  .popover { width:300px; background:#2c2c2e; border-radius:10px; padding:6px 14px 8px;
+             box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .card { position:relative; padding:10px 8px; margin:0 -8px; border-radius:8px;
+          background:rgba(191,90,242,.15); border:1px solid rgba(191,90,242,.60); }
+  .cut { font-size:9px; color:#7c7c80; text-align:center; padding:2px 0 6px;
+         letter-spacing:2px; }
+  .lim { display:flex; flex-direction:column; gap:2px; }
+  .limtop { display:flex; align-items:center; gap:8px; }
+  .limname { font-size:11px; width:64px; }
+  .pct { font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; width:32px; }
+  .gauge { flex:1; height:12px; border-radius:7px; border:1.5px solid #34c759; position:relative;
+           overflow:hidden; }
+  .gfill { position:absolute; left:0; top:0; bottom:0; border-radius:5px; width:14%;
+           background:#34c759; }
+  .reset { font-size:9px; color:#7c7c80; padding-left:72px; margin-top:2px; }
+
+  /* 하단 줄 */
+  .footer { display:flex; align-items:center; gap:10px; }
+  .stamp { font-size:10px; color:#7c7c80; }
+  .spacer { flex:1; }
+  .btn { display:flex; align-items:center; gap:5px; font-size:11px; font-weight:500;
+         color:#f2f2f7; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.08);
+         border-radius:6px; padding:3px 9px; }
+  .quit { display:flex; align-items:center; gap:4px; font-size:10px; font-weight:500;
+          color:#ff453a; }
+  .divider { height:1px; background:rgba(255,255,255,.12); margin:0 -14px; }
+
+  .note { margin-top:26px; color:#98989d; max-width:760px; }
+  .note b { color:#f2f2f7; }
+  code { background:rgba(255,255,255,.08); border-radius:4px; padding:0 4px; font-size:11px; }
+</style>
+
+<h1>하단 줄 간격 시안</h1>
+<p class="lede">
+  지금은 마지막 계정 카드와 하단 줄(갱신 시각, 세션 작업 이전하기, 종료)
+  사이가 카드 안쪽 여백 10pt 뿐이다. 포커스 카드가 마지막이면 보라
+  테두리가 하단 줄에 거의 닿는다. 카드 영역과 하단 조작 줄은 다른
+  얘기이므로 간격으로 구획을 만든다.
+</p>
+
+<h2>시안</h2>
+<div class="row">
+
+  <div class="variant">
+    <div class="vname"><b>지금</b> - 카드 여백 10pt 뿐. 테두리와 하단 줄이 붙어 보인다.</div>
+    <div class="popover">
+      <div class="cut">( 카드 윗부분 생략 )</div>
+      <div class="card">
+        <div class="lim">
+          <div class="limtop">
+            <span class="limname">주간 Fable</span><span class="pct">14%</span>
+            <span class="gauge"><span class="gfill"></span></span>
+          </div>
+          <div class="reset">리셋: 62%, 2일 15시간 뒤 (수요일 오후 9:00)</div>
+        </div>
+      </div>
+      <div class="footer" style="margin-top:0">
+        <span class="stamp">05:02 갱신</span><span class="spacer"></span>
+        <span class="btn"><svg width="11" height="9" viewBox="0 0 11 9"><path d="M3 1 L1 2.7 3 4.4 M1 2.7 H8 M8 4.6 L10 6.3 8 8 M10 6.3 H3" fill="none" stroke="#f2f2f7" stroke-width="1.1"/></svg>세션 작업 이전하기</span>
+        <span class="quit"><svg width="9" height="10" viewBox="0 0 9 10"><path d="M4.5 1 V4.2 M1.7 2.2 A3.8 3.8 0 1 0 7.3 2.2" fill="none" stroke="#ff453a" stroke-width="1.2"/></svg>종료</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="variant">
+    <div class="vname"><b>A. 간격 16pt (추천)</b> - 하단 줄 위에 여백만 더한다.
+      선을 긋지 않는 최근 팝오버 정리 방향과 같다.</div>
+    <div class="popover">
+      <div class="cut">( 카드 윗부분 생략 )</div>
+      <div class="card">
+        <div class="lim">
+          <div class="limtop">
+            <span class="limname">주간 Fable</span><span class="pct">14%</span>
+            <span class="gauge"><span class="gfill"></span></span>
+          </div>
+          <div class="reset">리셋: 62%, 2일 15시간 뒤 (수요일 오후 9:00)</div>
+        </div>
+      </div>
+      <div class="footer" style="margin-top:16px">
+        <span class="stamp">05:02 갱신</span><span class="spacer"></span>
+        <span class="btn"><svg width="11" height="9" viewBox="0 0 11 9"><path d="M3 1 L1 2.7 3 4.4 M1 2.7 H8 M8 4.6 L10 6.3 8 8 M10 6.3 H3" fill="none" stroke="#f2f2f7" stroke-width="1.1"/></svg>세션 작업 이전하기</span>
+        <span class="quit"><svg width="9" height="10" viewBox="0 0 9 10"><path d="M4.5 1 V4.2 M1.7 2.2 A3.8 3.8 0 1 0 7.3 2.2" fill="none" stroke="#ff453a" stroke-width="1.2"/></svg>종료</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="variant">
+    <div class="vname"><b>B. 간격 24pt</b> - 더 넉넉하다. 대신 팝오버가 8pt 길어진다.</div>
+    <div class="popover">
+      <div class="cut">( 카드 윗부분 생략 )</div>
+      <div class="card">
+        <div class="lim">
+          <div class="limtop">
+            <span class="limname">주간 Fable</span><span class="pct">14%</span>
+            <span class="gauge"><span class="gfill"></span></span>
+          </div>
+          <div class="reset">리셋: 62%, 2일 15시간 뒤 (수요일 오후 9:00)</div>
+        </div>
+      </div>
+      <div class="footer" style="margin-top:24px">
+        <span class="stamp">05:02 갱신</span><span class="spacer"></span>
+        <span class="btn"><svg width="11" height="9" viewBox="0 0 11 9"><path d="M3 1 L1 2.7 3 4.4 M1 2.7 H8 M8 4.6 L10 6.3 8 8 M10 6.3 H3" fill="none" stroke="#f2f2f7" stroke-width="1.1"/></svg>세션 작업 이전하기</span>
+        <span class="quit"><svg width="9" height="10" viewBox="0 0 9 10"><path d="M4.5 1 V4.2 M1.7 2.2 A3.8 3.8 0 1 0 7.3 2.2" fill="none" stroke="#ff453a" stroke-width="1.2"/></svg>종료</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="variant">
+    <div class="vname"><b>C. 선 + 간격</b> - 팝오버 폭 전체에 선을 긋고 위 10pt,
+      아래 8pt. 구획은 제일 또렷하지만 선을 없애 온 정리 방향과 어긋난다.</div>
+    <div class="popover">
+      <div class="cut">( 카드 윗부분 생략 )</div>
+      <div class="card">
+        <div class="lim">
+          <div class="limtop">
+            <span class="limname">주간 Fable</span><span class="pct">14%</span>
+            <span class="gauge"><span class="gfill"></span></span>
+          </div>
+          <div class="reset">리셋: 62%, 2일 15시간 뒤 (수요일 오후 9:00)</div>
+        </div>
+      </div>
+      <div class="divider" style="margin-top:10px"></div>
+      <div class="footer" style="margin-top:8px">
+        <span class="stamp">05:02 갱신</span><span class="spacer"></span>
+        <span class="btn"><svg width="11" height="9" viewBox="0 0 11 9"><path d="M3 1 L1 2.7 3 4.4 M1 2.7 H8 M8 4.6 L10 6.3 8 8 M10 6.3 H3" fill="none" stroke="#f2f2f7" stroke-width="1.1"/></svg>세션 작업 이전하기</span>
+        <span class="quit"><svg width="9" height="10" viewBox="0 0 9 10"><path d="M4.5 1 V4.2 M1.7 2.2 A3.8 3.8 0 1 0 7.3 2.2" fill="none" stroke="#ff453a" stroke-width="1.2"/></svg>종료</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="note">
+  <b>구현 값:</b> A 는 하단 HStack 에 <code>.padding(.top, 16)</code> 하나다.
+  B 는 24. C 는 <code>Divider().padding(.top, 10)</code> 과 HStack
+  <code>.padding(.top, 8)</code>. 설정을 편 상태에는 이미
+  <code>Divider().padding(.vertical, 6)</code> 이 있어서, A/B 를 고르면
+  설정이 열렸을 때 간격이 이중으로 커지지 않게 닫힌 상태에만 여백을 준다.
+</p>
