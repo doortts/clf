@@ -60,6 +60,26 @@ extension UsageBand {
         self == .normal ? .secondary : fillColor
     }
 
+    /// 트랙을 채우는 막대 색. 라이트에서만 알약과 따로 간다.
+    ///
+    /// 어두운 팝오버에서는 알약색 하나로 충분했다. 밝은 팝오버에서는 그
+    /// 색이 그대로 나오면서 정상 구간의 막대가 화면에서 제일 어두운
+    /// 덩어리가 되고, 여유 구간의 초록은 트랙과 대비가 1.3 밖에 안 되어
+    /// 어디까지 찼는지 안 보였다. 눈길을 끌지 않아야 할 쪽이 더 세게 튀는
+    /// 뒤집힘이다. 숫자가 앉는 알약은 그대로 두고 막대만 바꾼다.
+    /// docs/design/light-gauge-mockup.html B안
+    /// **값이 시안보다 한 단 어둡다.** 팝오버 창이 반투명이라 칠한 색이
+    /// 뒤쪽과 섞여 밝아진다. 실측으로 시안의 목표색(#12803a, #9a9aa0)이
+    /// 화면에 나오는 지점까지 내렸다.
+    func gaugeFill(dark: Bool) -> Color {
+        guard !dark else { return gaugeTint }
+        switch self {
+        case .ample:  return Color(hex: 0x005c1f)
+        case .normal: return Color(hex: 0x86868c)
+        case .low, .empty: return gaugeTint
+        }
+    }
+
     /// 면으로 칠할 때는 시스템 색을 그대로 쓴다.
     var fillColor: Color {
         switch self {
@@ -254,8 +274,12 @@ struct UsageGauge: View {
         return band.prefersLightInk ? .white : .black
     }
 
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         let tint = band?.gaugeTint ?? Color.secondary.opacity(0.5)
+        // 알약은 tint 로 그대로 그리고 막대만 따로 칠한다
+        let fillTint = band?.gaugeFill(dark: scheme == .dark) ?? tint
         GeometryReader { geo in
             let trackWidth = max(0, geo.size.width - numberArea - trackInset)
             let trackHeight = height - trackInset * 2
@@ -280,7 +304,7 @@ struct UsageGauge: View {
                     // 오른쪽 끝은 곧게 끊는다. 둥글리면 그 곡선만큼 값이
                     // 뭉개져 보인다. 가득 찼을 때만 바깥 테를 따라 둥글어진다
                     Rectangle()
-                        .fill(tint)
+                        .fill(fillTint)
                         .frame(width: max(Metrics.gaugeMinFill,
                                           boxWidth * Double(percent) / 100),
                                height: boxHeight)

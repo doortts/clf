@@ -1,0 +1,197 @@
+<meta charset="utf-8">
+<title>라이트 테마 게이지 색 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#dedddb; color:#1c1c1e; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  h2 { font-size:13px; margin:28px 0 10px; }
+  p.lede { color:#4a4a4e; margin:0 0 20px; max-width:860px; }
+  .row { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  .variant { display:flex; flex-direction:column; gap:8px; width:520px; }
+  .vname { font-size:11px; color:#4a4a4e; min-height:46px; }
+  .vname b { color:#1c1c1e; font-weight:600; font-size:12px; }
+
+  /* 실제 팝오버 치수 그대로. 읽기 좋게 1.5 배로만 키운다 */
+  .popover { zoom:1.5; width:340px; background:#ebeaea; border-radius:10px;
+             padding:10px 14px; box-shadow:0 6px 20px rgba(0,0,0,.16); }
+  .card { padding:8px 8px 4px; margin:0 -8px; border-radius:8px; }
+  .card.focus { background:#e0d5e3; }
+  .head { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#0a6cd4; }
+  .aname { font-size:13px; font-weight:600; }
+  .badge { font-size:10px; font-weight:600; padding:1px 6px; border-radius:5px;
+           color:#0a6cd4; background:rgba(10,108,212,.16); }
+  .lim { margin-bottom:7px; }
+  .lim:last-child { margin-bottom:0; }
+  .limtop { display:flex; align-items:center; gap:7px; }
+  .limname { font-size:11px; width:58px; color:#3a3a3c; }
+  .reset { font-size:9px; color:#77777b; padding-left:65px; margin-top:2px; }
+
+  /* 게이지: 바깥 알약 안에 숫자 자리와 트랙이 있고, 트랙 안에서 채움이
+     왼쪽부터 찬다. 채움의 오른쪽 끝은 곧게 끊는다 */
+  .gauge { position:relative; flex:1; height:18px; border-radius:9px; }
+  .num { position:absolute; left:0; top:0; width:44px; height:18px; display:flex;
+         align-items:center; justify-content:center;
+         font:700 12px ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .track { position:absolute; left:44px; top:2.5px; right:2.5px; height:13px;
+           border-radius:6.5px; }
+  .box { position:absolute; left:1.5px; top:1.5px; right:1.5px; height:10px;
+         border-radius:5px; overflow:hidden; }
+  .fill { display:block; height:10px; }
+
+  table.c { border-collapse:collapse; font-size:10px; color:#4a4a4e; }
+  table.c td { padding:1px 10px 1px 0; }
+  table.c b { color:#1c1c1e; }
+  .note { margin-top:24px; color:#4a4a4e; max-width:860px; }
+  .note b { color:#1c1c1e; }
+  code { background:rgba(0,0,0,.08); border-radius:4px; padding:0 4px; font-size:11px; }
+</style>
+
+<h1>라이트 테마 게이지 색 시안</h1>
+<p class="lede" style="color:#0d5a2a">
+  <b>확정: B 안.</b> 알약과 숫자는 그대로 두고 채움 막대만 바꿨다. 적용 뒤
+  실측으로 여유의 채움 대 트랙이 1.3 에서 4.0 으로, 정상은 5.5 에서 1.5 로
+  갔다. 코드에 적은 값은 시안보다 한 단 어둡다. 창이 반투명이라 칠한 색이
+  뒤쪽과 섞여 밝아지는 만큼 미리 내려 둔 것이다.
+</p>
+<p class="lede">
+  실제 라이트 팝오버를 찍어 픽셀에서 뽑은 값으로 그렸다. 게이지 한 줄은
+  바깥 알약, 그 안 왼쪽의 숫자 자리, 오른쪽의 트랙, 트랙을 퍼센트만큼 채우는
+  막대로 되어 있다. 채움의 오른쪽 끝은 곧게 끊긴다. 아래 네 칸은 이 구조와
+  치수를 그대로 두고 색만 바꾼 것이다. 줄과 값도 실제 화면 그대로다.
+  다크 테마는 건드리지 않는다.
+</p>
+
+<div class="row" id="grid"></div>
+
+<h2>참고: 주의와 소진 구간</h2>
+<p class="lede">
+  노랑(주의)과 빨강(소진)은 이번 대상이 아니다. 지금 값 그대로 두었을 때
+  위 안들과 나란히 어떻게 보이는지만 확인한다.
+</p>
+<div class="row" id="refs"></div>
+
+<p class="note">
+  <b>트랙 색에 대하여:</b> 빈 트랙은 자기 색이 없다. 알약에서 파낸 자리라
+  창 뒤에 있는 것이 그대로 비친다. 위에서 초록 줄의 트랙이 옅은 초록,
+  회색 줄의 트랙이 옅은 보라인 것도 하나는 바탕화면 사진 위, 하나는 포커스
+  카드 위여서다. 네 칸 모두 같은 실측값을 썼으니 비교에는 영향이 없다.
+</p>
+<p class="note">
+  <b>구현 자리:</b> <code>UsageBand.gaugeTint</code> 와
+  <code>prefersLightInk</code> 가 지금은 밝기와 무관하게 한 값이다. 라이트만
+  바꾸려면 <code>dotColor(dark:)</code> 처럼 밝기를 받아야 한다. 알약은
+  채움색에 검정 25% 를 덮어 만드는데(<code>Metrics.gaugeTrackDim</code>),
+  B 안처럼 알약과 채움을 따로 두려면 그 자리도 같이 손봐야 한다.
+</p>
+
+<script>
+  // 실제 라이트 화면에서 뽑은 값
+  const NOW = {
+    ample:  { pill: "#5aa551", fill: "#72d068", ink: "#000000" },
+    normal: { pill: "#737373", fill: "#473e4a", ink: "#ffffff" },
+  };
+  // 트랙은 창 뒤가 비친 것이라 네 칸 모두 같은 실측값을 쓴다
+  const TRACK = { plain: "#c3d6bf", focus: "#c2bbc5" };
+  const low   = { pill: "#c79b00", fill: "#ffcc00", ink: "#000000" };
+  const empty = { pill: "#c52d25", fill: "#ff3b30", ink: "#ffffff" };
+
+  const variants = [
+    {
+      name: "지금",
+      note: "정상(회색)의 채움이 화면에서 제일 어두운 덩어리다. 눈길을 끌지 않아야 하는 구간인데 여유(초록)보다 세게 튄다. 여유의 채움은 밝아서 트랙과 잘 안 갈린다.",
+      ...NOW,
+    },
+    {
+      name: "A. 회색은 밝게, 초록은 진하게 (추천)",
+      note: "정상은 systemGray 로 물러나고 여유는 깊은 초록으로 내린다. 알약도 채움을 따라가므로 숫자는 양쪽 다 흰 글자가 된다. 정상과 여유의 세기가 뒤집힌 것이 바로잡힌다.",
+      ample:  { pill: "#0e632d", fill: "#12803a", ink: "#ffffff" },
+      normal: { pill: "#6e6e72", fill: "#8e8e93", ink: "#ffffff" },
+    },
+    {
+      name: "B. 알약은 그대로, 채움만 바꾼다",
+      note: "숫자가 앉는 알약은 지금 밝기를 유지하고 채움 막대만 바꾼다. 숫자 읽히는 정도가 지금과 똑같아서 제일 안전하다. 대신 알약과 채움의 밝기가 벌어진다.",
+      ample:  { pill: "#5aa551", fill: "#12803a", ink: "#000000" },
+      normal: { pill: "#737373", fill: "#9a9aa0", ink: "#ffffff" },
+    },
+    {
+      name: "C. 정상을 끝까지 물린다",
+      note: "정상 구간은 눈길을 끌지 않는 것이 원래 뜻이다. 채움을 아주 밝은 회색까지 물려 거의 안 보이게 한다. 여유는 A 와 같다. 다만 값이 얼마인지 막대로는 읽기 어려워진다.",
+      ample:  { pill: "#0e632d", fill: "#12803a", ink: "#ffffff" },
+      normal: { pill: "#8e8e93", fill: "#c7c7cc", ink: "#000000" },
+    },
+  ];
+
+  const lum = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => v / 255)
+      .map(v => v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4));
+    return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
+  };
+  const ratio = (a, b) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return ((x + .05) / (y + .05)).toFixed(1);
+  };
+
+  const bar = (name, pct, band, track, reset) => `
+    <div class="lim">
+      <div class="limtop">
+        <span class="limname">${name}</span>
+        <span class="gauge" style="background:${band.pill}">
+          <span class="num" style="color:${band.ink}">${pct}%</span>
+          <span class="track" style="background:${track}">
+            <span class="box"><span class="fill"
+              style="width:${pct}%;background:${band.fill}"></span></span>
+          </span>
+        </span>
+      </div>
+      <div class="reset">${reset}</div>
+    </div>`;
+
+  const popover = (v) => `
+    <div class="popover">
+      <div class="card">
+        <div class="head"><span class="aname">NAVER_TEAM_40</span>
+          <span class="badge">team</span></div>
+        ${bar("5시간", 0, v.ample, TRACK.plain, "창 안 열림")}
+        ${bar("주간 전체", 30, v.ample, TRACK.plain, "리셋: 43%, 3일 23시간 뒤 (금요일 오전 6:00)")}
+        ${bar("주간 Fable", 12, v.ample, TRACK.plain, "리셋: 43%, 3일 23시간 뒤 (금요일 오전 6:00)")}
+      </div>
+      <div class="card focus">
+        <div class="head"><span class="dot"></span><span class="aname">NAVER_TEAM_52</span>
+          <span class="badge">team</span></div>
+        ${bar("5시간", 66, v.normal, TRACK.focus, "리셋: 44%, 2시간 46분 뒤")}
+        ${bar("주간 전체", 18, v.ample, TRACK.focus, "리셋: 63%, 2일 14시간 뒤 (수요일 오후 9:00)")}
+        ${bar("주간 Fable", 28, v.ample, TRACK.focus, "리셋: 63%, 2일 14시간 뒤 (수요일 오후 9:00)")}
+      </div>
+    </div>`;
+
+  document.getElementById("grid").innerHTML = variants.map(v => `
+    <div class="variant">
+      <div class="vname"><b>${v.name}</b><br>${v.note}</div>
+      ${popover(v)}
+      <table class="c">
+        <tr><td>여유: 숫자 대 알약</td><td><b>${ratio(v.ample.ink, v.ample.pill)}</b></td>
+            <td>채움 대 트랙</td><td><b>${ratio(v.ample.fill, TRACK.plain)}</b></td></tr>
+        <tr><td>정상: 숫자 대 알약</td><td><b>${ratio(v.normal.ink, v.normal.pill)}</b></td>
+            <td>채움 대 트랙</td><td><b>${ratio(v.normal.fill, TRACK.focus)}</b></td></tr>
+      </table>
+    </div>`).join("");
+
+  document.getElementById("refs").innerHTML = `
+    <div class="variant">
+      <div class="vname"><b>주의(노랑)와 소진(빨강)</b><br>지금 값 그대로다.</div>
+      <div class="popover">
+        <div class="card">
+          ${bar("주의", 11, low, TRACK.plain, "리셋: 89%, 2시간 뒤")}
+          ${bar("소진", 3, empty, TRACK.plain, "리셋: 97%, 40분 뒤")}
+        </div>
+      </div>
+      <table class="c">
+        <tr><td>주의: 숫자 대 알약</td><td><b>${ratio(low.ink, low.pill)}</b></td>
+            <td>채움 대 트랙</td><td><b>${ratio(low.fill, TRACK.plain)}</b></td></tr>
+        <tr><td>소진: 숫자 대 알약</td><td><b>${ratio(empty.ink, empty.pill)}</b></td>
+            <td>채움 대 트랙</td><td><b>${ratio(empty.fill, TRACK.plain)}</b></td></tr>
+      </table>
+    </div>`;
+</script>
