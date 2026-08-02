@@ -133,14 +133,31 @@ public enum BarText {
     /// 있는지의 문제지 언어가 아니다.
     public static let uiLocale = Locale(identifier: "ko_KR")
 
-    public static func reset(_ date: Date?, from now: Date = Date(),
+    public static func reset(_ date: Date?, window: TimeInterval? = nil,
+                             from now: Date = Date(),
                              locale: Locale = BarText.uiLocale,
                              timeZone: TimeZone = .current) -> String {
         let relative = until(date, from: now)
+        // 아직 안 열린 창은 리셋 시각이 없다. 진행률도 낼 수 없다
         guard let date else { return relative }
-        guard date.timeIntervalSince(now) > 86400 else { return prefix + relative }
-        return prefix + relative
+
+        // 남은 시간만 보면 그 창이 얼마나 지났는지는 모른다. 5시간 창의
+        // 10분과 주간 창의 10분은 뜻이 다르다
+        let done = window.map { "\(elapsedPercent(until: date, window: $0, from: now))%, " } ?? ""
+        guard date.timeIntervalSince(now) > 86400 else { return prefix + done + relative }
+        return prefix + done + relative
             + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
+    }
+
+    /// 창이 얼마나 지났나. 100% 에 닿으면 리셋이다.
+    ///
+    /// 시계가 어긋나면 창 길이보다 더 남은 것으로 나올 수 있다. 음수나
+    /// 100 을 넘는 값을 보여주면 고장으로 보이므로 가둔다.
+    public static func elapsedPercent(until date: Date, window: TimeInterval,
+                                      from now: Date) -> Int {
+        guard window > 0 else { return 100 }
+        let left = date.timeIntervalSince(now)
+        return min(100, max(0, Int(((window - left) / window * 100).rounded())))
     }
 
     static let prefix = "리셋: "

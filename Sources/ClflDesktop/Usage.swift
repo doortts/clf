@@ -20,6 +20,19 @@ public enum LimitKind: String, Sendable, CaseIterable {
         case .weeklyScoped: return "주간 Fable"
         }
     }
+
+    /// 창 하나가 몇 시간짜리인가.
+    ///
+    /// **서버는 창 길이를 안 준다.** 리셋 시각만 온다. 그래서 종류로 정한다.
+    /// 5시간 창은 이름 그대로고, 주간 둘은 리셋이 매주 같은 요일 같은 시각에
+    /// 오는 것으로 안다. 서버가 길이를 바꾸면 진행률만 틀리고 남은 시간은
+    /// 그대로 맞는다.
+    public var window: TimeInterval {
+        switch self {
+        case .session:                    return 5 * 3600
+        case .weeklyAll, .weeklyScoped:   return 7 * 86_400
+        }
+    }
 }
 
 /// 한 창의 상태.

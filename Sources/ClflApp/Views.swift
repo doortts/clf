@@ -142,7 +142,7 @@ struct OrgCard: View {
                     .frame(width: 58, alignment: .leading)
                 UsageGauge(limit: limit, direction: direction)
             }
-            Text(BarText.reset(limit?.resetsAt))
+            Text(BarText.reset(limit?.resetsAt, window: kind.window))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
                 .padding(.leading, 65)
         }
