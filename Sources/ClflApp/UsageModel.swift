@@ -232,7 +232,8 @@ final class UsageModel: ObservableObject {
         known = reassignActive(to: uuid, in: known)
         orgs = prefs.apply(to: known)
         barOrgs = prefs.barOrgs(from: known)
-        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
+        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
+                                   direction: prefs.gaugeDirection)
 
         // 첫 관측은 전환이 아니다. 시작할 때 도는 읽기와 겹치면 요청만 두 배다
         guard !first else { return }
@@ -256,7 +257,8 @@ final class UsageModel: ObservableObject {
     }
 
     private func redrawBar() {
-        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
+        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
+                                   direction: prefs.gaugeDirection)
     }
 
     /// 팝오버를 열 때, 새로고침을 누를 때, 그리고 주기 루프가 부를 때.
@@ -285,7 +287,8 @@ final class UsageModel: ObservableObject {
             if !snapshot.names.isEmpty { cachedNames = snapshot.names }
             orgs = prefs.apply(to: known)
             barOrgs = prefs.barOrgs(from: known)
-            barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
+            barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
+                                       direction: prefs.gaugeDirection)
             if !snapshot.throttled { readAt = snapshot.readAt }
             failure = nil
         } catch {
@@ -335,10 +338,16 @@ final class UsageModel: ObservableObject {
         persist()
     }
 
+    func setGaugeDirection(_ direction: GaugeDirection) {
+        prefs.gaugeDirection = direction
+        persist()
+    }
+
     private func persist() {
         try? file?.save(prefs)
         orgs = prefs.apply(to: known)
         barOrgs = prefs.barOrgs(from: known)
-        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail)
+        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
+                                   direction: prefs.gaugeDirection)
     }
 }

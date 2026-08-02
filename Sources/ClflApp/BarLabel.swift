@@ -10,6 +10,7 @@ struct BarOrgView: View {
     let code: String
     let org: OrgUsage
     let detail: BarDetail
+    let direction: GaugeDirection
     var dark = true
 
     var body: some View {
@@ -22,7 +23,8 @@ struct BarOrgView: View {
                 VStack(alignment: .leading, spacing: -1) {
                     if let spend = org.spend, org.limits.isEmpty {
                         // Enterprise 는 창이 없다. 예산 한 줄이 전부다
-                        value("예산", "\(spend.percentRemaining)%", spend.band)
+                        value("예산", "\(direction.displayPercent(used: spend.percentUsed))%",
+                              spend.band)
                     } else {
                         number(.session, "5h")
                         number(.weeklyAll, "1w")
@@ -30,7 +32,7 @@ struct BarOrgView: View {
                 }
             }
             if detail.showsDots {
-                SegmentBlock(org: org, dark: dark)
+                SegmentBlock(org: org, direction: direction, dark: dark)
             }
         }
         .fixedSize()
@@ -39,7 +41,8 @@ struct BarOrgView: View {
     /// 걸린 창의 숫자만 색이 바뀐다. 라벨은 그대로 둔다.
     private func number(_ kind: LimitKind, _ tag: String) -> some View {
         let limit = org.limits[kind]
-        return value(tag, limit.map { "\($0.percentRemaining)%" } ?? BarText.unknown,
+        return value(tag, limit.map { "\(direction.displayPercent(used: $0.percentUsed))%" }
+                        ?? BarText.unknown,
                      limit?.band)
     }
 
@@ -65,6 +68,7 @@ struct BarOrgView: View {
 struct BarLabelView: View {
     let orgs: [OrgUsage]
     let detail: BarDetail
+    let direction: GaugeDirection
     var dark = true
 
     var body: some View {
@@ -75,7 +79,7 @@ struct BarLabelView: View {
             } else {
                 ForEach(orgs) { org in
                     BarOrgView(code: codes[org.name] ?? BarText.unknown, org: org,
-                               detail: detail, dark: dark)
+                               detail: detail, direction: direction, dark: dark)
                 }
             }
         }
@@ -100,10 +104,11 @@ enum BarImage {
         NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
 
-    static func render(orgs: [OrgUsage], detail: BarDetail, scale: CGFloat = 2) -> NSImage? {
+    static func render(orgs: [OrgUsage], detail: BarDetail, direction: GaugeDirection,
+                       scale: CGFloat = 2) -> NSImage? {
         let dark = menuBarIsDark
         let renderer = ImageRenderer(
-            content: BarLabelView(orgs: orgs, detail: detail, dark: dark))
+            content: BarLabelView(orgs: orgs, detail: detail, direction: direction, dark: dark))
         renderer.scale = scale
         guard let image = renderer.nsImage else { return nil }
         image.isTemplate = false

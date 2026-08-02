@@ -18,6 +18,7 @@ extension UsageBand {
 /// 둔다. 한 줄에 넣으면 값과 시각이 눈싸움을 한다.
 struct OrgCard: View {
     let org: OrgUsage
+    let direction: GaugeDirection
     var slot: InstanceSlot = .none
     var onLaunch: (() -> Void)?
     var onFocus: (() -> Void)?
@@ -125,7 +126,7 @@ struct OrgCard: View {
                 Text("월 예산")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
-                UsageGauge(spend: spend)
+                UsageGauge(spend: spend, direction: direction)
             }
             Text("\(spend.usedText) / \(spend.limitText) 사용")
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
@@ -139,7 +140,7 @@ struct OrgCard: View {
                 Text(kind.label)
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
-                UsageGauge(limit: limit)
+                UsageGauge(limit: limit, direction: direction)
             }
             Text(BarText.reset(limit?.resetsAt))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
@@ -234,7 +235,16 @@ struct SettingsPane: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            Text("팝오버에는 켜 둔 계정이 전부 나온다")
+            Picker("퍼센트", selection: Binding(
+                get: { model.prefs.gaugeDirection },
+                set: { model.setGaugeDirection($0) }
+            )) {
+                ForEach(GaugeDirection.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Text("팝오버에는 켜 둔 계정이 전부 나온다. 색은 잔여 기준 그대로다")
                 .font(.system(size: 9)).foregroundStyle(.tertiary)
 
             Divider()
@@ -336,7 +346,7 @@ struct PopoverView: View {
             } else {
                 ForEach(Array(model.orgs.enumerated()), id: \.element.id) { index, org in
                     if index > 0 { Divider() }
-                    OrgCard(org: org, slot: model.slot(org),
+                    OrgCard(org: org, direction: model.prefs.gaugeDirection, slot: model.slot(org),
                             onLaunch: { model.launch(org) },
                             onFocus: { model.focus(org) })
                 }

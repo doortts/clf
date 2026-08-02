@@ -18,7 +18,8 @@ struct ClflMenuBarApp: App {
             if let image = model.barImage {
                 Image(nsImage: image).onAppear { begin() }
             } else {
-                Text(BarText.label(for: model.barOrgs)).onAppear { begin() }
+                Text(BarText.label(for: model.barOrgs, direction: model.prefs.gaugeDirection))
+                    .onAppear { begin() }
             }
         }
         .menuBarExtraStyle(.window)

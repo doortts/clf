@@ -1,0 +1,80 @@
+<meta charset="utf-8">
+<title>게이지 방향 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 26px; max-width:760px; }
+  h2 { font-size:13px; margin:26px 0 10px; }
+  .grid { display:flex; gap:22px; padding:16px; border-radius:12px; background:#2c2c2e; width:max-content; }
+  .grid.light { background:#f2f2f7; color:#1c1c1e; }
+  .colhead { font-size:10px; color:#98989d; margin-bottom:8px; height:12px; }
+  .grid.light .colhead { color:#6b6b70; }
+  .line { height:26px; display:flex; align-items:center; }
+  .name { font-size:11px; color:#98989d; width:66px; }
+  .grid.light .name { color:#6b6b70; }
+  .pill { position:relative; width:210px; height:18px; border-radius:9px; display:flex;
+          align-items:center; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700; color:#000;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px; border-radius:6.5px; }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px; min-width:11px; }
+
+  .stripline { display:flex; align-items:center; gap:14px; margin:8px 0; }
+  .striphead { font-size:10px; color:#98989d; width:66px; }
+  .strip { display:flex; align-items:center; gap:9px; padding:8px 14px; border-radius:8px;
+           background:#2c2c2e; width:max-content; }
+  .code { font-size:15px; font-weight:600; }
+  .nums { display:flex; flex-direction:column; gap:1px; }
+  .numline { display:flex; gap:4px; align-items:baseline; }
+  .tag { font-size:10px; color:#7c7c80; }
+  .val { font-size:10px; font-weight:500; font-variant-numeric:tabular-nums; }
+  .val.ample { color:#30d158; }
+  .val.normal { color:#98989d; }
+  .segblock { display:flex; flex-direction:column; gap:5px; }
+  .seg { position:relative; width:60px; height:9px; border:1.5px solid; }
+  .segfill { position:absolute; left:0; top:0; bottom:0; }
+
+  .panel { padding:16px; border-radius:12px; background:#2c2c2e; width:max-content; }
+  .segctl { display:flex; background:#1c1c1e; border-radius:7px; padding:2px; width:max-content;
+            margin-bottom:6px; }
+  .segctl span { font-size:11px; padding:3px 24px; border-radius:5px; color:#98989d; }
+  .segctl .on { background:#5c5c5f; color:#fff; }
+  .caption { font-size:9px; color:#7c7c80; }
+
+  .note { margin-top:26px; color:#98989d; max-width:760px; }
+  .note b { color:#f2f2f7; }
+</style>
+
+<h1>게이지 방향 - 남은 용량 vs 사용률</h1>
+<p class="lede">
+  지금은 모든 게이지가 잔여를 그린다. 100% 에서 시작해 쓸수록 줄어든다.
+  설정에서 방향을 고르게 한다. <b>남은 용량</b>은 지금 방식 그대로,
+  <b>사용률</b>은 0% 에서 시작해 쓸수록 차오른다. 숫자와 채움이 함께
+  뒤집히고, 색 등급은 두 방식 모두 잔여 기준 그대로다. 어느 방향이든
+  빨강은 "거의 소진" 이다.
+</p>
+
+<h2>어두운 화면</h2><div class='grid dark'><div class='col names'><div class='colhead'>&nbsp;</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div><div class='line name'>안 쓴 창</div></div><div class='col'><div class='colhead'>남은 용량 (지금 방식)</div><div class='line'><div class="pill" style="background:#30d158"><span class="num">93%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 0.93)"></span></div></div><div class='line'><div class="pill" style="background:#30d158"><span class="num">76%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 0.76)"></span></div></div><div class='line'><div class="pill" style="background:#30d158"><span class="num">98%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 0.98)"></span></div></div><div class='line'><div class="pill" style="background:#98989d"><span class="num">41%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#98989D;width:calc((100% - 49px) * 0.41)"></span></div></div><div class='line'><div class="pill" style="background:#ffd60a"><span class="num">12%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#FFD60A;width:calc((100% - 49px) * 0.12)"></span></div></div><div class='line'><div class="pill" style="background:#ff453a"><span class="num">3%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#FF453A;width:calc((100% - 49px) * 0.03)"></span></div></div><div class='line'><div class="pill" style="background:#30d158"><span class="num">100%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 1.00)"></span></div></div></div><div class='col'><div class='colhead'>사용률</div><div class='line'><div class="pill" style="background:#30d158"><span class="num">7%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 0.07)"></span></div></div><div class='line'><div class="pill" style="background:#30d158"><span class="num">24%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 0.24)"></span></div></div><div class='line'><div class="pill" style="background:#30d158"><span class="num">2%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#30D158;width:calc((100% - 49px) * 0.02)"></span></div></div><div class='line'><div class="pill" style="background:#98989d"><span class="num">59%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#98989D;width:calc((100% - 49px) * 0.59)"></span></div></div><div class='line'><div class="pill" style="background:#ffd60a"><span class="num">88%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#FFD60A;width:calc((100% - 49px) * 0.88)"></span></div></div><div class='line'><div class="pill" style="background:#ff453a"><span class="num">97%</span><span class="track" style="background:#2c2c2e"></span><span class="fill" style="background:#FF453A;width:calc((100% - 49px) * 0.97)"></span></div></div><div class='line'><div class="pill" style="background:#30d158"><span class="num">0%</span><span class="track" style="background:#2c2c2e"></span></div></div></div></div>
+<h2>밝은 화면</h2><div class='grid light'><div class='col names'><div class='colhead'>&nbsp;</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div><div class='line name'>5시간</div><div class='line name'>주간 전체</div><div class='line name'>주간 Fable</div><div class='line name'>안 쓴 창</div></div><div class='col'><div class='colhead'>남은 용량 (지금 방식)</div><div class='line'><div class="pill" style="background:#34c759"><span class="num">93%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 0.93)"></span></div></div><div class='line'><div class="pill" style="background:#34c759"><span class="num">76%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 0.76)"></span></div></div><div class='line'><div class="pill" style="background:#34c759"><span class="num">98%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 0.98)"></span></div></div><div class='line'><div class="pill" style="background:#8e8e93"><span class="num">41%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#8E8E93;width:calc((100% - 49px) * 0.41)"></span></div></div><div class='line'><div class="pill" style="background:#ffcc00"><span class="num">12%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#FFCC00;width:calc((100% - 49px) * 0.12)"></span></div></div><div class='line'><div class="pill" style="background:#ff3b30"><span class="num">3%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#FF3B30;width:calc((100% - 49px) * 0.03)"></span></div></div><div class='line'><div class="pill" style="background:#34c759"><span class="num">100%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 1.00)"></span></div></div></div><div class='col'><div class='colhead'>사용률</div><div class='line'><div class="pill" style="background:#34c759"><span class="num">7%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 0.07)"></span></div></div><div class='line'><div class="pill" style="background:#34c759"><span class="num">24%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 0.24)"></span></div></div><div class='line'><div class="pill" style="background:#34c759"><span class="num">2%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#34C759;width:calc((100% - 49px) * 0.02)"></span></div></div><div class='line'><div class="pill" style="background:#8e8e93"><span class="num">59%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#8E8E93;width:calc((100% - 49px) * 0.59)"></span></div></div><div class='line'><div class="pill" style="background:#ffcc00"><span class="num">88%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#FFCC00;width:calc((100% - 49px) * 0.88)"></span></div></div><div class='line'><div class="pill" style="background:#ff3b30"><span class="num">97%</span><span class="track" style="background:#f2f2f7"></span><span class="fill" style="background:#FF3B30;width:calc((100% - 49px) * 0.97)"></span></div></div><div class='line'><div class="pill" style="background:#34c759"><span class="num">0%</span><span class="track" style="background:#f2f2f7"></span></div></div></div></div>
+
+<h2>메뉴바 (3배 확대)</h2>
+<p class="lede" style="margin-bottom:10px">같은 계정, 같은 값이다. 사용률 24 / 59 / 88 인 세 창.</p>
+<div class='stripline'><span class='striphead'>남은 용량</span><div class='strip'><span class='code'>T40</span><span class='nums'><span class='numline'><span class='tag'>5h</span><span class='val ample'>76%</span></span><span class='numline'><span class='tag'>1w</span><span class='val normal'>41%</span></span></span><div class='segblock'><div class="seg" style="border-color:#3ce16b"><span class="segfill" style="background:#3ce16b;width:80%"></span></div><div class="seg" style="border-color:#f2f2f7"><span class="segfill" style="background:#f2f2f7;width:45%"></span></div><div class="seg" style="border-color:#ffe500"><span class="segfill" style="background:#ffe500;width:15%"></span></div></div></div></div>
+<div class='stripline'><span class='striphead'>사용률</span><div class='strip'><span class='code'>T40</span><span class='nums'><span class='numline'><span class='tag'>5h</span><span class='val ample'>24%</span></span><span class='numline'><span class='tag'>1w</span><span class='val normal'>59%</span></span></span><div class='segblock'><div class="seg" style="border-color:#3ce16b"><span class="segfill" style="background:#3ce16b;width:20%"></span></div><div class="seg" style="border-color:#f2f2f7"><span class="segfill" style="background:#f2f2f7;width:55%"></span></div><div class="seg" style="border-color:#ffe500"><span class="segfill" style="background:#ffe500;width:85%"></span></div></div></div></div>
+
+<h2>설정 자리</h2>
+<div class="panel">
+  <div class="segctl"><span class="on">남은 용량</span><span>사용률</span></div>
+  <div class="caption">막대, 자세히 세그먼트 아래에 한 줄 더 들어간다. 누르면 즉시 반영.</div>
+</div>
+
+<p class="note">
+  <b>규칙 두 가지가 방향을 따라 뒤집힌다.</b>
+  알약의 최소 폭은 "남은 용량은 1% 라도 남았으면, 사용률은 1% 라도 썼으면
+  보인다" 가 되고, 메뉴바 눈금은 남은 용량이 올림(1% 남아도 한 칸을 켠다),
+  사용률이 내림(1% 남았으면 빈 칸 하나를 남긴다)이다. 방향이 달라도 남은
+  것을 숨기지 않는다는 규칙은 같아서, 두 방식의 켠 칸과 빈 칸이 정확히
+  맞물린다. 위 메뉴바 눈금에서 16+4, 9+11, 3+17 이 전부 20 이다.
+</p>
+</body>

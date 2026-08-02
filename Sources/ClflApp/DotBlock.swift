@@ -23,6 +23,12 @@ enum Metrics {
     /// 줄 사이. 테두리를 각자 그으므로 그 사이를 띄운다.
     static let segRowGap: CGFloat = 2
 
+    /// 게이지 바깥을 얼마나 어둡게 까나. 막대가 그 위에 떠 보이는 만큼.
+    static let gaugeTrackDim = 0.25
+    /// 1% 라도 있으면 보이게 주는 최소 폭. 끝이 곧아졌으니 크게 줄 이유가
+    /// 없다. 넓게 주면 그만큼 값을 부풀려 보여준다.
+    static let gaugeMinFill: CGFloat = 2
+
     /// 팝오버 막대. 디더 격자 2pt, 네 줄이면 높이 8pt.
     ///
     /// 시안은 6pt 라고 적었는데 디더로 그리면 세 줄은 선처럼 얇아 보인다.
@@ -76,36 +82,33 @@ extension Color {
 
 /// 눈금 게이지 한 줄.
 ///
-/// 스무 칸이므로 **한 칸이 5%** 다. 5% 단위로 **올림**한다. 87% 는 18칸,
-/// 83% 는 17칸, 99% 는 스무 칸 전부다.
+/// 스무 칸이므로 **한 칸이 5%** 다. 켤 칸 수는 방향 설정이 정한다.
+/// 남은 용량은 올림이라 잔여 87% 가 18칸, 99% 는 스무 칸 전부다. 사용률은
+/// 내림이라 1% 라도 남았으면 빈 칸 하나가 남는다. `GaugeDirection.litSteps`.
 ///
 /// 테두리를 등급색으로 두르고 안쪽을 그만큼 채운다. 테두리가 100% 의 끝을
 /// 알려주므로 안쪽은 이어진 막대로 두고 칸을 갈라 그리지 않는다.
 struct SegmentGauge: View {
-    let remaining: Int?
+    let used: Int?
     let band: UsageBand?
+    let direction: GaugeDirection
     var dark = true
 
-    init(limit: UsageLimit?, dark: Bool = true) {
-        self.remaining = limit?.percentRemaining
+    init(limit: UsageLimit?, direction: GaugeDirection, dark: Bool = true) {
+        self.used = limit?.percentUsed
         self.band = limit?.band
+        self.direction = direction
         self.dark = dark
     }
 
-    init(remaining: Int?, band: UsageBand?, dark: Bool = true) {
-        self.remaining = remaining
+    init(used: Int?, band: UsageBand?, direction: GaugeDirection, dark: Bool = true) {
+        self.used = used
         self.band = band
+        self.direction = direction
         self.dark = dark
     }
 
     static var totalSteps: Int { Metrics.segSteps }
-    /// 한 칸이 몇 퍼센트인가. 스무 칸이면 5% 다.
-    static var stepPercent: Double { 100 / Double(totalSteps) }
-
-    static func steps(for remaining: Int) -> Int {
-        guard remaining > 0 else { return 0 }
-        return min(totalSteps, Int((Double(remaining) / stepPercent).rounded(.up)))
-    }
 
     static var width: CGFloat {
         CGFloat(Metrics.segSteps) * Metrics.segStepWidth + Metrics.segBorder * 2
@@ -115,7 +118,7 @@ struct SegmentGauge: View {
     var body: some View {
         let tint = band?.dotColor(dark: dark) ?? Color.secondary
         let off = Color.primary.opacity(dark ? 0.22 : 0.16)
-        let lit = Self.steps(for: remaining ?? 0)
+        let lit = used.map { direction.litSteps(used: $0, total: Self.totalSteps) } ?? 0
         Canvas { ctx, size in
             let b = Metrics.segBorder
             ctx.stroke(Path(CGRect(origin: .zero, size: size).insetBy(dx: b / 2, dy: b / 2)),
@@ -144,16 +147,18 @@ struct SegmentGauge: View {
 /// 줄인지 못 읽는다.
 struct SegmentBlock: View {
     let org: OrgUsage
+    let direction: GaugeDirection
     var dark = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.segRowGap) {
             if let spend = org.spend, org.limits.isEmpty {
                 // Enterprise 는 창이 없다. 예산 한 줄만 그린다
-                SegmentGauge(remaining: spend.percentRemaining, band: spend.band, dark: dark)
+                SegmentGauge(used: spend.percentUsed, band: spend.band,
+                             direction: direction, dark: dark)
             } else {
                 ForEach(LimitKind.allCases, id: \.self) { kind in
-                    SegmentGauge(limit: org.limits[kind], dark: dark)
+                    SegmentGauge(limit: org.limits[kind], direction: direction, dark: dark)
                 }
             }
         }
@@ -221,8 +226,8 @@ struct RetroBar: View {
 /// 파낸 자리를 배경색으로 칠하지 않고 `destinationOut` 으로 뚫는다. 팝오버
 /// 배경은 단색이 아니라 vibrancy 재질이라 색으로 흉내내면 어긋난다.
 struct UsageGauge: View {
-    /// 잔여. 모르면 nil.
-    let remaining: Int?
+    /// 화면에 적을 퍼센트. 방향은 설정이 정한다. 모르면 nil.
+    let percent: Int?
     let band: UsageBand?
     var height: CGFloat = 18
     /// 숫자가 앉는 왼쪽 자리.
@@ -233,14 +238,20 @@ struct UsageGauge: View {
     /// 100% 와 그냥 칠한 막대가 구별이 안 된다.
     var fillInset: CGFloat = 1.5
 
-    init(limit: UsageLimit?) {
-        self.remaining = limit?.percentRemaining
+    init(limit: UsageLimit?, direction: GaugeDirection) {
+        self.percent = limit.map { direction.displayPercent(used: $0.percentUsed) }
         self.band = limit?.band
     }
 
-    init(spend: SpendUsage) {
-        self.remaining = spend.percentRemaining
+    init(spend: SpendUsage, direction: GaugeDirection) {
+        self.percent = direction.displayPercent(used: spend.percentUsed)
         self.band = spend.band
+    }
+
+    /// 숫자 색. 등급이 정한다. 모르는 값은 바탕도 흐릿해서 기본색이 낫다.
+    private var ink: Color {
+        guard let band else { return .primary }
+        return band.prefersLightInk ? .white : .black
     }
 
     var body: some View {
@@ -254,6 +265,10 @@ struct UsageGauge: View {
             ZStack(alignment: .leading) {
                 ZStack(alignment: .leading) {
                     Capsule().fill(tint)
+                    // 바깥을 한 단 어둡게 깐다. 막대와 같은 색이면 막대가
+                    // 배경에 잠겨 평평해 보인다. 색을 새로 정하지 않고
+                    // 검정을 덮으므로 등급색이 무엇이든 같은 만큼 내려간다
+                    Capsule().fill(Color.black.opacity(Metrics.gaugeTrackDim))
                     Capsule()
                         .frame(width: trackWidth, height: trackHeight)
                         .offset(x: numberArea)
@@ -261,19 +276,23 @@ struct UsageGauge: View {
                 }
                 .compositingGroup()
 
-                if let remaining, remaining > 0 {
-                    // 1% 라도 남았으면 보이게 최소 폭을 준다
-                    Capsule()
+                if let percent, percent > 0 {
+                    // 오른쪽 끝은 곧게 끊는다. 둥글리면 그 곡선만큼 값이
+                    // 뭉개져 보인다. 가득 찼을 때만 바깥 테를 따라 둥글어진다
+                    Rectangle()
                         .fill(tint)
-                        .frame(width: max(boxHeight, boxWidth * Double(remaining) / 100),
+                        .frame(width: max(Metrics.gaugeMinFill,
+                                          boxWidth * Double(percent) / 100),
                                height: boxHeight)
+                        .frame(width: boxWidth, height: boxHeight, alignment: .leading)
+                        .clipShape(Capsule())
                         .offset(x: numberArea + fillInset)
                 }
 
-                // 글자는 전부 검정. 노랑 위 흰 글자가 안 보인다
-                Text(remaining.map { "\($0)%" } ?? BarText.unknown)
+                // 어두워진 바탕 위에서 읽히는 쪽으로. 노랑만 검정이 낫다
+                Text(percent.map { "\($0)%" } ?? BarText.unknown)
                     .font(.system(size: 12, weight: .bold).monospacedDigit())
-                    .foregroundStyle(.black)
+                    .foregroundStyle(ink)
                     .frame(width: numberArea, height: height)
             }
         }
