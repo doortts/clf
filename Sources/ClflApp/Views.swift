@@ -369,11 +369,17 @@ struct PopoverView: View {
                 Text(model.readAt.map { stamp($0) } ?? "-")
                     .font(.system(size: 9)).foregroundStyle(.tertiary)
                 Spacer()
+                // 여기만 테두리를 두른다. 종료까지 단추로 만들면 창을 끄는
+                // 쪽이 같은 무게로 올라선다
                 Button { HandoffWindow.open() } label: {
                     Label("세션 넘기기", systemImage: "arrow.left.arrow.right")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .hoverTip(Copy.handoffHelp)
                 .accessibilityLabel("세션을 다른 계정으로 넘긴다")
+                .accessibilityHint(Copy.handoffHelp)
                 Button { NSApplication.shared.terminate(nil) } label: {
                     Label("종료", systemImage: "power")
                         .font(.system(size: 10, weight: .medium))
@@ -399,4 +405,57 @@ struct PopoverView: View {
         f.dateFormat = "HH:mm"
         return f.string(from: date) + " 갱신"
     }
+}
+
+/// 화면에 쓰는 긴 안내 문구. 툴팁과 접근성 힌트가 같은 말을 써야 한다.
+enum Copy {
+    static let handoffHelp = "다른 계정으로 세션을 이동시켜서 작업을 재개할 수 있도록 도와줍니다"
+}
+
+/// 올려두면 곧바로 뜨는 툴팁.
+///
+/// `.help()` 를 안 쓴다. macOS 가 정한 지연(1초 남짓) 뒤에야 뜨고 그 값은
+/// 우리가 못 바꾼다. 툴팁은 눌러도 되는지 망설이는 그 순간에 떠야 쓸모가
+/// 있어서 직접 그린다. docs/design/handoff-button-mockup.html
+struct HoverTip: ViewModifier {
+    let text: String
+    var width: CGFloat = 214
+    @State private var showing = false
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { showing = $0 }
+            // 팝오버 바닥에 있는 단추라 위로 띄운다. 오른쪽 끝을 맞춘다.
+            //
+            // 높이 0 짜리 자리에 아래쪽 정렬로 넣으면 그 위로 넘쳐 나간다.
+            // 툴팁 높이를 재지 않아도 되고 줄 수가 늘어도 따라 올라간다
+            .overlay(alignment: .topTrailing) {
+                if showing {
+                    bubble
+                        .fixedSize()
+                        .frame(height: 0, alignment: .bottom)
+                        .offset(y: -6)
+                }
+            }
+    }
+
+    private var bubble: some View {
+        Text(text)
+            .font(.system(size: 11))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(width: width, alignment: .leading)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 5)
+                .fill(Color(nsColor: .controlBackgroundColor)))
+            .overlay(RoundedRectangle(cornerRadius: 5)
+                .stroke(Color.primary.opacity(0.14)))
+            .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
+            // 툴팁이 클릭을 가로채면 단추가 안 눌린다
+            .allowsHitTesting(false)
+    }
+}
+
+extension View {
+    func hoverTip(_ text: String) -> some View { modifier(HoverTip(text: text)) }
 }

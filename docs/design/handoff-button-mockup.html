@@ -1,0 +1,159 @@
+<meta charset="utf-8">
+<title>세션 넘기기 단추 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  h2 { font-size:13px; margin:26px 0 8px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:760px; }
+  p.cap { color:#98989d; font-size:12px; margin:6px 0 0; max-width:420px; }
+
+  /* 팝오버 바닥 한 조각 */
+  .foot {
+    width:340px; background:#2c2c2e; border-radius:10px; padding:10px 14px 12px;
+    border:1px solid rgba(255,255,255,.08); position:relative;
+  }
+  .foot.light { background:#f2f2f7; color:#1c1c1e; border-color:rgba(0,0,0,.10); }
+  .sep { height:1px; background:rgba(255,255,255,.10); margin:0 0 10px; }
+  .foot.light .sep { background:rgba(0,0,0,.10); }
+  .row { display:flex; align-items:center; gap:10px; }
+  .stamp { font-size:9px; color:#8e8e93; }
+  .grow { flex:1; }
+
+  /* 지금: 테두리 없는 글자 */
+  .plain { font-size:10px; font-weight:500; display:inline-flex; align-items:center; gap:4px; }
+  .plain.quit { color:#ff453a; }
+  .foot.light .plain.quit { color:#d70015; }
+
+  /* 바꾼 뒤: HIG 의 작은 푸시 버튼 */
+  .push {
+    font-size:11px; font-weight:500; display:inline-flex; align-items:center; gap:5px;
+    padding:3px 10px; border-radius:6px; cursor:default;
+    background:#4a4a4d; color:#f2f2f7;
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 1px 1px rgba(0,0,0,.35);
+  }
+  .push:hover { background:#57575a; }
+  .foot.light .push {
+    background:#fff; color:#1c1c1e; border-color:rgba(0,0,0,.12);
+    box-shadow:0 1px 1px rgba(0,0,0,.10);
+  }
+  .foot.light .push:hover { background:#f0f0f2; }
+  .push.quit { color:#ff453a; }
+  .foot.light .push.quit { color:#d70015; }
+
+  /* 툴팁. 지연 없이 바로 뜬다 */
+  .wrap { position:relative; display:inline-flex; }
+  .tip {
+    position:absolute; bottom:calc(100% + 6px); right:0; width:214px;
+    background:#3a3a3c; color:#f2f2f7; border:1px solid rgba(255,255,255,.14);
+    border-radius:5px; padding:5px 8px; font-size:11px; line-height:1.45;
+    box-shadow:0 4px 12px rgba(0,0,0,.45);
+    opacity:0; pointer-events:none; transition:none;
+  }
+  .foot.light .tip {
+    background:#f7f7f7; color:#1c1c1e; border-color:rgba(0,0,0,.18);
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
+  }
+  .wrap:hover .tip { opacity:1; }
+  .tip.pinned { opacity:1; position:static; width:214px; margin-top:8px; }
+
+  .pair { display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start; }
+  .note { margin-top:26px; color:#98989d; max-width:760px; }
+  .note b { color:#f2f2f7; }
+  kbd { font:11px ui-monospace,SFMono-Regular,Menlo,monospace; color:#98989d; }
+</style>
+
+<h1>세션 넘기기 - 단추 모양과 툴팁</h1>
+<p class="lede">
+  지금은 테두리 없는 글자라 누를 수 있는 것으로 안 보인다. macOS 의 작은
+  푸시 버튼으로 바꾸고, 올려두면 지연 없이 툴팁이 뜨게 한다.
+  <b>아래 단추에 마우스를 올려 보면 그대로 재현된다.</b>
+</p>
+
+<h2>지금</h2>
+<div class="pair">
+  <div>
+    <div class="foot">
+      <div class="sep"></div>
+      <div class="row">
+        <span class="stamp">23:02 갱신</span>
+        <span class="grow"></span>
+        <span class="plain">&#8646; 세션 넘기기</span>
+        <span class="plain quit">&#9211; 종료</span>
+      </div>
+    </div>
+    <p class="cap">글자 둘이 나란히 있어 어느 쪽이 단추인지 안 갈린다.</p>
+  </div>
+</div>
+
+<h2>바꾼 뒤 (권장)</h2>
+<div class="pair">
+  <div>
+    <div class="foot">
+      <div class="sep"></div>
+      <div class="row">
+        <span class="stamp">23:02 갱신</span>
+        <span class="grow"></span>
+        <span class="wrap">
+          <span class="push">&#8646; 세션 넘기기</span>
+          <span class="tip">다른 계정으로 세션을 이동시켜서 작업을 재개할 수 있도록 도와줍니다</span>
+        </span>
+        <span class="plain quit">&#9211; 종료</span>
+      </div>
+    </div>
+    <p class="cap">
+      세션 넘기기만 테두리를 두른다. 종료는 창을 닫는 것과 같은 갈래라
+      눈에 띄면 안 된다. 단추가 하나면 무엇을 누르라는 것인지도 분명하다.
+    </p>
+  </div>
+  <div>
+    <div class="foot light">
+      <div class="sep"></div>
+      <div class="row">
+        <span class="stamp">23:02 갱신</span>
+        <span class="grow"></span>
+        <span class="wrap">
+          <span class="push">&#8646; 세션 넘기기</span>
+          <span class="tip">다른 계정으로 세션을 이동시켜서 작업을 재개할 수 있도록 도와줍니다</span>
+        </span>
+        <span class="plain quit">&#9211; 종료</span>
+      </div>
+    </div>
+    <p class="cap">밝은 화면. 흰 바탕에 얇은 테두리와 옅은 그림자.</p>
+  </div>
+</div>
+
+<h2>둘 다 단추로 하면</h2>
+<div class="pair">
+  <div>
+    <div class="foot">
+      <div class="sep"></div>
+      <div class="row">
+        <span class="stamp">23:02 갱신</span>
+        <span class="grow"></span>
+        <span class="push">&#8646; 세션 넘기기</span>
+        <span class="push quit">&#9211; 종료</span>
+      </div>
+    </div>
+    <p class="cap">
+      나란히 놓이니 종료가 같은 무게로 올라선다. 실수로 누르면 앱이 꺼지는
+      쪽이라 무게를 낮춰 두는 편이 낫다.
+    </p>
+  </div>
+</div>
+
+<h2>툴팁</h2>
+<div class="foot" style="width:300px">
+  <span class="tip pinned">다른 계정으로 세션을 이동시켜서 작업을 재개할 수 있도록 도와줍니다</span>
+</div>
+<p class="note">
+  macOS 기본 툴팁(<kbd>.help()</kbd>)은 <b>1초 넘게 기다려야 뜬다.</b> 시스템이 정한
+  지연이라 값을 바꿀 수 없다. 그래서 이 툴팁은 직접 그린다. 올리면 곧바로 뜨고
+  치우면 사라진다. 팝오버 바닥에 있으니 위쪽으로, 오른쪽 끝을 맞춰 띄운다.
+</p>
+<p class="note">
+  안내 문구는 주신 그대로 쓴다. 다만 접근성 라벨(보이스오버가 읽는 말)은
+  <b>단추 이름이라 짧아야 한다.</b> 지금처럼 "세션을 다른 계정으로 넘긴다" 로 두고,
+  긴 설명은 힌트로 붙인다.
+</p>
