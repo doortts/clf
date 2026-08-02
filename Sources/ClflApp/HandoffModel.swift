@@ -20,7 +20,7 @@ final class HandoffModel: ObservableObject {
         var where_: String {
             switch slot {
             case .primary:     return "기본 창"
-            case .running:     return "별도 창 실행중"
+            case .running:     return "별도 창 열려있음"
             case .opening:     return "여는 중"
             case .none:        return "창 없음"
             case .unavailable: return "창을 못 띄운다"

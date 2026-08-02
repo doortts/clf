@@ -88,8 +88,12 @@ public enum UsageBand: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// 배지로 내보일 만한 상태인가. 정상은 아무 말도 하지 않는다.
-    public var isNoteworthy: Bool { self != .normal }
+    /// 배지로 내보일 만한 상태인가.
+    ///
+    /// **여유도 아무 말 하지 않는다.** 넉넉한 것은 게이지 길이와 초록색으로
+    /// 이미 보인다. 배지는 눈길을 끄는 자리라 평상시에 켜 두면 정작 주의와
+    /// 소진이 묻힌다.
+    public var isNoteworthy: Bool { self == .empty || self == .low }
 
     /// 게이지 숫자를 흰 글자로 쓰나.
     ///

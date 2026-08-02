@@ -16,7 +16,7 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
     public var label: String {
         switch self {
         case .primary: return "기본"
-        case .running: return "창 실행중"
+        case .running: return "창 열려있음"
         case .opening: return "여는 중"
         case .none:    return "새 창 띄우기"
         case .unavailable: return "이름을 못 쓴다"
@@ -28,8 +28,11 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
 
     /// 이름 옆에 붙는 상태 배지. HIG 는 단추 라벨을 동사로 쓰라고 하므로
     /// 상태는 배지로 가르고 단추에는 동작만 남긴다.
+    ///
+    /// `실행중` 이라고만 하면 세션이 돌고 있다는 말로 읽힌다. 여기서 말하는
+    /// 것은 그 계정으로 띄운 **창이 떠 있다**는 것뿐이다.
     /// docs/design/popover-hig-mockup.html
-    public var badgeLabel: String? { self == .running ? "실행중" : nil }
+    public var badgeLabel: String? { self == .running ? "창 열려있음" : nil }
 
     /// 누르면 일어나는 일. 동사다. 상태뿐인 자리는 nil 이다.
     public var actionLabel: String? {

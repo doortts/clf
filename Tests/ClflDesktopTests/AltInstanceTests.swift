@@ -111,7 +111,7 @@ final class InstanceSlotTests: XCTestCase {
 
     /// 창이 떠 있는 것은 상태 배지, 앞으로 꺼내는 것은 단추다.
     func test_runningSplitsStateAndAction() {
-        XCTAssertEqual(InstanceSlot.running.badgeLabel, "실행중")
+        XCTAssertEqual(InstanceSlot.running.badgeLabel, "창 열려있음")
         XCTAssertEqual(InstanceSlot.running.actionLabel, "앞으로 꺼내기")
     }
 
@@ -195,5 +195,19 @@ final class InstancePIDTests: XCTestCase {
     func test_ignoresLinesWithoutAPID() {
         let noPID = "/Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-A"
         XCTAssertTrue(AltInstance.runningInstances(psOutput: noPID).isEmpty)
+    }
+}
+
+/// 배지는 눈길을 끄는 자리다. 평상시에 켜 두면 정작 급한 것이 묻힌다.
+final class BandBadgeTests: XCTestCase {
+    func test_onlyLowAndEmptySpeak() {
+        XCTAssertTrue(UsageBand.empty.isNoteworthy)
+        XCTAssertTrue(UsageBand.low.isNoteworthy)
+    }
+
+    /// 여유는 게이지 길이와 초록색으로 이미 보인다.
+    func test_ampleAndNormalStaySilent() {
+        XCTAssertFalse(UsageBand.ample.isNoteworthy)
+        XCTAssertFalse(UsageBand.normal.isNoteworthy)
     }
 }
