@@ -113,12 +113,10 @@ final class UsageModel: ObservableObject {
         let launcher = self.launcher
         let uuid = org.uuid
         let name = org.name
-        // 기본 창에서 보던 대화를 새 계정에도 심는다
-        let sourceOrg = activeUUID
         Task { [weak self] in
             do {
                 try await Task.detached(priority: .userInitiated) {
-                    try launcher.launch(name: name, uuid: uuid, mirrorFrom: sourceOrg)
+                    try launcher.launch(name: name, uuid: uuid)
                 }.value
             } catch {
                 await MainActor.run {

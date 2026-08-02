@@ -21,14 +21,13 @@ public struct AltLauncher: Sendable {
     ///
     /// 디렉토리 이름은 계정 이름에서, 로그인 계정은 uuid 로 정한다.
     ///
-    /// `mirrorFrom` 을 주면 그 계정의 세션 목록을 새 인스턴스에도 심는다.
-    /// 레코드는 포인터일 뿐이고 트랜스크립트는 공유되므로 같은 대화가 새
-    /// 계정에서 열린다.
+    /// 기본 앱에 그 계정으로 바꿨을 때 보일 세션 목록을 새 창에도 심는다.
+    /// **같은 계정 폴더끼리** 옮긴다. 다른 계정 것을 가져오면 남의 대화가
+    /// 딸려간다.
     @discardableResult
-    public func launch(name: String, uuid: String, mirrorFrom sourceOrg: String? = nil)
-    throws -> URL {
+    public func launch(name: String, uuid: String) throws -> URL {
         let dir = try seed(name: name, uuid: uuid)
-        if let sourceOrg { mirrorIn(dir: dir, targetOrg: uuid, sourceOrg: sourceOrg) }
+        mirrorIn(dir: dir, account: uuid)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: AltInstance.executable)
         var env = ProcessInfo.processInfo.environment
@@ -231,12 +230,15 @@ extension AltLauncher {
 }
 
 extension AltLauncher {
-    /// 기본 인스턴스에서 보던 세션을 새 인스턴스에도 심는다.
-    func mirrorIn(dir: URL, targetOrg: String, sourceOrg: String) {
+    /// 기본 앱이 그 계정으로 갖고 있는 세션을 새 창에도 심는다.
+    ///
+    /// 같은 계정 폴더끼리다. 기본 앱에서 그 계정으로 바꿨을 때 보였을 목록이
+    /// 새 창에 그대로 뜬다.
+    func mirrorIn(dir: URL, account uuid: String) {
         guard let person = SessionStore.person(in: source) else { return }
         SessionMirror.sync(
-            from: SessionStore(dataDirectory: source, person: person, account: sourceOrg),
-            to: SessionStore(dataDirectory: dir, person: person, account: targetOrg))
+            from: SessionStore(dataDirectory: source, person: person, account: uuid),
+            to: SessionStore(dataDirectory: dir, person: person, account: uuid))
     }
 
     /// 별도 창에서 한 작업을 기본 인스턴스에도 보이게 한다.
