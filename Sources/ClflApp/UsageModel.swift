@@ -20,6 +20,12 @@ final class UsageModel: ObservableObject {
     @Published private(set) var prefs = DesktopPreferences()
     /// 시스템이 쥔 값이라 우리 설정 파일에 없다. 열 때마다 물어본다.
     @Published private(set) var loginItem = LoginItemState.off
+    /// 별도 창이 떠 있는 계정.
+    @Published private(set) var running: Set<String> = []
+    /// 띄우는 중인 계정. 245MB 를 푸느라 십수 초 걸린다.
+    @Published private(set) var opening: Set<String> = []
+    /// 띄우다 실패한 이유.
+    @Published private(set) var launchError: String?
 
     private let reader: DesktopReader
     private let file: DesktopPreferencesFile?
@@ -29,6 +35,7 @@ final class UsageModel: ObservableObject {
     private var cachedNames: [String: String] = [:]
     private var loop: Task<Void, Never>?
     private var orgWatch: Task<Void, Never>?
+    private let launcher = AltLauncher()
     private var appearanceWatch: (any NSObjectProtocol)?
     private var activeUUID: String?
     /// 설정 화면이 보는 목록. 사용량을 못 읽는 계정도 들어간다.
@@ -74,11 +81,57 @@ final class UsageModel: ObservableObject {
         let reader = self.reader
         orgWatch = Task { [weak self] in
             while !Task.isCancelled {
-                let uuid = await Task.detached(priority: .utility) {
-                    reader.activeOrgUUID()
+                let (uuid, live) = await Task.detached(priority: .utility) {
+                    (reader.activeOrgUUID(), AltInstance.scanRunning())
                 }.value
+                await MainActor.run { self?.running = live }
                 await self?.applyActiveOrg(uuid)
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            }
+        }
+    }
+
+    /// 어느 계정에 창이 떠 있는지. 로컬 프로세스만 보므로 공짜다.
+    func slot(_ org: OrgUsage) -> InstanceSlot {
+        InstanceSlot.of(org.uuid, primary: activeUUID, running: running, opening: opening)
+    }
+
+    /// 그 계정 전용 인스턴스를 띄운다.
+    ///
+    /// 창이 실제로 뜰 때까지 `여는 중` 으로 둔다. 표시가 없으면 사용자가 또
+    /// 누르고 인스턴스가 둘이 된다.
+    func launch(_ org: OrgUsage) {
+        guard slot(org).isActionable else { return }
+        opening.insert(org.uuid)
+        launchError = nil
+        let launcher = self.launcher
+        let uuid = org.uuid
+        Task { [weak self] in
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    try launcher.launch(account: uuid)
+                }.value
+            } catch {
+                await MainActor.run {
+                    self?.opening.remove(uuid)
+                    self?.launchError = "\(org.name) 창을 못 띄웠다. \(error)"
+                }
+                return
+            }
+            // 뜰 때까지 지켜본다. 안 뜨면 60초 뒤 표시를 거둔다
+            for _ in 0..<30 {
+                try? await Task.sleep(for: .seconds(2))
+                let live = await Task.detached { AltInstance.scanRunning() }.value
+                let done = await MainActor.run { () -> Bool in
+                    self?.running = live
+                    if live.contains(uuid) { self?.opening.remove(uuid); return true }
+                    return false
+                }
+                if done { return }
+            }
+            await MainActor.run {
+                self?.opening.remove(uuid)
+                self?.launchError = "\(org.name) 창이 안 떴다"
             }
         }
     }

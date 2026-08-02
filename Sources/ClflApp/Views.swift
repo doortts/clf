@@ -18,23 +18,29 @@ extension UsageBand {
 /// 둔다. 한 줄에 넣으면 값과 시각이 눈싸움을 한다.
 struct OrgCard: View {
     let org: OrgUsage
+    var slot: InstanceSlot = .none
+    var onLaunch: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                if org.isActive {
-                    Circle().fill(Color.accentColor).frame(width: 6, height: 6)
+                // 기본 인스턴스가 쓰는 계정은 이름 자체를 칠한다
+                if slot == .primary {
+                    Text(org.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.red, in: RoundedRectangle(cornerRadius: 5))
+                } else {
+                    Text(org.name).font(.system(size: 13, weight: .semibold))
                 }
-                Text(org.name).font(.system(size: 13, weight: .semibold))
                 if let plan = org.plan { badge(plan, tint: .accentColor) }
                 // 정상은 아무 말도 하지 않는다. 배지가 늘 켜져 있으면 안 읽힌다
                 if let band = org.binding?.band, band.isNoteworthy {
                     badge(band.label, tint: band.fillColor)
                 }
-                Spacer()
-                if org.isActive {
-                    Text("사용 중").font(.system(size: 10)).foregroundStyle(.secondary)
-                }
+                Spacer(minLength: 6)
+                slotControl
             }
 
             if !org.hasUsage, let error = org.error {
@@ -59,6 +65,43 @@ struct OrgCard: View {
         .padding(.vertical, 10)
         // 낡은 값임을 눈으로도 알린다
         .opacity(org.isStale ? 0.62 : 1)
+    }
+
+    /// 상태는 사각형, 행동은 채운 단추. 모양으로 역할이 갈린다.
+    @ViewBuilder private var slotControl: some View {
+        switch slot {
+        case .none:
+            Button { onLaunch?() } label: {
+                Text(slot.label)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9).padding(.vertical, 3)
+                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 4))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
+        case .running:
+            statusBox(slot.label, tint: .yellow, filled: true)
+        case .opening:
+            statusBox(slot.label, tint: .secondary, filled: false)
+        case .primary:
+            statusBox(slot.label, tint: .secondary, filled: false)
+        }
+    }
+
+    private func statusBox(_ text: String, tint: Color, filled: Bool) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(filled ? .black : tint)
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(filled ? tint : tint.opacity(0.14))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 3)
+                            .strokeBorder(filled ? .clear : tint.opacity(0.5), lineWidth: 1)
+                    }
+            }
     }
 
     private func badge(_ text: String, tint: Color) -> some View {
@@ -207,6 +250,11 @@ struct PopoverView: View {
                     .font(.system(size: 10)).foregroundStyle(.red)
                     .padding(.bottom, 6)
             }
+            if let failure = model.launchError {
+                Text(failure)
+                    .font(.system(size: 10)).foregroundStyle(.orange)
+                    .padding(.bottom, 6)
+            }
             if let wait = model.waitText {
                 Text("요청이 몰려 쉬는 중. \(wait) 다시 읽는다")
                     .font(.system(size: 10)).foregroundStyle(.secondary)
@@ -220,7 +268,7 @@ struct PopoverView: View {
             } else {
                 ForEach(Array(model.orgs.enumerated()), id: \.element.id) { index, org in
                     if index > 0 { Divider() }
-                    OrgCard(org: org)
+                    OrgCard(org: org, slot: model.slot(org)) { model.launch(org) }
                 }
             }
 

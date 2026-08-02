@@ -1,0 +1,140 @@
+import CommonCrypto
+import Foundation
+import SQLite3
+
+/// 씨앗을 심고 인스턴스를 띄운다.
+///
+/// **여기가 유일하게 데스크톱 앱의 파일을 쓰는 자리다.** 다만 쓰는 곳은
+/// 우리가 만든 디렉토리(`~/.claude-alt-<계정>`)이고, 사용자가 원래 쓰던
+/// `~/Library/Application Support/Claude` 는 읽기만 한다.
+/// docs/design/13-multi-instance.md 7절
+public struct AltLauncher: Sendable {
+    /// 로그인을 물려주는 데 필요한 것 전부. 44K 면 된다.
+    static let seedFiles = ["config.json", "Local State", "Preferences"]
+
+    private let source: URL
+    public init(source: URL = DesktopReader.defaultSupportDirectory) {
+        self.source = source
+    }
+
+    /// 계정 하나짜리 인스턴스를 띄운다. 이미 씨앗이 있으면 다시 심지 않는다.
+    @discardableResult
+    public func launch(account uuid: String) throws -> URL {
+        let dir = try seed(account: uuid)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: AltInstance.executable)
+        var env = ProcessInfo.processInfo.environment
+        env["CLAUDE_USER_DATA_DIR"] = dir.path
+        process.environment = env
+        // 우리가 죽어도 창은 남아야 한다. 기다리지 않는다
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        return dir
+    }
+
+    /// 데이터 디렉토리를 만들고 로그인을 물려준다.
+    public func seed(account uuid: String) throws -> URL {
+        guard let dir = AltInstance.directory(for: uuid) else {
+            throw SafeStorageError(description: "계정 uuid 형식이 아니다")
+        }
+        let fm = FileManager.default
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true,
+                               attributes: [.posixPermissions: 0o700])
+
+        let cookies = dir.appendingPathComponent("Cookies")
+        if !fm.fileExists(atPath: cookies.path) {
+            // 앱이 열고 있는 파일이다. 그냥 복사하면 찢어진 상태를 받을 수 있어
+            // SQLite 백업 API 로 일관된 사본을 뜬다
+            try backupSQLite(from: source.appendingPathComponent("Cookies"), to: cookies)
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: cookies.path)
+        }
+        for name in Self.seedFiles {
+            let dst = dir.appendingPathComponent(name)
+            let src = source.appendingPathComponent(name)
+            guard fm.fileExists(atPath: src.path), !fm.fileExists(atPath: dst.path) else { continue }
+            try fm.copyItem(at: src, to: dst)
+        }
+
+        // 띄우기 전에 계정을 박아 둔다. 그래야 로그인 화면 없이 그 계정으로 뜬다
+        try setActiveAccount(uuid, in: cookies)
+        return dir
+    }
+
+    /// 우리가 만든 디렉토리만 지운다.
+    public func remove(account uuid: String) throws {
+        guard let dir = AltInstance.directory(for: uuid) else { return }
+        guard dir.lastPathComponent.hasPrefix(AltInstance.prefix) else { return }
+        try? FileManager.default.removeItem(at: dir)
+    }
+
+    // MARK: 안쪽
+
+    private func setActiveAccount(_ uuid: String, in cookies: URL) throws {
+        let key = try safeStorageKeyFromKeychain()
+        // 쿠키 평문은 SHA256(host_key) 32바이트가 앞에 붙는다
+        let blob = try encryptV10(domainHash(".claude.ai") + Data(uuid.utf8), key: key)
+        try writeCookieBlob(blob, to: cookies, name: "lastActiveOrg")
+    }
+
+    private func backupSQLite(from src: URL, to dst: URL) throws {
+        var from: OpaquePointer?, to: OpaquePointer?
+        guard sqlite3_open_v2(src.path, &from, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+            throw SafeStorageError(description: "쿠키 원본을 열지 못했다")
+        }
+        defer { sqlite3_close(from) }
+        guard sqlite3_open_v2(dst.path, &to,
+                              SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nil) == SQLITE_OK else {
+            throw SafeStorageError(description: "쿠키 사본을 만들지 못했다")
+        }
+        defer { sqlite3_close(to) }
+        guard let backup = sqlite3_backup_init(to, "main", from, "main") else {
+            throw SafeStorageError(description: "쿠키 백업을 시작하지 못했다")
+        }
+        sqlite3_backup_step(backup, -1)
+        sqlite3_backup_finish(backup)
+        guard sqlite3_errcode(to) == SQLITE_OK else {
+            throw SafeStorageError(description: "쿠키 백업 실패")
+        }
+    }
+}
+
+/// 쿠키 평문 앞에 붙는 32바이트. `stripDomainHash` 가 읽을 때 떼는 그것이다.
+func domainHash(_ host: String) -> Data {
+    var out = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
+    let input = Data(host.utf8)
+    out.withUnsafeMutableBytes { o in
+        input.withUnsafeBytes { i in
+            _ = CC_SHA256(i.baseAddress, CC_LONG(input.count),
+                          o.bindMemory(to: UInt8.self).baseAddress)
+        }
+    }
+    return out
+}
+
+func writeCookieBlob(_ blob: Data, to url: URL, name: String) throws {
+    var db: OpaquePointer?
+    guard sqlite3_open_v2(url.path, &db, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK else {
+        throw SafeStorageError(description: "쿠키를 쓰려고 열지 못했다")
+    }
+    defer { sqlite3_close(db) }
+
+    var statement: OpaquePointer?
+    let sql = "update cookies set encrypted_value = ? where host_key = ? and name = ?"
+    guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+        throw SafeStorageError(description: "쿠키 갱신을 준비하지 못했다")
+    }
+    defer { sqlite3_finalize(statement) }
+
+    let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+    _ = blob.withUnsafeBytes { sqlite3_bind_blob(statement, 1, $0.baseAddress, Int32(blob.count),
+                                                 transient) }
+    sqlite3_bind_text(statement, 2, ".claude.ai", -1, transient)
+    sqlite3_bind_text(statement, 3, name, -1, transient)
+    guard sqlite3_step(statement) == SQLITE_DONE else {
+        throw SafeStorageError(description: "\(name) 쿠키를 쓰지 못했다")
+    }
+    guard sqlite3_changes(db) > 0 else {
+        throw SafeStorageError(description: "\(name) 쿠키가 없어 못 바꿨다. 먼저 로그인해야 한다")
+    }
+}
