@@ -11,11 +11,25 @@ struct BarOrgView: View {
     let org: OrgUsage
     let detail: BarDetail
     let direction: GaugeDirection
+    /// 이 계정의 창이 지금 앞에 있는가. 코드 아래에 파란 밑줄이 붙는다.
+    var focused = false
     var dark = true
 
     var body: some View {
         HStack(spacing: 3) {
             Text(code).font(.system(size: 12, weight: .semibold))
+                .overlay(alignment: .bottom) {
+                    if focused {
+                        // 코드 폭만. 등급색과 안 겹치는 파랑이라 상태가
+                        // 아니라 위치를 말한다는 것이 색으로 갈린다.
+                        // 시안은 1pt 를 권했지만 실기기에서 너무 얇았다.
+                        // docs/design/focus-underline-mockup.html
+                        Rectangle()
+                            .fill(dark ? Color(hex: 0x0a84ff) : Color(hex: 0x007aff))
+                            .frame(height: 1.5)
+                            .offset(y: 1.5)
+                    }
+                }
 
             if detail.showsNumbers {
                 // 세 창인데 숫자는 두 줄이 한계다. 어느 창인지 라벨로 못박는다.
@@ -69,6 +83,8 @@ struct BarLabelView: View {
     let orgs: [OrgUsage]
     let detail: BarDetail
     let direction: GaugeDirection
+    /// 앞 창의 계정. 막대에 없는 계정이면 아무 데도 안 그려진다.
+    var focusedUUID: String? = nil
     var dark = true
 
     var body: some View {
@@ -79,7 +95,8 @@ struct BarLabelView: View {
             } else {
                 ForEach(orgs) { org in
                     BarOrgView(code: codes[org.name] ?? BarText.unknown, org: org,
-                               detail: detail, direction: direction, dark: dark)
+                               detail: detail, direction: direction,
+                               focused: org.uuid == focusedUUID, dark: dark)
                 }
             }
         }
@@ -105,10 +122,11 @@ enum BarImage {
     }
 
     static func render(orgs: [OrgUsage], detail: BarDetail, direction: GaugeDirection,
-                       scale: CGFloat = 2) -> NSImage? {
+                       focusedUUID: String? = nil, scale: CGFloat = 2) -> NSImage? {
         let dark = menuBarIsDark
         let renderer = ImageRenderer(
-            content: BarLabelView(orgs: orgs, detail: detail, direction: direction, dark: dark))
+            content: BarLabelView(orgs: orgs, detail: detail, direction: direction,
+                                  focusedUUID: focusedUUID, dark: dark))
         renderer.scale = scale
         guard let image = renderer.nsImage else { return nil }
         image.isTemplate = false

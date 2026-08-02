@@ -41,6 +41,10 @@ final class UsageModel: ObservableObject {
     private let launcher = AltLauncher()
     private var appearanceWatch: (any NSObjectProtocol)?
     private var activeUUID: String?
+    /// 앞에 있는 앱. 어느 계정 창인지는 FocusMark 가 답한다.
+    private var focusWatch: (any NSObjectProtocol)?
+    private var frontPid: Int32?
+    private var frontExecutable: String?
     /// 설정 화면이 보는 목록. 사용량을 못 읽는 계정도 들어간다.
     private(set) var known: [OrgUsage] = []
 
@@ -54,6 +58,7 @@ final class UsageModel: ObservableObject {
     /// 켜자마자 한 번 읽고, 그다음은 사용량이 정하는 주기로.
     func start() {
         watchAppearance()
+        watchFrontApp()
         watchActiveOrg()
         guard loop == nil else { return }
         loop = Task { [weak self] in
@@ -87,7 +92,7 @@ final class UsageModel: ObservableObject {
                 let (uuid, live) = await Task.detached(priority: .utility) {
                     (reader.activeOrgUUID(), AltInstance.scanInstances())
                 }.value
-                await MainActor.run { self?.instances = live }
+                await MainActor.run { self?.setInstances(live) }
                 await self?.applyActiveOrg(uuid)
                 await self?.mirrorBackAll()
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
@@ -130,7 +135,7 @@ final class UsageModel: ObservableObject {
                 try? await Task.sleep(for: .seconds(2))
                 let live = await Task.detached { AltInstance.scanInstances() }.value
                 let done = await MainActor.run { () -> Bool in
-                    self?.instances = live
+                    self?.setInstances(live)
                     guard let pid = live[slug] else { return false }
                     self?.opening.remove(slug)
                     // 띄웠으면 앞으로 꺼내 준다. 뒤에 숨어 뜨면 안 뜬 줄 안다
@@ -171,7 +176,7 @@ final class UsageModel: ObservableObject {
         let (uuid, live) = await Task.detached(priority: .userInitiated) {
             (reader.activeOrgUUID(), AltInstance.scanInstances())
         }.value
-        instances = live
+        setInstances(live)
         await applyActiveOrg(uuid)
         await mirrorBackAll()
     }
@@ -232,8 +237,7 @@ final class UsageModel: ObservableObject {
         known = reassignActive(to: uuid, in: known)
         orgs = prefs.apply(to: known)
         barOrgs = prefs.barOrgs(from: known)
-        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
-                                   direction: prefs.gaugeDirection)
+        redrawBar()
 
         // 첫 관측은 전환이 아니다. 시작할 때 도는 읽기와 겹치면 요청만 두 배다
         guard !first else { return }
@@ -256,9 +260,55 @@ final class UsageModel: ObservableObject {
         }
     }
 
+    /// 포커스가 바뀌는 즉시 밑줄이 따라온다. 5초 감시 주기를 기다리면
+    /// 창을 바꾸고 한참 지나서야 밑줄이 옮겨간다.
+    private func watchFrontApp() {
+        guard focusWatch == nil else { return }
+        if let front = NSWorkspace.shared.frontmostApplication {
+            frontPid = front.processIdentifier
+            frontExecutable = front.executableURL?.path
+        }
+        focusWatch = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey]
+                as? NSRunningApplication
+            let pid = app?.processIdentifier
+            let path = app?.executableURL?.path
+            Task { @MainActor [weak self] in
+                self?.frontAppChanged(pid: pid, executable: path)
+            }
+        }
+    }
+
+    /// 앞 창의 계정. 메뉴바가 이 계정 코드에 밑줄을 긋는다.
+    private var focusedUUID: String? {
+        FocusMark.focusedUUID(frontPid: frontPid, frontExecutable: frontExecutable,
+                              instances: instances, orgs: known,
+                              activeUUID: activeUUID)
+    }
+
+    /// 답이 그대로면 안 굽는다. 앱을 오갈 때마다 구우면 낭비다.
+    private func frontAppChanged(pid: Int32?, executable: String?) {
+        let before = focusedUUID
+        frontPid = pid
+        frontExecutable = executable
+        if focusedUUID != before { redrawBar() }
+    }
+
+    /// 인스턴스 목록이 바뀌어도 밑줄의 답이 바뀔 수 있다. 앞 창의
+    /// 인스턴스가 죽으면 밑줄이 남아 거짓말을 한다.
+    private func setInstances(_ live: [String: Int32]) {
+        let before = focusedUUID
+        instances = live
+        if focusedUUID != before { redrawBar() }
+    }
+
     private func redrawBar() {
         barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
-                                   direction: prefs.gaugeDirection)
+                                   direction: prefs.gaugeDirection,
+                                   focusedUUID: focusedUUID)
     }
 
     /// 팝오버를 열 때, 새로고침을 누를 때, 그리고 주기 루프가 부를 때.
@@ -287,8 +337,7 @@ final class UsageModel: ObservableObject {
             if !snapshot.names.isEmpty { cachedNames = snapshot.names }
             orgs = prefs.apply(to: known)
             barOrgs = prefs.barOrgs(from: known)
-            barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
-                                       direction: prefs.gaugeDirection)
+        redrawBar()
             if !snapshot.throttled { readAt = snapshot.readAt }
             failure = nil
         } catch {
@@ -347,7 +396,6 @@ final class UsageModel: ObservableObject {
         try? file?.save(prefs)
         orgs = prefs.apply(to: known)
         barOrgs = prefs.barOrgs(from: known)
-        barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
-                                   direction: prefs.gaugeDirection)
+        redrawBar()
     }
 }
