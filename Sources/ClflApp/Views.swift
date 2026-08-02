@@ -414,10 +414,15 @@ struct PopoverView: View {
                 }
             }
 
-            Divider().padding(.vertical, 4)
+            // 설정을 열면 첫 줄이 '메뉴바에 표시할 계정' 제목이다. 제목 위에
+            // 선까지 그으면 칸막이가 둘이 된다. 닫혀 있을 때만 긋는다
+            if !showingSettings {
+                Divider().padding(.vertical, 4)
+            }
 
             if showingSettings {
                 SettingsPane(model: model)
+                    .padding(.top, 10)
                 Divider().padding(.vertical, 6)
             }
 
