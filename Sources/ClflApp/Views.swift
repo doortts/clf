@@ -367,6 +367,8 @@ struct PopoverView: View {
         .task {
             // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
             model.clearNotice()
+            // 계정은 로컬 파일이라 공짜다. 열자마자 지금 값을 본다
+            await model.refreshActiveNow()
             await model.refresh()
         }
     }

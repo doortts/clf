@@ -145,6 +145,19 @@ final class UsageModel: ObservableObject {
         }
     }
 
+    /// 팝오버를 열었을 때 곧바로 계정을 다시 본다.
+    ///
+    /// 감시 루프는 5초마다 도는데, 그 사이에 열면 최대 5초 동안 옛 계정이
+    /// 보인다. 로컬 파일만 읽으므로 여기서 한 번 더 봐도 공짜다.
+    func refreshActiveNow() async {
+        let reader = self.reader
+        let (uuid, live) = await Task.detached(priority: .userInitiated) {
+            (reader.activeOrgUUID(), AltInstance.scanInstances())
+        }.value
+        instances = live
+        await applyActiveOrg(uuid)
+    }
+
     /// 이미 떠 있는 창을 앞으로 꺼낸다.
     func focus(_ org: OrgUsage) {
         guard let slug = AltInstance.slug(org.name), let pid = instances[slug] else { return }

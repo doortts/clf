@@ -40,9 +40,31 @@ public func safeStorageKey(password: String) throws -> Data {
     return key
 }
 
+/// 한 번 읽은 키를 들고 있는다.
+///
+/// 계정 감시가 5초마다 도는데 그때마다 `security` 프로세스를 띄우면 하루에
+/// 만 칠천 번이다. 키는 앱이 도는 동안 안 바뀐다.
+private final class KeyCache: @unchecked Sendable {
+    static let shared = KeyCache()
+    private let lock = NSLock()
+    private var key: Data?
+
+    func get(_ make: () throws -> Data) throws -> Data {
+        lock.lock(); defer { lock.unlock() }
+        if let key { return key }
+        let fresh = try make()
+        key = fresh
+        return fresh
+    }
+}
+
 /// `security` CLI 로 읽는다. Security framework 를 쓰면 개발 빌드마다 코드서명이
 /// 바뀌어 프롬프트가 반복된다. docs/design/07-oauth-credentials.md 3절
 public func safeStorageKeyFromKeychain() throws -> Data {
+    try KeyCache.shared.get(readSafeStorageKey)
+}
+
+private func readSafeStorageKey() throws -> Data {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
     process.arguments = ["find-generic-password", "-s", SafeStorage.keychainService, "-w"]
