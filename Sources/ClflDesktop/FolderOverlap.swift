@@ -19,10 +19,12 @@ public enum FolderOverlap {
         /// cliSessionId. 겹쳤을 때 제목을 찾아가는 열쇠다.
         public let id: String
         public let cwd: String
-        /// 트랜스크립트에 마지막으로 쓴 시각.
+        /// 트랜스크립트에 마지막으로 대화를 적은 시각.
         ///
-        /// 레코드의 `lastActivityAt` 을 쓰지 않는다. 실측에서 그 값이 22:51 인데
-        /// 세션은 22:58 에 일하고 있었다. 파일 mtime 이 살아 있는 신호다.
+        /// 레코드의 `lastActivityAt` 은 뒤처진다. 실측에서 그 값이 22:51 인데
+        /// 세션은 22:58 에 일하고 있었다. 파일 mtime 은 반대로 앞서간다.
+        /// 데스크톱 앱이 놀고 있는 세션에도 메타데이터를 덧붙여 갱신하기
+        /// 때문이다. 대화 줄의 timestamp 만 믿을 수 있다.
         public let wroteAt: Date?
 
         public init(id: String = "", cwd: String, wroteAt: Date?) {
@@ -103,9 +105,9 @@ public enum FolderOverlap {
 extension FolderOverlap {
     /// 계정 폴더들을 훑어 겹치는 폴더를 찾는다.
     ///
-    /// **제목은 안 읽는다.** 팝오버는 5초마다 도는데 세션마다 트랜스크립트
-    /// 양끝 256KB 를 읽으면 너무 비싸다. 여기서는 레코드의 작은 JSON 과 파일
-    /// mtime 만 본다.
+    /// **제목은 안 읽는다.** 세션마다 트랜스크립트 양끝 256KB 를 읽으면 너무
+    /// 비싸다. 여기서는 레코드의 작은 JSON 을 보고, mtime 이 최근인
+    /// 트랜스크립트만 뒤쪽을 읽어 대화 시각을 확인한다.
     public static func scan(stores: [SessionStore],
                             projects: URL = FileManager.default.homeDirectoryForCurrentUser
                                 .appendingPathComponent(".claude/projects"),
@@ -126,17 +128,57 @@ extension FolderOverlap {
 
                 uses.append(Use(id: cli,
                                 cwd: json["cwd"] as? String ?? json["originCwd"] as? String ?? "",
-                                wroteAt: writtenAt(cli, projects: projects)))
+                                wroteAt: writtenAt(cli, projects: projects, now: now)))
             }
         }
         return find(uses, now: now)
     }
 
-    /// 트랜스크립트에 마지막으로 쓴 시각. 없으면 `nil`.
-    static func writtenAt(_ id: String, projects: URL) -> Date? {
-        guard let url = SessionMirror.transcriptPath(id, projects: projects) else { return nil }
-        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
-        return attrs?[.modificationDate] as? Date
+    /// 트랜스크립트에 마지막으로 대화를 적은 시각. 없으면 `nil`.
+    ///
+    /// mtime 을 그대로 믿지 않는다. 데스크톱 앱은 창이 떠 있으면 놀고 있는
+    /// 세션에도 `last-prompt`, `ai-title` 줄을 계속 덧붙여서, 실측에서 대화가
+    /// 00:59 에 끝난 세션의 mtime 이 03:44 로 나왔다. 다만 mtime 은 마지막
+    /// 쓰기의 상한이므로, 이미 오래된 파일은 열지 않고 그 값으로 거른다.
+    static func writtenAt(_ id: String, projects: URL, now: Date,
+                          within: TimeInterval = liveWindow) -> Date? {
+        guard let url = SessionMirror.transcriptPath(id, projects: projects),
+              let mtime = (try? FileManager.default.attributesOfItem(atPath: url.path))?[
+                  .modificationDate] as? Date
+        else { return nil }
+        guard now.timeIntervalSince(mtime) <= within else { return mtime }
+        return spokeAt(url)
+    }
+
+    /// timestamp 가 있는 마지막 줄의 시각. 대화 줄에만 timestamp 가 있고
+    /// 메타데이터 줄에는 없다. 파일이 커도 뒤쪽 256KB 만 읽는다.
+    static func spokeAt(_ url: URL) -> Date? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int)
+            .flatMap { $0 } ?? 0
+        if size > TranscriptTitle.edgeBytes {
+            try? handle.seek(toOffset: UInt64(size - TranscriptTitle.edgeBytes))
+        }
+        let data = (try? handle.readToEnd()) ?? Data()
+
+        // 줄은 시간 순서라 마지막에 읽힌 것이 최신이다. 잘려서 들어온 첫
+        // 줄은 JSON 이 안 되므로 그냥 걸러진다
+        var last: Date?
+        for line in data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true) {
+            guard let root = try? JSONSerialization.jsonObject(with: Data(line))
+                    as? [String: Any],
+                  let raw = root["timestamp"] as? String,
+                  let at = parse(raw) else { continue }
+            last = at
+        }
+        return last
+    }
+
+    /// CLI 는 대개 소수점 초를 붙이지만 안 붙일 때도 있다. 둘 다 받는다.
+    static func parse(_ timestamp: String) -> Date? {
+        (try? Date(timestamp, strategy: Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
+            ?? (try? Date(timestamp, strategy: .iso8601))
     }
 
     /// 이 데이터 디렉토리가 가진 계정 폴더 전부.
