@@ -73,9 +73,9 @@ struct HandoffView: View {
                     .font(.system(size: 13))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(session.display).font(.system(size: 12)).lineLimit(1)
-                    Text(session.hasTranscript ? session.folder : "기록 없음 - 옮겨도 빈 세션이다")
+                    Text(session.warning ?? session.folder)
                         .font(.system(size: 10))
-                        .foregroundStyle(session.hasTranscript ? Color.secondary : Color.yellow)
+                        .foregroundStyle(session.warning == nil ? Color.secondary : Color.yellow)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6)

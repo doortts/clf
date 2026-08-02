@@ -251,6 +251,84 @@ final class HandoffAdviceTests: XCTestCase {
     }
 }
 
+/// 넘기기 전에 알아야 할 것 둘. 대화가 없거나 작업 폴더가 없으면 옮겨 봐야
+/// 쓸 수 없다.
+///
+/// **막지는 않는다.** 넘기기는 사용자가 명시적으로 하는 일이라 판단은 사용자
+/// 몫이다. 우리는 판단할 재료만 준다. docs/design/13-multi-instance.md
+final class SessionWarningTests: XCTestCase {
+    private var root: URL!
+    private var projects: URL!
+    private var store: SessionStore!
+
+    override func setUpWithError() throws {
+        root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("warn-\(UUID().uuidString)")
+        projects = root.appendingPathComponent("projects")
+        store = SessionStore(dataDirectory: root, person: "p", account: "A")
+        try FileManager.default.createDirectory(at: store.root, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: projects, withIntermediateDirectories: true)
+    }
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: root) }
+
+    private func put(cwd: String, cli: String = "c1") throws {
+        try Data(#"{"sessionId":"s","cliSessionId":"\#(cli)","cwd":"\#(cwd)"}"#.utf8)
+            .write(to: store.root.appendingPathComponent("local_x.json"))
+    }
+    private func putTranscript(_ cli: String = "c1") throws {
+        let dir = projects.appendingPathComponent("proj")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data("{}\n".utf8).write(to: dir.appendingPathComponent("\(cli).jsonl"))
+    }
+    private func only(_ exists: @escaping (String) -> Bool) -> SessionSummary {
+        store.summaries(projects: projects, folderExists: exists)[0]
+    }
+
+    func test_nothingToSayWhenBothAreThere() throws {
+        try put(cwd: "/repo")
+        try putTranscript()
+        let s = only { _ in true }
+        XCTAssertNil(s.warning)
+        XCTAssertEqual(s.folder, "repo")
+    }
+
+    /// worktree 를 지우면 폴더가 없어진다. 옮겨도 그 자리에서 일할 수 없다.
+    func test_marksAMissingFolder() throws {
+        try put(cwd: "/repo/wt")
+        try putTranscript()
+        XCTAssertEqual(only { _ in false }.warning, SessionSummary.noFolder)
+    }
+
+    /// 확인은 레코드에 적힌 경로로 한다. 짐작하지 않는다.
+    func test_asksAboutTheRecordedPath() throws {
+        try put(cwd: "/repo/wt")
+        try putTranscript()
+        var asked: [String] = []
+        _ = only { asked.append($0); return true }
+        XCTAssertEqual(asked, ["/repo/wt"])
+    }
+
+    /// 대화가 아예 없는 쪽이 더 큰 문제다. 둘 다면 그쪽을 말한다.
+    func test_missingTranscriptWins() throws {
+        try put(cwd: "/repo/wt")
+        XCTAssertEqual(only { _ in false }.warning, SessionSummary.noTranscript)
+    }
+
+    /// 경로를 모르면 없다고 말하지 않는다. 지어낸 경고는 진짜 경고를 묻는다.
+    func test_unknownPathIsNotAWarning() throws {
+        try put(cwd: "")
+        try putTranscript()
+        XCTAssertNil(only { _ in false }.warning)
+    }
+
+    /// 기본값은 실제 파일 시스템을 본다. 호출부가 아무것도 안 넘겨도 동작해야 한다.
+    func test_defaultLooksAtTheRealFileSystem() throws {
+        try put(cwd: root.path)
+        try putTranscript()
+        XCTAssertNil(store.summaries(projects: projects)[0].warning)
+    }
+}
+
 /// 마지막으로 쓴 때를 사람이 읽는 말로. `until` 의 반대 방향이다.
 final class SinceTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_700_000_000)

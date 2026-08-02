@@ -102,27 +102,49 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     public let lastActivityAt: Date?
     /// 트랜스크립트가 없으면 옮겨도 빈 세션이 뜬다.
     public let hasTranscript: Bool
+    /// 작업 폴더가 아직 있는지. worktree 를 지우면 없어진다.
+    public let folderExists: Bool
 
     public var id: String { fileName }
 
     public init(fileName: String, cliSessionID: String, title: String, folder: String,
-                lastActivityAt: Date?, hasTranscript: Bool) {
+                lastActivityAt: Date?, hasTranscript: Bool, folderExists: Bool = true) {
         self.fileName = fileName
         self.cliSessionID = cliSessionID
         self.title = title
         self.folder = folder
         self.lastActivityAt = lastActivityAt
         self.hasTranscript = hasTranscript
+        self.folderExists = folderExists
     }
 
     /// 제목을 못 읽었으면 폴더 이름으로 대신한다. 빈 줄을 보여주지 않는다.
     public var display: String { title.isEmpty ? folder : title }
+
+    public static let noTranscript = "기록 없음 - 옮겨도 빈 세션이다"
+    public static let noFolder = "작업 폴더가 없다 - 옮겨도 그 자리에서 일할 수 없다"
+
+    /// 넘기기 전에 알아야 할 것. 없으면 `nil`.
+    ///
+    /// **막는 값이 아니라 보여주는 값이다.** 넘기기는 사용자가 명시적으로 하는
+    /// 일이라 판단은 사용자 몫이고, 우리는 재료만 준다. 둘 다 걸리면 대화가
+    /// 아예 없는 쪽을 말한다. 그게 더 큰 문제다.
+    public var warning: String? {
+        if !hasTranscript { return Self.noTranscript }
+        if !folderExists { return Self.noFolder }
+        return nil
+    }
 }
 
 extension SessionStore {
     /// 이 계정이 가진 세션. 제목은 트랜스크립트 양끝에서 읽는다.
+    ///
+    /// 폴더 확인은 주입받는다. 테스트가 진짜 디렉토리를 만들지 않아도 된다.
     public func summaries(projects: URL = FileManager.default.homeDirectoryForCurrentUser
-                            .appendingPathComponent(".claude/projects")) -> [SessionSummary] {
+                            .appendingPathComponent(".claude/projects"),
+                          folderExists: (String) -> Bool = {
+                              FileManager.default.fileExists(atPath: $0)
+                          }) -> [SessionSummary] {
         let fm = FileManager.default
         return fileNames().compactMap { name -> SessionSummary? in
             guard let data = fm.contents(atPath: root.appendingPathComponent(name).path),
@@ -140,7 +162,9 @@ extension SessionStore {
                 lastActivityAt: (json["lastActivityAt"] as? Double).map {
                     Date(timeIntervalSince1970: $0 / 1000)
                 },
-                hasTranscript: transcript != nil)
+                hasTranscript: transcript != nil,
+                // 경로를 모르면 없다고 하지 않는다. 지어낸 경고는 진짜 경고를 묻는다
+                folderExists: cwd.isEmpty || folderExists(cwd))
         }
         .sorted { ($0.lastActivityAt ?? .distantPast) > ($1.lastActivityAt ?? .distantPast) }
     }
