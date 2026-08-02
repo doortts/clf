@@ -26,6 +26,20 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
     /// 누를 수 있는 것은 하나뿐이다.
     public var isActionable: Bool { self == .none }
 
+    /// 이름 옆에 붙는 상태 배지. HIG 는 단추 라벨을 동사로 쓰라고 하므로
+    /// 상태는 배지로 가르고 단추에는 동작만 남긴다.
+    /// docs/design/popover-hig-mockup.html
+    public var badgeLabel: String? { self == .running ? "실행중" : nil }
+
+    /// 누르면 일어나는 일. 동사다. 상태뿐인 자리는 nil 이다.
+    public var actionLabel: String? {
+        switch self {
+        case .none:    return "새 창 띄우기"
+        case .running: return "앞으로 꺼내기"
+        default:       return nil
+        }
+    }
+
     public static func of(slug: String?, isPrimary: Bool,
                           running: Set<String>, opening: Set<String>) -> InstanceSlot {
         if isPrimary { return .primary }

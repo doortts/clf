@@ -106,6 +106,28 @@ final class InstanceSlotTests: XCTestCase {
                                        running: [], opening: ["Nav"]), .opening)
     }
 
+    // MARK: 상태와 동작을 가른다. HIG 는 단추 라벨을 동사로 쓰라고 한다.
+    // docs/design/popover-hig-mockup.html
+
+    /// 창이 떠 있는 것은 상태 배지, 앞으로 꺼내는 것은 단추다.
+    func test_runningSplitsStateAndAction() {
+        XCTAssertEqual(InstanceSlot.running.badgeLabel, "실행중")
+        XCTAssertEqual(InstanceSlot.running.actionLabel, "앞으로 꺼내기")
+    }
+
+    func test_launchIsAnActionWithoutState() {
+        XCTAssertNil(InstanceSlot.none.badgeLabel)
+        XCTAssertEqual(InstanceSlot.none.actionLabel, "새 창 띄우기")
+    }
+
+    /// 기본, 여는 중, 못 띄움은 상태뿐이다. 누를 것이 없다.
+    func test_pureStatesHaveNoAction() {
+        for slot in [InstanceSlot.primary, .opening, .unavailable] {
+            XCTAssertNil(slot.actionLabel, "\(slot)")
+            XCTAssertNil(slot.badgeLabel, "\(slot)")
+        }
+    }
+
     /// 창이 실제로 떴으면 여는 중이 아니다.
     func test_runningBeatsOpening() {
         XCTAssertEqual(InstanceSlot.of(slug: "T52", isPrimary: false,
