@@ -1,0 +1,138 @@
+<meta charset="utf-8">
+<title>포커스 카드 보라색 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:760px; }
+  h2 { font-size:13px; margin:26px 0 10px; }
+  .row { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .variant { display:flex; flex-direction:column; gap:8px; }
+  .vname { font-size:10px; color:#98989d; }
+  .vname b { color:#f2f2f7; font-weight:600; }
+
+  /* 팝오버 재현 */
+  .popover { width:300px; background:#2c2c2e; border-radius:10px; padding:6px 14px;
+             box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .popover.light { background:#f0f0f3; color:#1c1c1e; }
+  .card { position:relative; padding:10px 8px; margin:0 -8px; border-radius:8px; }
+  .card.plain { opacity:.75; }
+  .head { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .dot { width:7px; height:7px; border-radius:50%; }
+  .name { font-size:13px; font-weight:600; }
+  .badge { font-size:9px; font-weight:600; padding:1px 6px; border-radius:5px; }
+  .spacer { flex:1; }
+  .statebox { font-size:10px; color:#98989d; border:1px solid rgba(152,152,157,.5);
+              border-radius:5px; padding:1px 7px; }
+  .light .statebox { color:#6b6b70; border-color:rgba(107,107,112,.5); }
+  .lim { display:flex; flex-direction:column; gap:2px; margin-bottom:7px; }
+  .limtop { display:flex; align-items:center; gap:8px; }
+  .limname { font-size:11px; width:64px; color:#f2f2f7; }
+  .light .limname { color:#1c1c1e; }
+  .pct { font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; width:32px; }
+  .gauge { flex:1; height:12px; border-radius:7px; border:1.5px solid; position:relative;
+           overflow:hidden; }
+  .gfill { position:absolute; left:0; top:0; bottom:0; border-radius:5px; }
+  .reset { font-size:9px; color:#7c7c80; padding-left:72px; }
+  .light .reset { color:#8e8e93; }
+  .note { margin-top:26px; color:#98989d; max-width:760px; }
+  .note b { color:#f2f2f7; }
+</style>
+
+<h1>포커스 카드 보라색 확정안</h1>
+<p class="lede">
+  포커스 카드는 systemPurple 배경 15%, 테두리 60% 로 바꾼다. 기본
+  인스턴스 점과 team 배지는 지금처럼 시스템 악센트(파랑)를 그대로 쓴다.
+  카드의 보라는 "방금 앞에 있던 창" 하나만 말하고, 파랑 점과 배지는
+  기존 의미를 그대로 갖는다.
+</p>
+
+<h2>1. 어두운 팝오버</h2>
+<div class="row" id="dark-row"></div>
+
+<h2>2. 밝은 팝오버</h2>
+<div class="row" id="light-row"></div>
+
+<p class="note">
+  <b>구현 값:</b> 배경 <code>Color.purple.opacity(0.15)</code>, 테두리
+  <code>Color.purple.opacity(0.60)</code> 1pt. SwiftUI 의
+  <code>Color.purple</code> 은 macOS 에서 systemPurple 로 매핑되어
+  다크 #bf5af2, 라이트 #af52de 를 OS 가 갈아 끼운다. 점(7pt 원)과
+  team 배지, 메뉴바 밑줄은 <code>accentColor</code> 그대로 둔다.
+</p>
+
+<script>
+// 문자 규칙: 이 파일의 텍스트는 한글과 ASCII 만 쓴다.
+function card(opts) {
+  var focused = opts.focused;
+  var c = opts.color;         // 포커스 카드 색 (보라)
+  var accent = opts.accent;   // 점과 배지 색 (파랑 유지)
+  var fillOp = opts.fillOp || 0.15;
+  var strokeOp = opts.strokeOp || 0.60;
+  var bg = focused
+    ? 'background:' + rgba(c, fillOp) + ';box-shadow:inset 0 0 0 1px ' + rgba(c, strokeOp) + ';'
+    : '';
+  return '' +
+  '<div class="card ' + (focused ? '' : 'plain') + '" style="' + bg + '">' +
+    '<div class="head">' +
+      (focused ? '<span class="dot" style="background:' + accent + '"></span>' : '') +
+      '<span class="name">' + (focused ? 'NAVER_TEAM_52' : 'NAVER_TEAM_40') + '</span>' +
+      '<span class="badge" style="color:' + accent + ';background:' + rgba(accent, 0.22) + '">team</span>' +
+      '<span class="spacer"></span>' +
+      (focused ? '<span class="statebox">기본</span>' : '<span class="statebox">띄우기</span>') +
+    '</div>' +
+    (focused
+      ? lim('5시간', 66, opts.grayGauge, '리셋: 96%, 12분 뒤') +
+        lim('주간 전체', 9, opts.greenGauge, '리셋: 61%, 2일 17시간 뒤 (수요일 오후 9:00)') +
+        lim('주간 Fable', 13, opts.greenGauge, '리셋: 61%, 2일 17시간 뒤 (수요일 오후 9:00)')
+      : lim('5시간', 41, opts.grayGauge, '리셋: 41%, 4일 2시간 뒤 (금요일 오전 3:59)') +
+        lim('주간 전체', 78, opts.greenGauge, '리셋: 12%, 5일 3시간 뒤 (토요일 오전 9:00)') +
+        lim('주간 Fable', 52, opts.greenGauge, '리셋: 12%, 5일 3시간 뒤 (토요일 오전 9:00)')) +
+  '</div>';
+}
+function lim(nm, pct, gcolor, reset) {
+  return '' +
+  '<div class="lim">' +
+    '<div class="limtop">' +
+      '<span class="limname">' + nm + '</span>' +
+      '<span class="pct">' + pct + '%</span>' +
+      '<span class="gauge" style="border-color:' + gcolor + '">' +
+        '<span class="gfill" style="background:' + gcolor + ';width:' + pct + '%"></span>' +
+      '</span>' +
+    '</div>' +
+    '<div class="reset">' + reset + '</div>' +
+  '</div>';
+}
+function rgba(hex, a) {
+  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+}
+function popover(cls, focusedCard, otherCard) {
+  return '<div class="popover ' + cls + '">' + focusedCard + otherCard + '</div>';
+}
+function variant(label, html) {
+  return '<div class="variant"><span class="vname">' + label + '</span>' + html + '</div>';
+}
+
+// 다크 모드 색
+var D = { gray:'#98989d', green:'#30d158', blue:'#0a84ff', purple:'#bf5af2' };
+// 라이트 모드 색
+var L = { gray:'#8e8e93', green:'#34c759', blue:'#007aff', purple:'#af52de' };
+
+function build(rowId, cls, P) {
+  var other = card({focused:false, color:P.purple, accent:P.blue,
+                    grayGauge:P.gray, greenGauge:P.green});
+  var rows = [
+    ['현재: 파랑 10%/30% (참고)', P.blue, 0.10, 0.30],
+    ['<b>확정안: systemPurple 15%/60%, 점과 배지는 파랑</b>', P.purple, 0.15, 0.60],
+  ].map(function(v){
+    return variant(v[0], popover(cls,
+      card({focused:true, color:v[1], accent:P.blue, fillOp:v[2], strokeOp:v[3],
+            grayGauge:P.gray, greenGauge:P.green}),
+      other));
+  }).join('');
+  document.getElementById(rowId).innerHTML = rows;
+}
+build('dark-row', '', D);
+build('light-row', 'light', L);
+</script>
