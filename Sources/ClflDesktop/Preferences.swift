@@ -37,6 +37,44 @@ public enum BarDetail: String, Codable, Sendable, CaseIterable {
     public var showsDots: Bool { self == .full || self == .dots }
 }
 
+/// 게이지 퍼센트를 어느 쪽에서 읽을지.
+///
+/// 서버는 사용률을 준다. 남은 용량은 100 에서 0 으로 줄고 사용률은 0 에서
+/// 100 으로 는다. 숫자와 채움이 함께 뒤집히고, 색 등급은 두 방식 모두
+/// 잔여 기준 그대로다. docs/design/gauge-direction-mockup.html
+public enum GaugeDirection: String, Codable, Sendable, CaseIterable {
+    /// 남은 용량. 지금까지의 방식이라 기본값이다
+    case remaining = "remaining"
+    /// 사용률. 쓴 만큼 차오른다
+    case used = "used"
+
+    public var label: String {
+        switch self {
+        case .remaining: return "남은 용량"
+        case .used:      return "사용률"
+        }
+    }
+
+    /// 화면에 적을 숫자. 서버가 주는 사용률에서 방향에 맞게 고른다.
+    public func displayPercent(used: Int) -> Int {
+        self == .used ? used : 100 - used
+    }
+
+    /// 눈금 게이지가 켤 칸 수.
+    ///
+    /// 남은 용량은 **올림**이다. 1% 라도 남았으면 한 칸을 켠다. 사용률은
+    /// **내림**이다. 1% 라도 남았으면 빈 칸 하나를 남긴다. 방향이 달라도
+    /// "남은 것을 숨기지 않는다" 는 같은 규칙이라 두 방식의 켠 칸과
+    /// 빈 칸이 정확히 맞물린다.
+    public func litSteps(used: Int, total: Int) -> Int {
+        let percent = displayPercent(used: used)
+        guard percent > 0 else { return 0 }
+        let raw = Double(percent) * Double(total) / 100
+        let count = self == .used ? raw.rounded(.down) : raw.rounded(.up)
+        return min(total, Int(count))
+    }
+}
+
 /// 메뉴바 막대에 무엇을 그릴지.
 public enum BarContent: String, Codable, Sendable, CaseIterable {
     /// 활성 계정 하나만. 계정이 셋이면 막대가 너무 길어진다
@@ -62,14 +100,18 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var barContent: BarContent
     /// 막대를 얼마나 자세히 그릴지.
     public var barDetail: BarDetail
+    /// 게이지 퍼센트의 방향. 팝오버와 막대가 같이 따른다.
+    public var gaugeDirection: GaugeDirection
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
-                barContent: BarContent = .activeOnly, barDetail: BarDetail = .full) {
+                barContent: BarContent = .activeOnly, barDetail: BarDetail = .full,
+                gaugeDirection: GaugeDirection = .remaining) {
         self.version = version
         self.hidden = hidden
         self.order = order
         self.barContent = barContent
         self.barDetail = barDetail
+        self.gaugeDirection = gaugeDirection
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -80,6 +122,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
         barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .activeOnly
         barDetail = try c.decodeIfPresent(BarDetail.self, forKey: .barDetail) ?? .full
+        gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .remaining
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }

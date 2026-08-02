@@ -69,11 +69,13 @@ public enum BarText {
     }
 
     /// 글자만 쓰는 예비 표기. 그림을 못 그릴 때와 테스트가 쓴다.
-    public static func label(for orgs: [OrgUsage]) -> String {
+    public static func label(for orgs: [OrgUsage],
+                             direction: GaugeDirection = .remaining) -> String {
         guard !orgs.isEmpty else { return placeholder }
-        if orgs.count == 1 { return percent(orgs[0]) }
+        if orgs.count == 1 { return percent(orgs[0], direction) }
         let map = codes(for: orgs.map(\.name))
-        return orgs.map { "\(map[$0.name] ?? unknown) \(percent($0))" }.joined(separator: "  ")
+        return orgs.map { "\(map[$0.name] ?? unknown) \(percent($0, direction))" }
+            .joined(separator: "  ")
     }
 
     /// 리셋까지 남은 시간을 사람이 읽는 말로.
@@ -144,9 +146,9 @@ public enum BarText {
     static let prefix = "리셋: "
 
     /// 가장 좁은 창을 쓴다. 5시간이 널널해도 주간이 바닥이면 바닥이 사실이다.
-    private static func percent(_ org: OrgUsage) -> String {
+    private static func percent(_ org: OrgUsage, _ direction: GaugeDirection) -> String {
         guard let binding = org.binding else { return unknown }
-        return "\(binding.percentRemaining)%"
+        return "\(direction.displayPercent(used: binding.percentUsed))%"
     }
 }
 
