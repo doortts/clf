@@ -18,9 +18,11 @@ public struct AltLauncher: Sendable {
     }
 
     /// 계정 하나짜리 인스턴스를 띄운다. 이미 씨앗이 있으면 다시 심지 않는다.
+    ///
+    /// 디렉토리 이름은 계정 이름에서, 로그인 계정은 uuid 로 정한다.
     @discardableResult
-    public func launch(account uuid: String) throws -> URL {
-        let dir = try seed(account: uuid)
+    public func launch(name: String, uuid: String) throws -> URL {
+        let dir = try seed(name: name, uuid: uuid)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: AltInstance.executable)
         var env = ProcessInfo.processInfo.environment
@@ -34,9 +36,9 @@ public struct AltLauncher: Sendable {
     }
 
     /// 데이터 디렉토리를 만들고 로그인을 물려준다.
-    public func seed(account uuid: String) throws -> URL {
-        guard let dir = AltInstance.directory(for: uuid) else {
-            throw SafeStorageError(description: "계정 uuid 형식이 아니다")
+    public func seed(name: String, uuid: String) throws -> URL {
+        guard let dir = AltInstance.directory(for: name) else {
+            throw SafeStorageError(description: "계정 이름으로 디렉토리를 못 만든다")
         }
         let fm = FileManager.default
         try fm.createDirectory(at: dir, withIntermediateDirectories: true,
@@ -61,11 +63,36 @@ public struct AltLauncher: Sendable {
         return dir
     }
 
-    /// 우리가 만든 디렉토리만 지운다.
-    public func remove(account uuid: String) throws {
-        guard let dir = AltInstance.directory(for: uuid) else { return }
-        guard dir.lastPathComponent.hasPrefix(AltInstance.prefix) else { return }
-        try? FileManager.default.removeItem(at: dir)
+    /// 우리가 만든 디렉토리를 전부 지운다. 떠 있는 창의 것은 남긴다.
+    ///
+    /// 지우는 대상을 이름으로 거른다. `.claude-alt-` 로 시작하지 않으면
+    /// 우리 것이 아니므로 손대지 않는다.
+    @discardableResult
+    public func removeAll(keeping running: Set<String>,
+                          home: URL = FileManager.default.homeDirectoryForCurrentUser)
+    -> (removed: Int, keptRunning: Int, freedBytes: Int64) {
+        let fm = FileManager.default
+        // 숨김 디렉토리를 찾는 것이 목적이므로 걸러내지 않는다
+        let all = (try? fm.contentsOfDirectory(at: home, includingPropertiesForKeys: nil)) ?? []
+        var removed = 0, kept = 0, freed: Int64 = 0
+        for url in all where AltInstance.isOurs(url) {
+            let slug = String(url.lastPathComponent.dropFirst(AltInstance.prefix.count))
+            if running.contains(slug) { kept += 1; continue }
+            freed += Int64(directorySize(url))
+            if (try? fm.removeItem(at: url)) != nil { removed += 1 }
+        }
+        return (removed, kept, freed)
+    }
+
+    private func directorySize(_ url: URL) -> Int {
+        var total = 0
+        let walker = FileManager.default.enumerator(at: url,
+            includingPropertiesForKeys: [.totalFileAllocatedSizeKey])
+        while let f = walker?.nextObject() as? URL {
+            total += (try? f.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
+                .totalFileAllocatedSize) as? Int ?? 0
+        }
+        return total
     }
 
     // MARK: 안쪽

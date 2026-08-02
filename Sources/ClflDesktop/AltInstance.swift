@@ -10,6 +10,8 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
     case opening
     /// 아무 창도 없다. 띄울 수 있다.
     case none
+    /// 이름에서 경로를 못 만들었다. 띄울 수 없다.
+    case unavailable
 
     public var label: String {
         switch self {
@@ -17,17 +19,19 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
         case .running: return "창 실행중"
         case .opening: return "여는 중"
         case .none:    return "새 창 띄우기"
+        case .unavailable: return "이름을 못 쓴다"
         }
     }
 
     /// 누를 수 있는 것은 하나뿐이다.
     public var isActionable: Bool { self == .none }
 
-    public static func of(_ uuid: String, primary: String?,
+    public static func of(slug: String?, isPrimary: Bool,
                           running: Set<String>, opening: Set<String>) -> InstanceSlot {
-        if uuid == primary { return .primary }
-        if running.contains(uuid) { return .running }
-        if opening.contains(uuid) { return .opening }
+        if isPrimary { return .primary }
+        guard let slug else { return .unavailable }
+        if running.contains(slug) { return .running }
+        if opening.contains(slug) { return .opening }
         return .none
     }
 }
@@ -40,21 +44,35 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
 public enum AltInstance {
     public static let executable =
         "/Applications/Claude.app/Contents/MacOS/Claude"
-    /// 홈 아래 숨김 디렉토리. 이름에 계정 uuid 가 들어간다.
+    /// 홈 아래 숨김 디렉토리. 이름에 계정 이름이 들어간다.
     public static let prefix = ".claude-alt-"
 
-    /// **이름이 곧 경로다.** uuid 가 아닌 것을 받으면 홈 밖으로 나갈 수 있으므로
-    /// 형식을 엄격히 본다.
-    public static func directory(for uuid: String,
-                                 home: URL = FileManager.default
-                                     .homeDirectoryForCurrentUser) -> URL? {
-        guard isUUID(uuid) else { return nil }
-        return home.appendingPathComponent(prefix + uuid.lowercased(), isDirectory: true)
+    /// 계정 이름을 경로 한 조각으로 만든다.
+    ///
+    /// **이름이 곧 경로다.** 여기가 구멍이 되면 홈 밖으로 나간다. 공백은 지우고
+    /// 경로 구분자는 `-` 로 바꾸며, 앞의 점은 떼어낸다.
+    public static func slug(_ name: String) -> String? {
+        var s = name.components(separatedBy: .whitespacesAndNewlines).joined()
+        for bad in ["/", "\\", ":"] { s = s.replacingOccurrences(of: bad, with: "-") }
+        s = s.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        while s.hasPrefix(".") { s.removeFirst() }
+        s = s.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        // 점과 대시만 남았으면 이름이 아니다. `../..` 가 `..` 로 남는다
+        guard s.contains(where: { $0 != "." && $0 != "-" }), !s.contains("/") else { return nil }
+        return s
     }
 
-    static func isUUID(_ s: String) -> Bool {
-        s.range(of: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-                options: .regularExpression) != nil
+    public static func directory(for name: String,
+                                 home: URL = FileManager.default
+                                     .homeDirectoryForCurrentUser) -> URL? {
+        guard let slug = slug(name) else { return nil }
+        return home.appendingPathComponent(prefix + slug, isDirectory: true)
+    }
+
+    /// 우리가 만든 디렉토리인가. 지울 때 이걸로 거른다.
+    public static func isOurs(_ url: URL) -> Bool {
+        let name = url.lastPathComponent
+        return name.hasPrefix(prefix) && name.count > prefix.count
     }
 
     /// 지금 떠 있는 별도 인스턴스의 계정. 로컬 프로세스만 본다.
@@ -86,8 +104,8 @@ public enum AltInstance {
             let path = line[range.upperBound...].prefix { !$0.isWhitespace }
             guard let name = path.split(separator: "/").last,
                   name.hasPrefix(prefix) else { continue }
-            let uuid = String(name.dropFirst(prefix.count))
-            if isUUID(uuid) { found.insert(uuid.lowercased()) }
+            let slug = String(name.dropFirst(prefix.count))
+            if !slug.isEmpty { found.insert(slug) }
         }
         return found
     }

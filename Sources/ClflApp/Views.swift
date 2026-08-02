@@ -84,7 +84,7 @@ struct OrgCard: View {
             statusBox(slot.label, tint: .yellow, filled: true)
         case .opening:
             statusBox(slot.label, tint: .secondary, filled: false)
-        case .primary:
+        case .primary, .unavailable:
             statusBox(slot.label, tint: .secondary, filled: false)
         }
     }
@@ -193,6 +193,24 @@ struct SettingsPane: View {
                     }
                     .padding(.leading, 18)
                 }
+            }
+
+            Divider()
+
+            // 새 창을 띄우면 계정마다 300MB 쯤 쌓인다. 지울 자리가 필요하다
+            VStack(alignment: .leading, spacing: 3) {
+                Button {
+                    model.purgeInstanceData()
+                } label: {
+                    Text("멀티 인스턴스 정보 삭제")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("새 창용 데이터 디렉토리 전부 삭제")
+
+                Text("~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다")
+                    .font(.system(size: 9)).foregroundStyle(.tertiary)
             }
 
             Divider()

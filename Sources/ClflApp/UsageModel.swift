@@ -93,7 +93,9 @@ final class UsageModel: ObservableObject {
 
     /// 어느 계정에 창이 떠 있는지. 로컬 프로세스만 보므로 공짜다.
     func slot(_ org: OrgUsage) -> InstanceSlot {
-        InstanceSlot.of(org.uuid, primary: activeUUID, running: running, opening: opening)
+        InstanceSlot.of(slug: AltInstance.slug(org.name),
+                        isPrimary: org.uuid == activeUUID,
+                        running: running, opening: opening)
     }
 
     /// 그 계정 전용 인스턴스를 띄운다.
@@ -101,20 +103,21 @@ final class UsageModel: ObservableObject {
     /// 창이 실제로 뜰 때까지 `여는 중` 으로 둔다. 표시가 없으면 사용자가 또
     /// 누르고 인스턴스가 둘이 된다.
     func launch(_ org: OrgUsage) {
-        guard slot(org).isActionable else { return }
-        opening.insert(org.uuid)
+        guard slot(org).isActionable, let slug = AltInstance.slug(org.name) else { return }
+        opening.insert(slug)
         launchError = nil
         let launcher = self.launcher
         let uuid = org.uuid
+        let name = org.name
         Task { [weak self] in
             do {
                 try await Task.detached(priority: .userInitiated) {
-                    try launcher.launch(account: uuid)
+                    try launcher.launch(name: name, uuid: uuid)
                 }.value
             } catch {
                 await MainActor.run {
-                    self?.opening.remove(uuid)
-                    self?.launchError = "\(org.name) 창을 못 띄웠다. \(error)"
+                    self?.opening.remove(slug)
+                    self?.launchError = "\(name) 창을 못 띄웠다. \(error)"
                 }
                 return
             }
@@ -124,14 +127,30 @@ final class UsageModel: ObservableObject {
                 let live = await Task.detached { AltInstance.scanRunning() }.value
                 let done = await MainActor.run { () -> Bool in
                     self?.running = live
-                    if live.contains(uuid) { self?.opening.remove(uuid); return true }
+                    if live.contains(slug) { self?.opening.remove(slug); return true }
                     return false
                 }
                 if done { return }
             }
             await MainActor.run {
-                self?.opening.remove(uuid)
-                self?.launchError = "\(org.name) 창이 안 떴다"
+                self?.opening.remove(slug)
+                self?.launchError = "\(name) 창이 안 떴다"
+            }
+        }
+    }
+
+    /// 새 창을 띄우며 만든 디렉토리를 전부 지운다. 떠 있는 창의 것은 남긴다.
+    func purgeInstanceData() {
+        let launcher = self.launcher
+        let live = running
+        Task { [weak self] in
+            let r = await Task.detached { launcher.removeAll(keeping: live) }.value
+            await MainActor.run {
+                let mb = Double(r.freedBytes) / 1024 / 1024
+                var say = r.removed == 0 ? "지울 것이 없었다"
+                    : String(format: "%d개를 지웠다. %.0fMB 확보", r.removed, mb)
+                if r.keptRunning > 0 { say += ". 창이 떠 있는 \(r.keptRunning)개는 남겼다" }
+                self?.launchError = say
             }
         }
     }
