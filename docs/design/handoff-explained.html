@@ -335,7 +335,158 @@ TEAM_40 5시간 한도:  <span style="color:#8e8e93">안 움직임</span></div>
   한도에 걸려 멈췄을 때 넘기기가 쓸모 있는 이유가 이것입니다.
 </p>
 
-<h2><span class="n">6</span>한 장으로 정리</h2>
+<h2><span class="n">6</span>새로 띄운 창과 기본 창은 어떻게 다른가</h2>
+<p>
+  <b>크롬 프로필 두 개를 떠올리면 거의 맞습니다.</b> 같은 크롬인데 프로필을
+  나누면 로그인이 따로고 북마크도 따로입니다. 그런데 다운로드 폴더는 같이
+  씁니다.
+</p>
+<p>
+  여기도 똑같습니다. 창 둘은 <b>로그인과 대화 목록이 따로</b>고,
+  <b>대화 원본과 작업 폴더는 같이</b> 씁니다.
+</p>
+
+<figure>
+<svg viewBox="0 0 560 366" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="기본 창과 새 창이 무엇을 따로 쓰고 무엇을 같이 쓰는지">
+  <text x="8" y="20" fill="#ffd60a" font-size="13" font-weight="600"
+        font-family="-apple-system, system-ui">따로 쓰는 것</text>
+
+  <rect x="8" y="30" width="264" height="128" rx="9"
+        fill="#2c2c2e" stroke="rgba(255,255,255,.12)"/>
+  <text x="24" y="54" fill="#ff6b60" font-size="14" font-weight="600"
+        font-family="-apple-system, system-ui">기본 창</text>
+  <text x="24" y="76" fill="#c8c8cd" font-size="12"
+        font-family="-apple-system, system-ui">평소 쓰는 Claude</text>
+  <text x="24" y="98" fill="#98989d" font-size="11.5"
+        font-family="-apple-system, system-ui">기본 데이터 폴더</text>
+  <text x="24" y="120" fill="#f2f2f7" font-size="12"
+        font-family="-apple-system, system-ui">로그인: TEAM_40</text>
+  <text x="24" y="144" fill="#ff453a" font-size="11.5"
+        font-family="-apple-system, system-ui">clfl 이 못 닫는다</text>
+
+  <rect x="288" y="30" width="264" height="128" rx="9"
+        fill="#2c2c2e" stroke="rgba(255,255,255,.12)"/>
+  <text x="304" y="54" fill="#0a84ff" font-size="14" font-weight="600"
+        font-family="-apple-system, system-ui">새로 띄운 창</text>
+  <text x="304" y="76" fill="#c8c8cd" font-size="12"
+        font-family="-apple-system, system-ui">clfl 이 띄운 것</text>
+  <text x="304" y="98" fill="#98989d" font-size="11.5"
+        font-family="ui-monospace, Menlo">~/.claude-alt-TEAM_52</text>
+  <text x="304" y="120" fill="#f2f2f7" font-size="12"
+        font-family="-apple-system, system-ui">로그인: TEAM_52</text>
+  <text x="304" y="144" fill="#30d158" font-size="11.5"
+        font-family="-apple-system, system-ui">clfl 이 다시 띄운다</text>
+
+  <path d="M140 158 L140 226" stroke="#8e8e93" stroke-width="1.5"/>
+  <path d="M420 158 L420 226" stroke="#8e8e93" stroke-width="1.5"/>
+
+  <text x="8" y="216" fill="#30d158" font-size="13" font-weight="600"
+        font-family="-apple-system, system-ui">같이 쓰는 것 (안 갈라진다)</text>
+  <rect x="8" y="226" width="544" height="128" rx="9"
+        fill="#30d158" opacity=".10" stroke="#30d158"/>
+  <text x="24" y="254" fill="#f2f2f7" font-size="13.5" font-weight="600"
+        font-family="-apple-system, system-ui">대화 원본</text>
+  <text x="24" y="274" fill="#98989d" font-size="12"
+        font-family="ui-monospace, Menlo">~/.claude/projects</text>
+  <text x="24" y="292" fill="#c8c8cd" font-size="12"
+        font-family="-apple-system, system-ui">한쪽에서 한 말이 다른 쪽에도 바로 보입니다</text>
+  <text x="24" y="322" fill="#f2f2f7" font-size="13.5" font-weight="600"
+        font-family="-apple-system, system-ui">git 작업 폴더</text>
+  <text x="24" y="342" fill="#c8c8cd" font-size="12"
+        font-family="-apple-system, system-ui">파일은 한 벌뿐입니다. 양쪽이 같은 파일을 고칩니다</text>
+</svg>
+<figcaption>
+  위가 갈라져 있으니 아래도 갈라졌다고 착각하기 쉽습니다. 아래는 하나입니다.
+</figcaption>
+</figure>
+
+<table>
+  <tr><th></th><th>기본 창</th><th>새로 띄운 창</th></tr>
+  <tr><td>누가 띄웠나</td><td>사용자</td><td>clfl</td></tr>
+  <tr><td>로그인</td><td>원래 계정</td><td>따로. 다른 계정으로 로그인합니다</td></tr>
+  <tr><td>대화 목록</td><td>자기 것</td><td>자기 것</td></tr>
+  <tr><td>clfl 이 닫을 수 있나</td><td><b>아니오.</b> 말만 합니다</td><td><b>예.</b> 단추 하나로 다시 띄웁니다</td></tr>
+  <tr><td>디스크</td><td>이미 있음</td><td>계정마다 약 300MB 더</td></tr>
+  <tr><td>닫으면</td><td>앱이 사라집니다</td><td>목록은 남고 다시 띄우면 로그인도 유지됩니다</td></tr>
+</table>
+
+<div class="card">
+  <h4>그래서 넘기는 방향에 차이가 있습니다</h4>
+  <p>
+    새 창은 clfl 이 띄운 것이라 <b>단추 하나로 다시 띄울 수 있습니다.</b> 기본
+    창은 사용자 것이라 우리가 닫지 않고 부탁만 합니다.
+  </p>
+  <p>
+    그래서 <b>기본 창에서 새 창으로 넘기는 쪽이 깔끔합니다.</b> 받는 쪽 정리를
+    clfl 이 대신 해 주기 때문입니다.
+  </p>
+</div>
+
+<h2><span class="n">7</span>한도가 풀렸다. 원래 창에서 이어서 하려면</h2>
+<p>
+  가장 흔한 흐름입니다. TEAM_40 이 한도에 걸려 TEAM_52 로 넘겼고, 한참 뒤
+  TEAM_40 한도가 풀렸습니다. 이제 원래 창에서 이어서 하고 싶습니다.
+</p>
+
+<h3>재시작했다면 목록에서 사라져 있습니다</h3>
+<p>
+  <b>이게 정상입니다.</b> 재시작한 앱은 폴더를 새로 읽는데, 그 대화의 카드는
+  이미 TEAM_52 폴더로 옮겨 갔습니다. TEAM_40 폴더에는 없으니 목록에 안 뜹니다.
+</p>
+<div class="card good">
+  <h4>대화가 사라진 것이 아닙니다</h4>
+  <p>
+    책은 서가에 그대로 있습니다. 카드가 다른 서랍에 있을 뿐입니다.
+    <code>~/.claude/projects</code> 의 대화 원본은 넘기기가 손대지 않습니다.
+  </p>
+  <p>
+    재시작이 오히려 <b>3절에서 말한 남아 있던 줄을 치워 준 것</b>입니다. 재시작
+    전에는 없는 카드의 줄이 목록에 남아 있었고, 그 줄은 눌리면 열려서 위험했습니다.
+  </p>
+</div>
+
+<h3>다시 데려오는 방법</h3>
+<ol class="steps">
+  <li>
+    <b>clfl 팝오버에서 TEAM_40 한도가 풀렸는지 봅니다.</b>
+    <p class="what">clfl 의 본업입니다. 숫자가 돌아왔으면 준비가 된 것입니다.</p>
+  </li>
+  <li>
+    <b>넘기기 창을 열고 이번에는 반대로 옮깁니다.</b>
+    <p class="what">
+      보내는 쪽 TEAM_52, 받는 쪽 TEAM_40. 같은 카드 한 장이 되돌아옵니다.
+      역방향도 똑같이 동작합니다.
+    </p>
+  </li>
+  <li>
+    <b>그다음에 기본 창을 재시작합니다.</b>
+    <p class="what">
+      받는 쪽이 기본 창이면 목록에 <b>나타나게</b> 하려고 재시작이 필요합니다.
+      보낼 때는 <b>사라지게</b> 하려고 필요했습니다. 방향만 다르고 이유는 같습니다.
+    </p>
+  </li>
+</ol>
+
+<div class="card warn">
+  <h4>순서를 지키면 재시작이 한 번으로 끝납니다</h4>
+  <p>
+    먼저 재시작하고 그다음 되돌려 받으면 <b>재시작을 두 번</b> 해야 합니다.
+    되돌려 받은 것이 목록에 안 보이기 때문입니다.
+  </p>
+  <p>
+    <b>되돌려 받기를 먼저 하고 재시작을 나중에</b> 하면 한 번으로 끝납니다.
+  </p>
+</div>
+
+<p class="dim">
+  참고로 재시작하지 않고 기본 창의 계정 목록에서 TEAM_52 로 바꿔도 그 대화가
+  보입니다. 카드가 기본 앱의 TEAM_52 폴더에도 놓이기 때문입니다. 다만 계정을
+  바꾸는 순간 <b>그 창에서 돌고 있던 다른 대화가 끊깁니다.</b> 급할 때만 쓰는
+  길입니다.
+</p>
+
+<h2><span class="n">8</span>한 장으로 정리</h2>
 <div class="card good">
   <p><b>1.</b> 넘기기는 420바이트 카드 한 장을 다른 계정 폴더로 옮기는 일입니다.</p>
   <p><b>2.</b> 대화 원본은 안 움직입니다. 그래서 빠르고 안전합니다.</p>
@@ -343,6 +494,8 @@ TEAM_40 5시간 한도:  <span style="color:#8e8e93">안 움직임</span></div>
   <p><b>4.</b> 열려 있는 창은 목록을 메모리에 들고 있어서 재시작해야 반영됩니다.</p>
   <p><b>5.</b> 보낸 쪽 창에 줄이 남고 누르면 열립니다. 재시작해 주는 것이 좋습니다.</p>
   <p><b>6.</b> 작업 폴더는 공유됩니다. 넘기기 전에 커밋해 두면 섞이지 않습니다.</p>
+  <p><b>7.</b> 창 둘은 로그인과 목록만 갈라져 있고 대화 원본과 작업 폴더는 같이 씁니다.</p>
+  <p><b>8.</b> 한도가 풀리면 반대 방향으로 되돌려 받고, 그다음에 재시작합니다.</p>
 </div>
 
 <div class="foot">
