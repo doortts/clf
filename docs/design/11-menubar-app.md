@@ -542,7 +542,18 @@ public func reassignActive(to uuid: String?, in orgs: [OrgUsage]) -> [OrgUsage]
 ```
 
 남은 시간만 보면 창의 어디쯤인지 모른다. 5시간 창의 10분과 주간 창의 10분은
-뜻이 아주 다르다. 100% 에 닿으면 리셋이다.
+뜻이 아주 다르다.
+
+**방향은 게이지 설정을 따른다.** 지난 시간은 시간의 사용률 쪽이다.
+
+| 설정 | 게이지 | 리셋 | 리셋 시점 |
+|---|---|---|---|
+| 사용률 | 3% | 5% | 100% |
+| 남은 용량 | 97% | 95% | 0% |
+
+게이지가 남은 용량을 세는데 리셋만 지난 비율을 세면 한 창을 두고 두 숫자가
+반대로 움직인다. 그래서 100% 의 뜻이 설정마다 뒤집히지만, 어느 쪽이든 옆
+게이지와 같은 방향이라 화면 안에서 어긋나 보이지 않는다.
 
 **창 길이는 추정한다.** 서버는 리셋 시각만 주고 창 길이는 안 준다.
 
@@ -556,4 +567,5 @@ public func reassignActive(to uuid: String?, in orgs: [OrgUsage]) -> [OrgUsage]
 아직 안 열린 창은 리셋 시각이 없으므로 진행률도 안 붙이고 `창 안 열림` 만
 적는다. 시계가 어긋나 창 길이보다 더 남는 경우가 있어 0 과 100 사이로 가둔다.
 
-시안은 [reset-progress-mockup.html](reset-progress-mockup.html).
+시안은 [reset-progress-mockup.html](reset-progress-mockup.html) 과
+[reset-direction-mockup.html](reset-direction-mockup.html).

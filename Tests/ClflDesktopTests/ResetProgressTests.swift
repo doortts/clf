@@ -10,8 +10,9 @@ final class ResetProgressTests: XCTestCase {
     let ko = Locale(identifier: "ko_KR")
     let seoul = TimeZone(identifier: "Asia/Seoul")!
 
-    private func line(_ left: TimeInterval, _ window: TimeInterval) -> String {
-        BarText.reset(now.addingTimeInterval(left), window: window,
+    private func line(_ left: TimeInterval, _ window: TimeInterval,
+                      _ direction: GaugeDirection = .used) -> String {
+        BarText.reset(now.addingTimeInterval(left), window: window, direction: direction,
                       from: now, locale: ko, timeZone: seoul)
     }
 
@@ -46,6 +47,18 @@ final class ResetProgressTests: XCTestCase {
     /// 시계가 어긋나 창 길이보다 더 남을 수 있다. 음수를 보여주면 안 된다.
     func test_clampsWhenMoreTimeIsLeftThanTheWindow() {
         XCTAssertTrue(line(6 * 3600, 5 * 3600).hasPrefix("리셋: 0%,"))
+    }
+
+    /// 게이지가 남은 쪽을 세면 리셋도 남은 쪽을 센다. 한 창을 두고 두 숫자가
+    /// 반대로 움직이면 화면이 어긋나 보인다.
+    func test_followsTheGaugeDirection() {
+        XCTAssertEqual(line(4 * 3600 + 46 * 60, 5 * 3600, .remaining), "리셋: 95%, 4시간 46분 뒤")
+        XCTAssertEqual(line(4 * 3600 + 46 * 60, 5 * 3600, .used), "리셋: 5%, 4시간 46분 뒤")
+    }
+
+    /// 남은 쪽을 셀 때는 0 이 리셋 시점이다.
+    func test_remainingCountsDownToZero() {
+        XCTAssertEqual(line(-60, 5 * 3600, .remaining), "리셋: 0%, 지남")
     }
 
     /// 창 길이는 종류가 정한다. 서버는 안 준다.

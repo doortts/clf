@@ -22,6 +22,8 @@ struct OrgCard: View {
     var slot: InstanceSlot = .none
     var onLaunch: (() -> Void)?
     var onFocus: (() -> Void)?
+    /// 창 실행중 단추 위에 마우스가 있다. 설명 풍선이 뜬다.
+    @State private var hoveringRunning = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -88,6 +90,26 @@ struct OrgCard: View {
                 statusBox(slot.label, tint: .yellow, filled: true)
             }
             .buttonStyle(.plain)
+            // .help() 는 시스템 지연이 있어 즉시 안 뜬다. 직접 그린다
+            .onHover { hoveringRunning = $0 }
+            .overlay(alignment: .topTrailing) {
+                if hoveringRunning {
+                    Text("클릭해서 앱을 화면 앞으로 가져오기")
+                        .font(.system(size: 10))
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(Color(nsColor: .controlBackgroundColor),
+                                    in: RoundedRectangle(cornerRadius: 5))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 5)
+                                .strokeBorder(Color.primary.opacity(0.15), lineWidth: 1)
+                        }
+                        .shadow(radius: 3, y: 1)
+                        .fixedSize()
+                        // 단추 오른끝에 맞춰 왼쪽으로 자란다. 팝오버 밖으로 안 나간다
+                        .offset(y: -24)
+                        .allowsHitTesting(false)
+                }
+            }
             .accessibilityLabel("\(org.name) 창을 앞으로")
         case .opening:
             statusBox(slot.label, tint: .secondary, filled: false)
@@ -142,7 +164,7 @@ struct OrgCard: View {
                     .frame(width: 58, alignment: .leading)
                 UsageGauge(limit: limit, direction: direction)
             }
-            Text(BarText.reset(limit?.resetsAt, window: kind.window))
+            Text(BarText.reset(limit?.resetsAt, window: kind.window, direction: direction))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
                 .padding(.leading, 65)
         }
@@ -317,6 +339,10 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("clfl").font(.system(size: 13, weight: .semibold))
+                // 숫자가 어느 기준인지 연 순간 알린다. 항상 떠 있는 표시라
+                // 눈길을 끌면 안 된다. docs/design/header-direction-mockup.html
+                Text("\(model.prefs.gaugeDirection.label) 기준")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
                 Spacer()
                 Button { Task { await model.refresh() } } label: {
                     Image(systemName: "arrow.clockwise")

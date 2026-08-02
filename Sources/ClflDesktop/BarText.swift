@@ -134,6 +134,7 @@ public enum BarText {
     public static let uiLocale = Locale(identifier: "ko_KR")
 
     public static func reset(_ date: Date?, window: TimeInterval? = nil,
+                             direction: GaugeDirection = .used,
                              from now: Date = Date(),
                              locale: Locale = BarText.uiLocale,
                              timeZone: TimeZone = .current) -> String {
@@ -142,8 +143,14 @@ public enum BarText {
         guard let date else { return relative }
 
         // 남은 시간만 보면 그 창이 얼마나 지났는지는 모른다. 5시간 창의
-        // 10분과 주간 창의 10분은 뜻이 다르다
-        let done = window.map { "\(elapsedPercent(until: date, window: $0, from: now))%, " } ?? ""
+        // 10분과 주간 창의 10분은 뜻이 다르다.
+        //
+        // 방향은 게이지를 따른다. 지난 시간은 시간의 '사용률' 쪽이다. 게이지가
+        // 남은 용량을 세는데 리셋만 지난 비율을 세면 두 숫자가 반대로 움직인다
+        let done = window.map { w -> String in
+            let elapsed = elapsedPercent(until: date, window: w, from: now)
+            return "\(direction.displayPercent(used: elapsed))%, "
+        } ?? ""
         guard date.timeIntervalSince(now) > 86400 else { return prefix + done + relative }
         return prefix + done + relative
             + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
