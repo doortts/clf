@@ -10,7 +10,12 @@ enum HandoffWindow {
     private static var controller: NSWindowController?
     private static var model: HandoffModel?
 
-    static func install(_ model: HandoffModel) { self.model = model }
+    /// 라벨의 onAppear 는 두 번 온다. 모델을 갈아 끼우면 창이 들고 있던
+    /// 상태가 날아가므로 처음 것만 쓴다.
+    static func install(_ model: HandoffModel) {
+        guard self.model == nil else { return }
+        self.model = model
+    }
 
     static func open() {
         guard let model else { return }

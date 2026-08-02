@@ -99,7 +99,6 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     public let cliSessionID: String
     public let title: String
     public let folder: String
-    public let branch: String
     public let lastActivityAt: Date?
     /// 트랜스크립트가 없으면 옮겨도 빈 세션이 뜬다.
     public let hasTranscript: Bool
@@ -107,12 +106,11 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     public var id: String { fileName }
 
     public init(fileName: String, cliSessionID: String, title: String, folder: String,
-                branch: String, lastActivityAt: Date?, hasTranscript: Bool) {
+                lastActivityAt: Date?, hasTranscript: Bool) {
         self.fileName = fileName
         self.cliSessionID = cliSessionID
         self.title = title
         self.folder = folder
-        self.branch = branch
         self.lastActivityAt = lastActivityAt
         self.hasTranscript = hasTranscript
     }
@@ -139,7 +137,6 @@ extension SessionStore {
                 cliSessionID: cli,
                 title: transcript.map(TranscriptTitle.of) ?? "",
                 folder: URL(fileURLWithPath: cwd).lastPathComponent,
-                branch: "",
                 lastActivityAt: (json["lastActivityAt"] as? Double).map {
                     Date(timeIntervalSince1970: $0 / 1000)
                 },
