@@ -451,13 +451,13 @@ struct PopoverView: View {
                     NSApp.keyWindow?.close()
                     HandoffWindow.open()
                 } label: {
-                    Label("세션 넘기기", systemImage: "arrow.left.arrow.right")
+                    Label("세션 작업 이전하기", systemImage: "arrow.left.arrow.right")
                         .font(.system(size: 11, weight: .medium))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .hoverTip(Copy.handoffHelp)
-                .accessibilityLabel("세션을 다른 계정으로 넘긴다")
+                .accessibilityLabel("세션 작업을 다른 계정으로 이전한다")
                 .accessibilityHint(Copy.handoffHelp)
                 Button { NSApplication.shared.terminate(nil) } label: {
                     Label("종료", systemImage: "power")
