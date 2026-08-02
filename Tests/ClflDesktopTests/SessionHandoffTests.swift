@@ -223,10 +223,8 @@ final class HandoffPlanTextTests: XCTestCase {
         .before(source: ("A", from), target: ("B", to))
     }
 
-    func test_saysWhereItGoesAndWhatIsUntouched() {
-        let m = plan(.none, .none).moves
-        XCTAssertTrue(m.contains("B"))
-        XCTAssertTrue(m.contains("대화 내용"))
+    func test_saysWhichAccountItBecomes() {
+        XCTAssertTrue(plan(.none, .none).moves.contains("B"))
     }
 
     /// 기본 창에서 보내면 재시작을 권한다. 이것이 이 안내의 요점이다.
@@ -234,7 +232,7 @@ final class HandoffPlanTextTests: XCTestCase {
         let note = plan(.primary, .none).sourceNote
         XCTAssertNotNil(note)
         XCTAssertTrue(note!.contains("재시작"))
-        XCTAssertTrue(note!.contains("남아"))
+        XCTAssertTrue(note!.contains("목록에 남"))
     }
 
     /// 왜 재시작해야 하는지도 말한다. 이유 없는 권고는 안 지켜진다.

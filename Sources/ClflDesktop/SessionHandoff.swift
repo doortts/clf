@@ -121,8 +121,8 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     /// 제목을 못 읽었으면 폴더 이름으로 대신한다. 빈 줄을 보여주지 않는다.
     public var display: String { title.isEmpty ? folder : title }
 
-    public static let noTranscript = "기록 없음 - 옮겨도 빈 세션이다"
-    public static let noFolder = "작업 폴더가 없다 - 옮겨도 그 자리에서 일할 수 없다"
+    public static let noTranscript = "기록이 없어 옮겨도 빈 세션이 됩니다"
+    public static let noFolder = "작업 폴더가 없어 그 자리에서 일할 수 없습니다"
 
     /// 넘기기 전에 알아야 할 것. 없으면 `nil`.
     ///
@@ -239,7 +239,7 @@ public struct HandoffPlan: Sendable, Equatable {
 
     public static func before(source: (name: String, slot: InstanceSlot),
                               target: (name: String, slot: InstanceSlot)) -> HandoffPlan {
-        HandoffPlan(moves: "옮기면 그 대화는 \(target.name) 것이 된다. 대화 내용은 손대지 않는다.",
+        HandoffPlan(moves: "이 대화는 \(target.name) 것이 됩니다.",
                     sourceNote: leaving(source),
                     targetNote: arriving(target))
     }
@@ -248,10 +248,10 @@ public struct HandoffPlan: Sendable, Equatable {
     private static func leaving(_ a: (name: String, slot: InstanceSlot)) -> String? {
         switch a.slot {
         case .primary:
-            return "옮긴 뒤 \(a.name) 기본 창을 재시작하는 것이 좋다. 그 전까지 이 대화가"
-                + " 목록에 남아 있고, 그 줄을 누르면 열려서 두 창이 같은 대화에 쓰게 된다."
+            return "옮긴 뒤 \(a.name) 기본 창을 재시작해 주세요. 그때까지 이 대화가 목록에"
+                + " 남습니다. 그 줄을 누르면 두 창이 같은 대화를 함께 씁니다."
         case .running:
-            return "\(a.name) 창은 옮긴 뒤 다시 띄워 준다. 그래야 목록에서 빠진다."
+            return "\(a.name) 창은 옮긴 뒤 다시 띄워 드립니다. 그러면 목록에서 빠집니다."
         case .opening, .none, .unavailable:
             return nil
         }
@@ -260,8 +260,8 @@ public struct HandoffPlan: Sendable, Equatable {
     /// 받는 쪽. 이쪽은 나타나게 하려고 필요하다. 방향만 다르고 이유는 같다.
     private static func arriving(_ a: (name: String, slot: InstanceSlot)) -> String? {
         switch a.slot {
-        case .primary: return "\(a.name) 기본 창도 재시작해야 목록에 나타난다."
-        case .running: return "\(a.name) 창은 다시 띄워 준다."
+        case .primary: return "\(a.name) 기본 창도 재시작해야 목록에 나타납니다."
+        case .running: return "\(a.name) 창은 다시 띄워 드립니다."
         case .opening, .none, .unavailable: return nil
         }
     }
@@ -291,14 +291,14 @@ public struct HandoffAdvice: Sendable, Equatable {
             dormant: both.filter { $0.slot == .none || $0.slot == .opening }.map(\.name))
     }
 
-    public var text: String { "\(moved)개를 옮겼다. " + detail }
+    public var text: String { "\(moved)개를 옮겼습니다. " + detail }
 
     /// 옮겼다는 말 다음에 붙는 안내. 화면은 두 줄로 나눠 보여준다.
     public var detail: String {
         var parts: [String] = []
-        if needsPrimaryRestart { parts.append("기본 앱을 재시작해야 목록에 반영된다.") }
-        if !relaunch.isEmpty { parts.append("\(relaunch.joined(separator: ", ")) 창은 다시 띄워야 한다.") }
-        if parts.isEmpty { parts.append("창이 없으니 다음에 띄우면 보인다.") }
+        if needsPrimaryRestart { parts.append("기본 앱을 재시작하면 목록에 반영됩니다.") }
+        if !relaunch.isEmpty { parts.append("\(relaunch.joined(separator: ", ")) 창은 아래 단추로 다시 띄워 주세요.") }
+        if parts.isEmpty { parts.append("창이 없으니 다음에 띄우면 보입니다.") }
         return parts.joined(separator: " ")
     }
 }

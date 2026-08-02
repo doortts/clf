@@ -10,7 +10,7 @@ struct HandoffView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("고른 세션이 어느 계정 것인지만 바꾼다. 대화 내용은 그대로 있다.")
+            Text("고른 세션이 어느 계정 것인지만 바뀝니다. 대화 내용은 그대로 있습니다.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
@@ -54,7 +54,7 @@ struct HandoffView: View {
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10)))
         .overlay {
             if model.sessions.isEmpty {
-                Text("이 계정에는 세션이 없다")
+                Text("이 계정에는 세션이 없습니다")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             }
         }
@@ -100,7 +100,7 @@ struct HandoffView: View {
             box(Color.green) {
                 VStack(alignment: .leading, spacing: 6) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(advice.moved)개를 옮겼다.")
+                        Text("\(advice.moved)개를 옮겼습니다.")
                             .font(.system(size: 11, weight: .semibold))
                         wrapped(advice.detail)
                     }
@@ -124,7 +124,7 @@ struct HandoffView: View {
             }
         } else {
             box(nil) {
-                wrapped("계정이 둘은 있어야 넘길 수 있다.")
+                wrapped("계정이 둘은 있어야 넘길 수 있습니다.")
             }
         }
     }
