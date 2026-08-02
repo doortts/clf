@@ -1,0 +1,176 @@
+<meta charset="utf-8">
+<title>포커스 카드 색 테마 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:760px; }
+  .row { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .variant { display:flex; flex-direction:column; gap:8px; }
+  .vname { font-size:10px; color:#98989d; max-width:320px; }
+  .vname b { color:#f2f2f7; font-weight:600; }
+
+  .popover { width:320px; background:#2c2c2e; border-radius:10px; padding:10px 14px;
+             box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  .card { position:relative; padding:10px 8px; margin:0 -8px; border-radius:8px; }
+  .head { display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#0a84ff; }
+  .name { font-size:14px; font-weight:600; }
+  .badge { font-size:10px; font-weight:600; padding:1px 6px; border-radius:5px;
+           color:#0a84ff; background:rgba(10,132,255,.22); }
+  .spacer { flex:1; }
+  .statebox { font-size:10px; color:#98989d; border:1px solid rgba(152,152,157,.5);
+              border-radius:5px; padding:1px 7px; }
+  .lim { display:flex; flex-direction:column; gap:2px; margin-bottom:9px; }
+  .lim:last-child { margin-bottom:0; }
+  .limtop { display:flex; align-items:center; gap:8px; }
+  .limname { font-size:11px; width:64px; }
+  .pct { font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; width:36px; }
+  .gauge { flex:1; height:13px; border-radius:8px; border:1.5px solid #34c759; position:relative;
+           overflow:hidden; }
+  .gfill { position:absolute; left:0; top:0; bottom:0; border-radius:6px; background:#34c759; }
+  .reset { font-size:9px; color:#7c7c80; padding-left:76px; margin-top:2px; }
+
+  .note { margin-top:26px; color:#98989d; max-width:760px; }
+  .note b { color:#f2f2f7; }
+  code { background:rgba(255,255,255,.08); border-radius:4px; padding:0 4px; font-size:11px; }
+</style>
+
+<h1>포커스 카드 색 테마 시안</h1>
+<p class="lede" style="color:#40c8e0">
+  <b>확정: 1번 청록(systemTeal).</b> 배경 15%, 테두리 60% 는 그대로 두고
+  색만 보라에서 청록으로 바꿨다. 아래 나머지는 고를 때 본 후보로 남긴다.
+</p>
+<p class="lede">
+  조합법은 보라 확정안 그대로다: 배경은 그 색 15%, 테두리는 60% 에 1pt.
+  색만 갈아 끼운다. 이 화면에서 빨강(소진), 주황(낮음), 초록(여유),
+  노랑(창 배지), 파랑(기본 점, team 배지)은 이미 뜻을 갖고 있어서,
+  그와 겹치지 않는 색을 골랐다. 값은 macOS 다크 모드의 시스템 색이다.
+</p>
+
+<div class="row" id="grid"></div>
+
+<h2 style="font-size:13px;margin:30px 0 10px">추가 10색</h2>
+<p class="lede">
+  6-9번은 남은 시스템 색이다. 빨강, 주황, 노랑은 이 화면에서 이미 뜻을
+  갖고 있어서 그 계열은 감점을 적었다. 10번부터는 시스템에 없는 커스텀
+  색이라 라이트/다크 값을 우리가 정해야 한다. 16-17번은 형광 하늘색,
+  18-19번은 자주색 계열이다.
+</p>
+<div class="row" id="grid2"></div>
+
+<h2 style="font-size:13px;margin:30px 0 10px">배경 투명도: 지금 보라를 10% 로</h2>
+<p class="lede">
+  색은 그대로 두고 배경만 15% 에서 10% 로 낮춘다. 배경을 낮추면 카드가
+  팝오버 바닥에 가까워져 조용해지고, "방금 그 창" 이라는 신호는 테두리가
+  더 많이 진다. 테두리를 그대로 둔 안과 조금 올린 안을 같이 놓는다.
+</p>
+<div class="row" id="grid3"></div>
+
+<p class="note">
+  <b>구현 값:</b> SwiftUI 의 <code>Color.purple</code> 자리에
+  <code>Color.teal</code>, <code>Color.indigo</code>, <code>Color.pink</code>,
+  <code>Color.mint</code>, <code>Color.gray</code>, <code>Color.cyan</code>,
+  <code>Color.orange</code>, <code>Color.yellow</code>, <code>Color.brown</code>
+  을 넣으면 라이트/다크 값은 OS 가 알아서 갈아 끼운다. 커스텀 색(10-19번)은
+  <code>Color(light:dark:)</code> 형태의 자산이나 분기가 필요하다. 배경
+  <code>opacity(0.15)</code>, 테두리 <code>opacity(0.60)</code> 은 모두
+  그대로다. 민트는 게이지의 초록과 계열이 가까워서 여유 상태의 카드에서는
+  구분이 약해질 수 있다.
+</p>
+
+<script>
+  const themes = [
+    { key: "지금: 보라 (systemPurple)", color: "#bf5af2",
+      note: "확정되어 쓰는 중인 기준색." },
+    { key: "1. 청록 (systemTeal)", color: "#40c8e0",
+      note: "요청하신 청록. 게이지 초록과 계열이 갈려 구분이 잘 된다." },
+    { key: "2. 남색 (systemIndigo)", color: "#5e5ce6",
+      note: "차분하다. 다만 기본 점과 team 배지의 파랑과 같은 계열이라 가장 가깝다." },
+    { key: "3. 분홍 (systemPink)", color: "#ff375f",
+      note: "눈에 제일 잘 띈다. 소진의 빨강과 계열이 가까운 것은 감점." },
+    { key: "4. 민트 (systemMint)", color: "#63e6e2",
+      note: "밝고 부드럽다. 게이지 초록과 가까운 것이 감점." },
+    { key: "5. 회색 (systemGray)", color: "#98989d",
+      note: "제일 조용하다. 색이 뜻을 갖지 않아 안전하지만 존재감도 약하다." },
+  ];
+
+  const card = (c, bg = .15, line = .60) => `
+    <div class="popover">
+      <div class="card" style="background:${hex(c,bg)};border:1px solid ${hex(c,line)}">
+        <div class="head">
+          <span class="dot"></span><span class="name">NAVER_TEAM_52</span>
+          <span class="badge">team</span><span class="spacer"></span>
+          <span class="statebox">기본</span>
+        </div>
+        ${row("5시간", 45, "리셋: 26%, 3시간 41분 뒤")}
+        ${row("주간 전체", 16, "리셋: 62%, 2일 15시간 뒤 (수요일 오후 9:00)")}
+        ${row("주간 Fable", 25, "리셋: 62%, 2일 15시간 뒤 (수요일 오후 8:59)")}
+      </div>
+    </div>`;
+
+  const row = (name, pct, reset) => `
+    <div class="lim">
+      <div class="limtop">
+        <span class="limname">${name}</span><span class="pct">${pct}%</span>
+        <span class="gauge"><span class="gfill" style="width:${pct}%"></span></span>
+      </div>
+      <div class="reset">${reset}</div>
+    </div>`;
+
+  const hex = (c, a) => {
+    const n = parseInt(c.slice(1), 16);
+    return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  };
+
+  const more = [
+    { key: "6. 시안 (systemCyan)", color: "#64d2ff",
+      note: "청록보다 파랑에 가깝다. 기본 점의 파랑과 계열이 겹치는 것이 감점." },
+    { key: "7. 주황 (systemOrange)", color: "#ff9f0a",
+      note: "따뜻하고 잘 띈다. 다만 낮음 배지의 주황과 같은 색이라 감점." },
+    { key: "8. 노랑 (systemYellow)", color: "#ffd60a",
+      note: "창 배지의 노랑과 같은 색이라 감점." },
+    { key: "9. 갈색 (systemBrown)", color: "#ac8e68",
+      note: "차분하고 어느 신호와도 안 겹친다. 존재감은 회색 다음으로 약하다." },
+    { key: "10. 마젠타 (커스텀)", color: "#d63acf",
+      note: "보라와 분홍 사이. 화려하지만 어느 신호와도 안 겹친다." },
+    { key: "11. 라벤더 (커스텀)", color: "#b8a7f5",
+      note: "지금 보라를 연하게 푼 것. 바꾼 티가 제일 안 난다." },
+    { key: "12. 코랄 (커스텀)", color: "#ff7f6e",
+      note: "분홍보다 부드럽다. 소진의 빨강, 낮음의 주황 사이 계열인 것이 감점." },
+    { key: "13. 올리브 (커스텀)", color: "#a8b545",
+      note: "초록보다 노랗다. 게이지 초록과 어느 정도 갈리지만 계열은 가깝다." },
+    { key: "14. 슬레이트 (커스텀)", color: "#7d8ca3",
+      note: "푸른 회색. 회색보다는 색이 있고 여전히 조용하다." },
+    { key: "15. 와인 (커스텀)", color: "#c9506e",
+      note: "분홍을 어둡게 가라앉힌 것. 빨강 계열이 감점." },
+    { key: "16. 형광 하늘 (커스텀)", color: "#1fe0ff",
+      note: "네온 아쿠아에 가까운 밝은 하늘색. 존재감이 제일 세다. 청록(1), 시안(6)과 이웃 계열." },
+    { key: "17. 형광 딥스카이 (커스텀)", color: "#00bfff",
+      note: "16번보다 파랑 쪽. 기본 점의 파랑보다 밝고 채도가 높아 갈리기는 한다." },
+    { key: "18. 자주 (커스텀)", color: "#b0368c",
+      note: "붉은 보라. 마젠타(10)보다 어둡고 차분하다. 어느 신호와도 안 겹친다." },
+    { key: "19. 진자주 (커스텀)", color: "#8e4585",
+      note: "18번을 더 가라앉힌 플럼. 지금 보라와 마젠타 사이의 무게감이다." },
+  ];
+
+  const purple = "#bf5af2";
+  const opacities = [
+    { key: "지금: 배경 15% / 테두리 60%", bg: .15, line: .60,
+      note: "쓰는 중인 값. 카드 면이 보라로 확실히 읽힌다." },
+    { key: "A. 배경 10% / 테두리 60%", bg: .10, line: .60,
+      note: "요청하신 값. 면이 옅어져 조용해지고 테두리가 신호를 진다." },
+    { key: "B. 배경 10% / 테두리 70%", bg: .10, line: .70,
+      note: "면을 낮춘 만큼 테두리로 보충한다. 카드 경계는 더 또렷하다." },
+  ];
+
+  const render = (id, list) => document.getElementById(id).innerHTML = list.map(t => `
+    <div class="variant">
+      <div class="vname"><b>${t.key}</b> - ${t.note}</div>
+      ${card(t.color ?? purple, t.bg, t.line)}
+    </div>`).join("");
+
+  render("grid", themes);
+  render("grid2", more);
+  render("grid3", opacities);
+</script>

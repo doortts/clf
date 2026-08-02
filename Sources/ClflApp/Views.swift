@@ -66,17 +66,17 @@ struct OrgCard: View {
             }
         }
         .padding(.vertical, 10)
-        // 방금까지 보던 창의 계정이 한눈에 잡히게 카드를 깐다. 보라는
-        // 이 카드 전용이다. 점, 배지, 메뉴바 밑줄의 파랑(악센트)과
-        // 색을 갈라 카드만 "방금 그 창" 을 말한다.
-        // docs/design/focus-card-purple-mockup.html
+        // 방금까지 보던 창의 계정이 한눈에 잡히게 카드를 깐다. 청록은
+        // 이 카드 전용이다. 점, 배지, 메뉴바 밑줄의 파랑(악센트)과 게이지의
+        // 빨강/주황/초록에서 색을 갈라 카드만 "방금 그 창" 을 말한다.
+        // docs/design/focus-card-theme-mockup.html 1번
         .background {
             if focused {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.purple.opacity(0.15))
+                    .fill(Color.teal.opacity(0.15))
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color.purple.opacity(0.60), lineWidth: 1)
+                            .strokeBorder(Color.teal.opacity(0.60), lineWidth: 1)
                     }
                     .padding(.horizontal, -8)
             }
