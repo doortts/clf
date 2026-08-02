@@ -1,0 +1,138 @@
+<meta charset="utf-8">
+<title>팝오버 HIG 점검 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:780px; }
+  .cols { display:flex; gap:28px; align-items:flex-start; }
+  .colhead { font-size:11px; color:#98989d; margin-bottom:8px; }
+  .pop { width:340px; background:#2c2c2e; border-radius:12px; padding:14px;
+         box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+  .header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .title { font-size:13px; font-weight:600; }
+  .basis { font-size:12px; color:#98989d; }
+  .spacer { flex:1; }
+  .hicon { width:11px; height:11px; border:1.5px solid #98989d; border-radius:3px; opacity:0.8; }
+  .hicon.round { border-radius:50%; }
+
+  .card { padding:8px 0; }
+  .cardhead { display:flex; align-items:center; gap:5px; margin-bottom:7px; }
+  .name { font-size:13px; font-weight:600; }
+  .name.redbox { color:#fff; background:#e0483e; padding:2px 6px; border-radius:5px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#0a84ff; }
+  .badge { font-size:10px; padding:1px 5px; border-radius:4px; white-space:nowrap; }
+  .badge.blue { color:#6fa8ff; background:rgba(80,140,255,0.14); }
+  .badge.green { color:#5cd679; background:rgba(48,209,88,0.14); }
+  .badge.green.hi { color:#7ee89a; background:rgba(48,209,88,0.24); }
+  .badge.yellow.hi { color:#ffd60a; background:rgba(255,214,10,0.18);
+                      display:inline-flex; align-items:center; gap:3px; }
+  .ydot { width:5px; height:5px; border-radius:50%; background:#ffd60a; }
+  .chip { font-size:10px; padding:3px 8px; border-radius:3px; white-space:nowrap; }
+  .chip.gray { color:#b5b5ba; background:rgba(152,152,157,0.14);
+               border:1px solid rgba(152,152,157,0.5); }
+  .chip.yellow { color:#000; background:#ffd60a; }
+  .chip.accent { color:#fff; background:#0a84ff; border-radius:4px; }
+  .chip.outline { color:#f2f2f7; background:rgba(255,255,255,0.06);
+                  border:1px solid rgba(255,255,255,0.25); }
+  .chip.r6 { border-radius:6px; }
+
+  .grow { display:flex; align-items:center; gap:7px; margin-top:6px; }
+  .glabel { font-size:11px; color:#98989d; width:58px; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700; color:#000;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px;
+          min-width:11px; }
+  .reset { font-size:10px; color:#7c7c80; margin:2px 0 0 65px; }
+
+  .div { height:1px; background:rgba(255,255,255,0.12); margin:6px 0; }
+
+  .segrow { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .seglabel { font-size:10px; color:#98989d; width:38px; }
+  .segctl { display:flex; background:#1c1c1e; border-radius:7px; padding:2px; flex:1; }
+  .segctl span { font-size:10px; padding:3px 0; border-radius:5px; color:#98989d;
+                 flex:1; text-align:center; white-space:nowrap; }
+  .segctl.wide span { font-size:10px; }
+  .segctl .on { background:#5c5c5f; color:#fff; }
+  .cap9 { font-size:9px; color:#7c7c80; margin-top:3px; }
+  .cap10 { font-size:10px; color:#98989d; margin-top:3px; }
+
+  .footer { display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .stamp9 { font-size:9px; color:#7c7c80; }
+  .stamp10 { font-size:10px; color:#98989d; }
+  .quit { font-size:11px; color:#ff6961; }
+
+  .mk { display:inline-flex; width:13px; height:13px; border-radius:50%;
+        background:#0a84ff; color:#fff; font-size:9px; font-weight:700;
+        align-items:center; justify-content:center; margin-left:4px;
+        vertical-align:middle; }
+  .note { margin-top:28px; color:#98989d; max-width:780px; }
+  .note b { color:#f2f2f7; }
+  .note li { margin-bottom:10px; }
+</style>
+
+<h1>팝오버 HIG 점검 - 지금과 개선안</h1>
+<p class="lede">
+  Apple Human Interface Guidelines(macOS) 기준으로 기본 팝오버를 점검했다.
+  왼쪽이 지금, 오른쪽이 개선안이다. 파란 번호가 바뀐 자리다.
+</p>
+
+<div class="cols">
+  <div><div class="colhead">지금</div><div class="pop">
+      <div class="header"><span class="title">clfl</span>
+        <span class="basis">남은 용량 기준</span><span class="spacer"></span>
+        <span class="hicon round"></span><span class="hicon"></span></div>
+      <div class="card"><div class="cardhead"><span class="name redbox">NAVER_TEAM_40</span><span class="badge blue">team</span><span class="badge green">여유</span><span class="spacer"></span><span class="chip gray">기본</span></div><div class="grow"><span class="glabel">5시간</span><div class="pill" style="background:#30d158"><span class="num">100%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 1.00)"></span></div></div><div class="reset">리셋: 1%, 4시간 55분 뒤</div><div class="grow"><span class="glabel">주간 전체</span><div class="pill" style="background:#30d158"><span class="num">73%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.73)"></span></div></div><div class="reset">리셋: 39%, 4일 5시간 뒤 (금요일 오전 6:00)</div><div class="grow"><span class="glabel">주간 Fable</span><div class="pill" style="background:#30d158"><span class="num">93%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.93)"></span></div></div><div class="reset">리셋: 39%, 4일 5시간 뒤 (금요일 오전 6:00)</div></div>
+      <div class="div"></div>
+      <div class="card"><div class="cardhead"><span class="name">NAVER_TEAM_52</span><span class="badge blue">team</span><span class="badge green">여유</span><span class="spacer"></span><span class="chip yellow">창 실행중</span></div><div class="grow"><span class="glabel">5시간</span><div class="pill" style="background:#30d158"><span class="num">93%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.93)"></span></div></div><div class="reset">리셋: 28%, 3시간 35분 뒤</div><div class="grow"><span class="glabel">주간 전체</span><div class="pill" style="background:#30d158"><span class="num">98%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.98)"></span></div></div><div class="reset">리셋: 59%, 2일 20시간 뒤 (수요일 오후 9:00)</div><div class="grow"><span class="glabel">주간 Fable</span><div class="pill" style="background:#30d158"><span class="num">99%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.99)"></span></div></div><div class="reset">리셋: 59%, 2일 20시간 뒤 (수요일 오후 9:00)</div></div>
+      <div class="div"></div>
+      <div class="card"><div class="cardhead"><span class="name">Naver</span><span class="badge blue">enterprise</span><span class="spacer"></span><span class="chip accent">새 창 띄우기</span></div><div class="grow"><span class="glabel">월 예산</span><div class="pill" style="background:#30d158"><span class="num">100%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 1.00)"></span></div></div><div class="reset"></div><div class="reset">$0.00 / $75.00 사용</div></div>
+      <div class="div"></div>
+      <div class="segrow"><div class="segctl wide"><span class="on">창이 열려있는 계정만</span><span class="">설정에서 지정한 계정</span></div></div><div class="cap9">기본 창과 우리가 띄운 창을 따라간다</div><div class="segrow"><div class="segctl"><span class="on">기본</span><span class="">도트만</span><span class="">숫자만</span><span class="">코드만</span></div></div><div class="segrow"><div class="segctl"><span class="on">남은 용량</span><span class="">사용률</span></div></div>
+      <div class="footer"><span class="stamp9">00:42 갱신</span><span class="spacer"></span><span class="chip outline r6">세션 넘기기</span><span class="quit">종료</span></div>
+    </div></div>
+  <div><div class="colhead">개선안</div><div class="pop">
+      <div class="header"><span class="title">clfl</span>
+        <span class="basis">남은 용량 기준</span><span class="spacer"></span>
+        <span class="hicon round"></span><span class="hicon"></span></div>
+      <div class="card"><div class="cardhead"><span class="dot"></span><span class="name">NAVER_TEAM_40</span><span class="mk">1</span><span class="badge blue">team</span><span class="badge green hi">여유</span><span class="mk">6</span><span class="spacer"></span><span class="chip gray r6">기본</span></div><div class="grow"><span class="glabel">5시간</span><div class="pill" style="background:#30d158"><span class="num">100%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 1.00)"></span></div></div><div class="reset">리셋: 1%, 4시간 55분 뒤</div><div class="grow"><span class="glabel">주간 전체</span><div class="pill" style="background:#30d158"><span class="num">73%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.73)"></span></div></div><div class="reset">리셋: 39%, 4일 5시간 뒤 (금요일 오전 6:00)</div><div class="grow"><span class="glabel">주간 Fable</span><div class="pill" style="background:#30d158"><span class="num">93%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.93)"></span></div></div><div class="reset">리셋: 39%, 4일 5시간 뒤 (금요일 오전 6:00)</div></div>
+      <div class="div"></div>
+      <div class="card"><div class="cardhead"><span class="name">NAVER_TEAM_52</span><span class="badge blue">team</span><span class="badge green hi">여유</span><span class="badge yellow hi"><span class="ydot"></span>실행중</span><span class="mk">2</span><span class="spacer"></span><span class="chip outline r6">앞으로 꺼내기</span><span class="mk">3</span></div><div class="grow"><span class="glabel">5시간</span><div class="pill" style="background:#30d158"><span class="num">93%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.93)"></span></div></div><div class="reset">리셋: 28%, 3시간 35분 뒤</div><div class="grow"><span class="glabel">주간 전체</span><div class="pill" style="background:#30d158"><span class="num">98%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.98)"></span></div></div><div class="reset">리셋: 59%, 2일 20시간 뒤 (수요일 오후 9:00)</div><div class="grow"><span class="glabel">주간 Fable</span><div class="pill" style="background:#30d158"><span class="num">99%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 0.99)"></span></div></div><div class="reset">리셋: 59%, 2일 20시간 뒤 (수요일 오후 9:00)</div></div>
+      <div class="div"></div>
+      <div class="card"><div class="cardhead"><span class="name">Naver</span><span class="badge blue">enterprise</span><span class="spacer"></span><span class="chip accent r6">새 창 띄우기</span></div><div class="grow"><span class="glabel">월 예산</span><div class="pill" style="background:#30d158"><span class="num">100%</span><span class="track" style="background:#232325"></span><span class="fill" style="background:#30d158;width:calc((100% - 49px) * 1.00)"></span></div></div><div class="reset"></div><div class="reset">$0.00 / $75.00 사용</div></div>
+      <div class="div"></div>
+      <div class="segrow"><span class="seglabel">막대</span><div class="segctl wide"><span class="on">창이 열려있는 계정만</span><span class="">설정에서 지정한 계정</span></div><span class="mk">5</span></div><div class="cap10">기본 창과 우리가 띄운 창을 따라간다</div><div class="segrow"><span class="seglabel">자세히</span><div class="segctl"><span class="on">기본</span><span class="">도트만</span><span class="">숫자만</span><span class="">코드만</span></div></div><div class="segrow"><span class="seglabel">기준</span><div class="segctl"><span class="on">남은 용량</span><span class="">사용률</span></div></div>
+      <div class="footer"><span class="stamp10">00:42 갱신</span><span class="mk">4</span><span class="spacer"></span><span class="chip outline r6">세션 넘기기</span><span class="quit">종료</span></div>
+    </div></div>
+</div>
+
+<ol class="note">
+  <li><b>1. 빨강의 의미 충돌 (Color).</b> 이 화면에서 빨강은 소진이다. 기본
+  계정 이름의 흰 글자 + 빨간 상자는 강조가 아니라 위험 신호로 읽힌다.
+  악센트 파란 점으로 바꾼다. 메뉴바의 포커스 밑줄과 같은 색 언어라
+  "파랑 = 위치, 등급색 = 상태" 가 앱 전체에서 일관된다.</li>
+  <li><b>2. 상태와 동작을 가른다 (Buttons).</b> HIG 는 단추 라벨을 동사로
+  쓰라고 한다. "창 실행중" 은 상태인데 누르면 동작이 일어나서, 설명
+  툴팁까지 달아야 했다. 상태는 노란 점 배지(실행중)로 이름 옆에 두고,
+  단추는 동사(앞으로 꺼내기)로 바꾼다. 툴팁 없이도 읽힌다.</li>
+  <li><b>3. 시스템 컨트롤로 (Consistency).</b> 직접 그린 상자 단추는
+  hover, 눌림, 키보드 포커스 링이 없다. 시스템 bordered 계열로 바꾸면
+  공짜로 생긴다. 모서리 반지름도 3, 4, 5pt 가 섞여 있어서 한 단계(6pt
+  근처)로 통일한다.</li>
+  <li><b>4. 글자 크기 바닥은 10pt (Typography).</b> 9pt 가 여덟 곳이다.
+  macOS 에서 10pt 아래 본문은 권장되지 않는다. 푸터 시각과 설정 캡션을
+  10pt 로 올리고 계층을 13 / 12 / 11 / 10 네 단으로 고정한다.</li>
+  <li><b>5. 세그먼트에 라벨을 (Forms).</b> 설정 세그먼트 세 줄이 라벨 없이
+  쌓여 있어 무엇을 고르는지 기억에 의존한다. 왼쪽에 좁은 라벨 열(막대,
+  자세히, 기준)을 붙인다.</li>
+  <li><b>6. 배지 대비 (Accessibility).</b> 14% 틴트 위 10pt 컬러 글자는
+  대비 3:1 아래로 떨어진다. 배경을 한 단 올리고 글자를 밝힌다.</li>
+</ol>
+<p class="note">
+  게이지 자체의 입체감(바깥 알약 명도)은 별도 시안 gauge-depth-mockup.html
+  에서 진행 중이라 여기서는 다루지 않았다.
+</p>

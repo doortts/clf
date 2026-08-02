@@ -1,0 +1,100 @@
+<meta charset="utf-8">
+<title>팝오버 머리 방향 표시 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:760px; }
+  .row { display:flex; align-items:flex-start; gap:14px; margin:10px 0; }
+  .rowhead { font-size:10px; color:#98989d; width:150px; padding-top:12px; }
+  .pop { width:340px; border-radius:10px; padding:14px 14px 10px; }
+  .head { display:flex; align-items:center; gap:8px; }
+  .title { font-size:13px; font-weight:600; }
+  .spacer { flex:1; }
+  .btn { width:11px; height:11px; border:1.5px solid; border-radius:50%; opacity:0.8; }
+  .btn.gear { border-radius:3px; }
+  .quiet { font-size:10px; }
+  .chip { font-size:10px; color:#6fa8ff; background:rgba(80,140,255,0.14);
+          padding:1px 5px; border-radius:4px; }
+  .ghost { display:flex; gap:6px; margin-top:12px; opacity:0.5; }
+  .gname { width:150px; height:16px; border-radius:4px; }
+  .gbadge { width:36px; height:14px; border-radius:4px; background:rgba(120,150,255,0.25); }
+  .gbadge.short { width:30px; background:rgba(60,200,110,0.25); }
+  .ghostbar { height:16px; border-radius:8px; margin:10px 0 4px;
+              background:rgba(60,200,110,0.35); }
+  .note { margin-top:26px; color:#98989d; max-width:760px; }
+  .note b { color:#f2f2f7; }
+</style>
+
+<h1>팝오버 머리의 방향 표시</h1>
+<p class="lede">
+  게이지 숫자가 남은 용량인지 사용률인지 팝오버를 연 순간 알 수 있게
+  clfl 이름 옆에 글자로 단다. 설정 세그먼트를 바꾸면 즉시 따라 바뀐다.
+  아래 계정 줄은 자리만 잡은 흐림 처리다.
+</p>
+
+<h2>어두운 화면</h2>
+<div class='row'><span class='rowhead'>지금 (표시 없음)</span><div class="pop" style="background:#2c2c2e">
+      <div class="head">
+        <span class="title" style="color:#f2f2f7">clfl</span>
+        <span class="spacer"></span>
+        <span class="btn" style="border-color:#98989d"></span>
+        <span class="btn gear" style="border-color:#98989d"></span>
+      </div>
+      <div class="ghost"><span class="gname" style="background:#e0483e"></span>
+        <span class="gbadge"></span><span class="gbadge short"></span></div>
+      <div class="ghostbar"></div>
+    </div></div>
+<div class='row'><span class='rowhead'>권장 - 회색 작은 글자</span><div class="pop" style="background:#2c2c2e">
+      <div class="head">
+        <span class="title" style="color:#f2f2f7">clfl</span><span class="quiet" style="color:#98989d">남은 용량 기준</span>
+        <span class="spacer"></span>
+        <span class="btn" style="border-color:#98989d"></span>
+        <span class="btn gear" style="border-color:#98989d"></span>
+      </div>
+      <div class="ghost"><span class="gname" style="background:#e0483e"></span>
+        <span class="gbadge"></span><span class="gbadge short"></span></div>
+      <div class="ghostbar"></div>
+    </div></div>
+<div class='row'><span class='rowhead'>사용률로 바꿨을 때</span><div class="pop" style="background:#2c2c2e">
+      <div class="head">
+        <span class="title" style="color:#f2f2f7">clfl</span><span class="quiet" style="color:#98989d">사용률 기준</span>
+        <span class="spacer"></span>
+        <span class="btn" style="border-color:#98989d"></span>
+        <span class="btn gear" style="border-color:#98989d"></span>
+      </div>
+      <div class="ghost"><span class="gname" style="background:#e0483e"></span>
+        <span class="gbadge"></span><span class="gbadge short"></span></div>
+      <div class="ghostbar"></div>
+    </div></div>
+<div class='row'><span class='rowhead'>대안 - 배지</span><div class="pop" style="background:#2c2c2e">
+      <div class="head">
+        <span class="title" style="color:#f2f2f7">clfl</span><span class="chip">남은 용량</span>
+        <span class="spacer"></span>
+        <span class="btn" style="border-color:#98989d"></span>
+        <span class="btn gear" style="border-color:#98989d"></span>
+      </div>
+      <div class="ghost"><span class="gname" style="background:#e0483e"></span>
+        <span class="gbadge"></span><span class="gbadge short"></span></div>
+      <div class="ghostbar"></div>
+    </div></div>
+
+<h2>밝은 화면</h2>
+<div class='row'><span class='rowhead'>권장 - 회색 작은 글자</span><div class="pop" style="background:#f2f2f7">
+      <div class="head">
+        <span class="title" style="color:#1c1c1e">clfl</span><span class="quiet" style="color:#6b6b70">남은 용량 기준</span>
+        <span class="spacer"></span>
+        <span class="btn" style="border-color:#6b6b70"></span>
+        <span class="btn gear" style="border-color:#6b6b70"></span>
+      </div>
+      <div class="ghost"><span class="gname" style="background:#e0483e"></span>
+        <span class="gbadge"></span><span class="gbadge short"></span></div>
+      <div class="ghostbar"></div>
+    </div></div>
+
+<p class="note">
+  <b>회색 작은 글자를 권한다.</b> 항상 떠 있는 표시라 눈길을 끌면 안 된다.
+  배지는 계정 줄의 플랜, 상태 배지와 무게가 겹쳐서 팝오버를 열 때마다
+  머리에 눈이 먼저 간다. 글자는 "남은 용량 기준" 처럼 기준이라는 말을
+  붙인다. "남은 용량" 만 있으면 무엇의 이름인지 애매하다.
+</p>

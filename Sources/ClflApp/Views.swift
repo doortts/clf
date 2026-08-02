@@ -22,27 +22,26 @@ struct OrgCard: View {
     var slot: InstanceSlot = .none
     var onLaunch: (() -> Void)?
     var onFocus: (() -> Void)?
-    /// 창 실행중 단추 위에 마우스가 있다. 설명 풍선이 뜬다.
-    @State private var hoveringRunning = false
+    /// 방금 앞에 있던 창의 계정. 팝오버를 여는 순간 찾을 카드라 배경을 깐다.
+    var focused = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                // 기본 인스턴스가 쓰는 계정은 이름 자체를 칠한다
+                // 기본 인스턴스가 쓰는 계정은 악센트 점을 붙인다. 빨강은 이
+                // 화면에서 소진이라 강조로 쓰면 위험 신호로 읽힌다.
+                // docs/design/popover-hig-mockup.html
                 if slot == .primary {
-                    Text(org.name)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Color.red, in: RoundedRectangle(cornerRadius: 5))
-                } else {
-                    Text(org.name).font(.system(size: 13, weight: .semibold))
+                    Circle().fill(Color.accentColor).frame(width: 7, height: 7)
                 }
+                Text(org.name).font(.system(size: 13, weight: .semibold))
                 if let plan = org.plan { badge(plan, tint: .accentColor) }
                 // 정상은 아무 말도 하지 않는다. 배지가 늘 켜져 있으면 안 읽힌다
                 if let band = org.binding?.band, band.isNoteworthy {
                     badge(band.label, tint: band.fillColor)
                 }
+                // 창이 떠 있다는 상태. 동작은 오른쪽 단추가 맡는다
+                if let state = slot.badgeLabel { runningBadge(state) }
                 Spacer(minLength: 6)
                 slotControl
             }
@@ -67,78 +66,78 @@ struct OrgCard: View {
             }
         }
         .padding(.vertical, 10)
+        // 방금까지 보던 창의 계정이 한눈에 잡히게 카드를 깐다. 파랑은
+        // 밑줄과 같은 "위치" 색이다
+        .background {
+            if focused {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.accentColor.opacity(0.10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Color.accentColor.opacity(0.30), lineWidth: 1)
+                    }
+                    .padding(.horizontal, -8)
+            }
+        }
         // 낡은 값임을 눈으로도 알린다
         .opacity(org.isStale ? 0.62 : 1)
     }
 
-    /// 상태는 사각형, 행동은 채운 단추. 모양으로 역할이 갈린다.
+    /// 상태는 배지로 갔다. 단추에는 동사만 남아 설명 없이 읽힌다.
+    /// 시스템 스타일이라 hover 와 눌림, 포커스 링이 공짜로 생긴다.
     @ViewBuilder private var slotControl: some View {
         switch slot {
         case .none:
-            Button { onLaunch?() } label: {
-                Text(slot.label)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 9).padding(.vertical, 3)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 4))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
+            Button(slot.actionLabel ?? "") { onLaunch?() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .font(.system(size: 10, weight: .semibold))
+                .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
         case .running:
-            // 상태이면서 누를 수 있다. 눌러 그 창을 앞으로 꺼낸다
-            Button { onFocus?() } label: {
-                statusBox(slot.label, tint: .yellow, filled: true)
-            }
-            .buttonStyle(.plain)
-            // .help() 는 시스템 지연이 있어 즉시 안 뜬다. 직접 그린다
-            .onHover { hoveringRunning = $0 }
-            .overlay(alignment: .topTrailing) {
-                if hoveringRunning {
-                    Text("클릭해서 앱을 화면 앞으로 가져오기")
-                        .font(.system(size: 10))
-                        .padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(Color(nsColor: .controlBackgroundColor),
-                                    in: RoundedRectangle(cornerRadius: 5))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(Color.primary.opacity(0.15), lineWidth: 1)
-                        }
-                        .shadow(radius: 3, y: 1)
-                        .fixedSize()
-                        // 단추 오른끝에 맞춰 왼쪽으로 자란다. 팝오버 밖으로 안 나간다
-                        .offset(y: -24)
-                        .allowsHitTesting(false)
-                }
-            }
-            .accessibilityLabel("\(org.name) 창을 앞으로")
+            Button(slot.actionLabel ?? "") { onFocus?() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .font(.system(size: 10, weight: .medium))
+                .accessibilityLabel("\(org.name) 창을 앞으로")
         case .opening:
-            statusBox(slot.label, tint: .secondary, filled: false)
+            statusBox(slot.label, tint: .secondary)
         case .primary, .unavailable:
-            statusBox(slot.label, tint: .secondary, filled: false)
+            statusBox(slot.label, tint: .secondary)
         }
     }
 
-    private func statusBox(_ text: String, tint: Color, filled: Bool) -> some View {
+    private func statusBox(_ text: String, tint: Color) -> some View {
         Text(text)
             .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(filled ? .black : tint)
+            .foregroundStyle(tint)
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(filled ? tint : tint.opacity(0.14))
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(tint.opacity(0.22))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 3)
-                            .strokeBorder(filled ? .clear : tint.opacity(0.5), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 5)
+                            .strokeBorder(tint.opacity(0.5), lineWidth: 1)
                     }
             }
     }
 
+    /// 창이 떠 있다는 상태 배지. 노란 점이 창을 뜻한다.
+    private func runningBadge(_ text: String) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(Color.yellow).frame(width: 5, height: 5)
+            Text(text).font(.system(size: 10, weight: .semibold))
+        }
+        .foregroundStyle(Color.yellow)
+        .padding(.horizontal, 5).padding(.vertical, 1)
+        .background(Color.yellow.opacity(0.18), in: RoundedRectangle(cornerRadius: 5))
+    }
+
     private func badge(_ text: String, tint: Color) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .medium))
+            .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(tint)
             .padding(.horizontal, 5).padding(.vertical, 1)
-            .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 4))
+            .background(tint.opacity(0.22), in: RoundedRectangle(cornerRadius: 5))
     }
 
     /// 월 예산 한 줄. 리셋 자리에는 쓴 금액과 한도를 적는다.
@@ -184,7 +183,7 @@ struct SettingsPane: View {
                     .font(.system(size: 10)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(plan.consequence)
-                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    .font(.system(size: 10)).foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
                     Button { model.cancelPurge() } label: {
@@ -210,7 +209,7 @@ struct SettingsPane: View {
                 .accessibilityLabel("새 창용 데이터 디렉토리 삭제")
 
                 Text("~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다")
-                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    .font(.system(size: 10)).foregroundStyle(.tertiary)
             }
         }
         // 결과는 누른 자리 바로 아래 둔다. 위에 있으면 눈이 안 간다
@@ -222,16 +221,27 @@ struct SettingsPane: View {
         }
     }
 
+    /// 세그먼트 왼쪽에 붙는 좁은 라벨 열.
+    private func settingRow(_ label: String,
+                            @ViewBuilder content: () -> some View) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 10)).foregroundStyle(.secondary)
+                .frame(width: 58, alignment: .leading)
+            content()
+        }
+    }
+
     private func boxLabel(_ text: String, color: Color, filled: Bool) -> some View {
         Text(text)
             .font(.system(size: 10, weight: .medium))
             .foregroundStyle(filled ? .white : color)
             .padding(.horizontal, 9).padding(.vertical, 4)
             .background {
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: 5)
                     .fill(filled ? color : color.opacity(0.12))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 4)
+                        RoundedRectangle(cornerRadius: 5)
                             .strokeBorder(filled ? .clear : color.opacity(0.45), lineWidth: 1)
                     }
             }
@@ -255,7 +265,7 @@ struct SettingsPane: View {
                 .accessibilityLabel("\(org.name) 아래로")
         }
         .buttonStyle(.borderless)
-        .font(.system(size: 9))
+        .font(.system(size: 10))
     }
 
     /// 범위를 고르는 칸과 계정 목록은 한 가지를 정하는 짝이다. 떼어 놓으면
@@ -287,7 +297,7 @@ struct SettingsPane: View {
 
                 // 목록이 막대를 정하는지 아닌지가 고른 칸에 따라 다르다
                 Text(model.prefs.barContent.listNote)
-                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    .font(.system(size: 10)).foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
@@ -304,28 +314,29 @@ struct SettingsPane: View {
 
             Divider()
 
-            Picker("자세히", selection: Binding(
-                get: { model.prefs.barDetail },
-                set: { model.setBarDetail($0) }
-            )) {
-                ForEach(BarDetail.allCases, id: \.self) { Text($0.label).tag($0) }
+            // 세그먼트만 쌓아 두면 무엇을 고르는지 기억에 의존한다.
+            // 왼쪽에 좁은 라벨 열을 붙인다. popover-hig-mockup.html
+            settingRow("메뉴바 구성") {
+                Picker("메뉴바 구성", selection: Binding(
+                    get: { model.prefs.barDetail },
+                    set: { model.setBarDetail($0) }
+                )) {
+                    ForEach(BarDetail.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
 
-            Picker("퍼센트", selection: Binding(
-                get: { model.prefs.gaugeDirection },
-                set: { model.setGaugeDirection($0) }
-            )) {
-                ForEach(GaugeDirection.allCases, id: \.self) { Text($0.label).tag($0) }
+            settingRow("표시 기준") {
+                Picker("표시 기준", selection: Binding(
+                    get: { model.prefs.gaugeDirection },
+                    set: { model.setGaugeDirection($0) }
+                )) {
+                    ForEach(GaugeDirection.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-
-            // 숫자 방향은 골라도 색은 안 따라간다. 잔여가 바닥이면 빨강이다
-            Text("색은 잔여 기준 그대로다")
-                .font(.system(size: 9)).foregroundStyle(.tertiary)
-                .padding(.top, -4)
 
             Divider()
 
@@ -341,11 +352,11 @@ struct SettingsPane: View {
 
                 if let hint = model.loginItem.hint {
                     HStack(spacing: 4) {
-                        Text(hint).font(.system(size: 9)).foregroundStyle(.secondary)
+                        Text(hint).font(.system(size: 10)).foregroundStyle(.secondary)
                         if model.loginItem == .needsApproval {
                             // 경로를 말로 설명하는 것보다 열어주는 편이 낫다
                             Button("열기") { model.openLoginItemSettings() }
-                                .buttonStyle(.borderless).font(.system(size: 9))
+                                .buttonStyle(.borderless).font(.system(size: 10))
                                 .accessibilityLabel("로그인 항목 설정 열기")
                         }
                     }
@@ -411,7 +422,8 @@ struct PopoverView: View {
                     if index > 0 { Divider() }
                     OrgCard(org: org, direction: model.prefs.gaugeDirection, slot: model.slot(org),
                             onLaunch: { model.launch(org) },
-                            onFocus: { model.focus(org) })
+                            onFocus: { model.focus(org) },
+                            focused: org.uuid == model.focusedUUID)
                 }
             }
 
@@ -432,11 +444,16 @@ struct PopoverView: View {
 
             HStack(spacing: 10) {
                 Text(model.readAt.map { stamp($0) } ?? "-")
-                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    .font(.system(size: 10)).foregroundStyle(.tertiary)
                 Spacer()
                 // 여기만 테두리를 두른다. 종료까지 단추로 만들면 창을 끄는
                 // 쪽이 같은 무게로 올라선다
-                Button { HandoffWindow.open() } label: {
+                Button {
+                    // 팝오버를 먼저 닫는다. 열린 채 두면 키 창 자리를 쥐고
+                    // 있어서 넘기기 창이 떠도 포커스를 못 받는다
+                    NSApp.keyWindow?.close()
+                    HandoffWindow.open()
+                } label: {
                     Label("세션 넘기기", systemImage: "arrow.left.arrow.right")
                         .font(.system(size: 11, weight: .medium))
                 }

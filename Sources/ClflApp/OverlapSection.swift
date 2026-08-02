@@ -9,6 +9,8 @@ import ClflDesktop
 @MainActor
 final class OverlapModel: ObservableObject {
     @Published private(set) var folders: [FolderOverlap.Folder] = []
+    /// 폴더 경로 -> 겹친 세션 제목들. 개수만 보여주면 무엇인지 모른다.
+    @Published private(set) var titles: [String: [String]] = [:]
 
     private let primary: URL
 
@@ -26,6 +28,10 @@ final class OverlapModel: ObservableObject {
     func refresh() {
         let stores = FolderOverlap.stores(inside: primary)
         folders = FolderOverlap.scan(stores: stores)
+        // 제목은 겹친 폴더 것만 읽는다. 열 때 한 번, 많아야 서너 개다
+        titles = Dictionary(uniqueKeysWithValues: folders.map {
+            ($0.path, FolderOverlap.titles(ids: $0.sessionIDs))
+        })
     }
 }
 
@@ -39,23 +45,32 @@ struct OverlapSection: View {
                 Text("겹치는 작업 폴더")
                     .font(.system(size: 10)).foregroundStyle(.secondary)
                 ForEach(model.folders) { folder in
-                    HStack(spacing: 6) {
-                        Text(folder.name).font(.system(size: 11))
-                        Text("세션 \(folder.sessions)")
-                            .font(.system(size: 9))
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.yellow.opacity(0.16)))
-                            .overlay(RoundedRectangle(cornerRadius: 4)
-                                .stroke(Color.yellow.opacity(0.45)))
-                        Spacer(minLength: 0)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(folder.name).font(.system(size: 11, weight: .semibold))
+                        // "세션 2" 같은 개수는 어느 창인지 말해주지 않는다.
+                        // 제목을 보여줘야 사용자가 자기 창을 알아본다
+                        ForEach(Array((model.titles[folder.path] ?? []).enumerated()),
+                                id: \.offset) { _, title in
+                            Text("- \(title)")
+                                .font(.system(size: 10)).foregroundStyle(.secondary)
+                                .lineLimit(1).truncationMode(.tail)
+                                .padding(.leading, 10)
+                        }
                     }
                 }
-                Text("한 폴더를 여럿이 고치고 있습니다. 넘겨도 갈라지지 않습니다.")
+                // 경고만 있고 길이 없으면 사용자가 막힌다. 할 일을 같이 적는다
+                Text(FolderOverlap.problem)
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+                Text(FolderOverlap.advice)
                     .font(.system(size: 10)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.vertical, 2)
+            // 위 계정 카드에 붙여 두면 카드의 꼬리처럼 읽힌다. 딴 얘기임을
+            // 간격으로 말한다
+            .padding(.top, 10)
+            .padding(.bottom, 2)
         }
     }
 }

@@ -281,8 +281,9 @@ final class UsageModel: ObservableObject {
         }
     }
 
-    /// 앞 창의 계정. 메뉴바가 이 계정 코드에 밑줄을 긋는다.
-    private var focusedUUID: String? {
+    /// 앞 창의 계정. 메뉴바가 이 계정 코드에 밑줄을 긋고, 팝오버가
+    /// 이 계정 카드에 배경을 깐다.
+    var focusedUUID: String? {
         FocusMark.focusedUUID(frontPid: frontPid, frontExecutable: frontExecutable,
                               instances: instances, orgs: known,
                               activeUUID: activeUUID)
@@ -290,6 +291,10 @@ final class UsageModel: ObservableObject {
 
     /// 답이 그대로면 안 굽는다. 앱을 오갈 때마다 구우면 낭비다.
     private func frontAppChanged(pid: Int32?, executable: String?) {
+        // 우리 자신이 앞으로 오는 것은 포커스 이동이 아니다. 이걸 반영하면
+        // 팝오버를 여는 순간 밑줄과 카드 표시가 사라진다. 사용자가 물은
+        // "방금 그 창" 은 팝오버를 열기 직전의 창이다
+        guard pid != ProcessInfo.processInfo.processIdentifier else { return }
         let before = focusedUUID
         frontPid = pid
         frontExecutable = executable
