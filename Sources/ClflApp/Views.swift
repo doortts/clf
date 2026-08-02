@@ -430,7 +430,7 @@ struct PopoverView: View {
             }
 
             // 겹칠 때만 나타난다. 폴더마다 세션이 하나뿐인 평소에는 없다
-            OverlapSection(model: overlap)
+            OverlapSection(model: overlap, names: model.accountNames)
 
             // 설정을 열면 첫 줄이 '메뉴바에 표시할 계정' 제목이다. 제목 위에
             // 선까지 그으면 칸막이가 둘이 된다. 닫혀 있을 때만 긋는다

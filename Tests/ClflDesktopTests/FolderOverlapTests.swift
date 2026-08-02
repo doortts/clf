@@ -72,6 +72,48 @@ final class FolderOverlapTests: XCTestCase {
         XCTAssertEqual(f[0].sessionIDs, ["new", "old"])
         XCTAssertEqual(f[0].sessions, 2)
     }
+
+    /// 어느 계정의 세션이 언제까지 일했는지 화면이 말해주려면 폴더가 그
+    /// 정보를 들고 있어야 한다. id 만으로는 "겹쳤다" 이상을 못 적는다.
+    func test_folderKeepsAccountAndTimeOfEachSession() {
+        let f = find([.init(id: "a", account: "acct-1", cwd: "/repo", wroteAt: ago(60)),
+                      .init(id: "b", account: "acct-2", cwd: "/repo", wroteAt: ago(120))])
+        XCTAssertEqual(f[0].members.map(\.account), ["acct-1", "acct-2"])
+        XCTAssertEqual(f[0].members.map(\.wroteAt), [ago(60), ago(120)])
+    }
+}
+
+/// 세션 줄에 붙는 "어디서 언제까지" 설명.
+final class FolderOverlapWorkNoteTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_700_000_000)
+
+    /// 1분이 안 지났으면 아직 일하는 중이다. "0분 전" 은 말이 아니다.
+    func test_justNowReadsAsWorking() {
+        XCTAssertEqual(FolderOverlap.workNote(account: "NAVER_TEAM_52",
+                                              wroteAt: now.addingTimeInterval(-30), now: now),
+                       "NAVER_TEAM_52 에서 지금 작업 중")
+    }
+
+    func test_minutesAgo() {
+        XCTAssertEqual(FolderOverlap.workNote(account: "NAVER_TEAM_40",
+                                              wroteAt: now.addingTimeInterval(-7 * 60 - 20), now: now),
+                       "NAVER_TEAM_40 에서 7분 전까지 작업")
+    }
+
+    /// 시계가 어긋나 미래로 찍혀도 "지금" 으로 말한다.
+    func test_futureReadsAsWorking() {
+        XCTAssertEqual(FolderOverlap.workNote(account: "A",
+                                              wroteAt: now.addingTimeInterval(600), now: now),
+                       "A 에서 지금 작업 중")
+    }
+
+    /// 계정 이름을 못 찾으면 시간만 말한다. 지어낸 이름보다 낫다.
+    func test_unknownAccountSaysTimeOnly() {
+        XCTAssertEqual(FolderOverlap.workNote(account: nil,
+                                              wroteAt: now.addingTimeInterval(-120), now: now),
+                       "2분 전까지 작업")
+        XCTAssertEqual(FolderOverlap.workNote(account: nil, wroteAt: nil, now: now), "")
+    }
 }
 
 /// 실제 파일을 훑는다.
@@ -149,6 +191,14 @@ final class FolderOverlapScanTests: XCTestCase {
         try put("B", cli: "c2", cwd: "/repo")
         let f = FolderOverlap.scan(stores: FolderOverlap.stores(inside: data), projects: projects)
         XCTAssertEqual(Set(f[0].sessionIDs), ["c1", "c2"])
+    }
+
+    /// 세션이 어느 계정 것인지는 레코드가 놓인 폴더가 말해준다.
+    func test_scanCarriesAccounts() throws {
+        try put("A", cli: "c1", cwd: "/repo")
+        try put("B", cli: "c2", cwd: "/repo")
+        let f = FolderOverlap.scan(stores: FolderOverlap.stores(inside: data), projects: projects)
+        XCTAssertEqual(Set(f[0].members.map(\.account)), ["A", "B"])
     }
 
     /// **메타데이터가 붙었다고 살아 있는 세션이 아니다.** 데스크톱 앱은 창이

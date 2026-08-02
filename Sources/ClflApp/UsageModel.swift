@@ -23,6 +23,10 @@ final class UsageModel: ObservableObject {
     /// 별도 창이 떠 있는 계정과 그 인스턴스의 pid.
     @Published private(set) var instances: [String: Int32] = [:]
     var running: Set<String> { Set(instances.keys) }
+    /// 계정 uuid -> 이름. 겹침 목록이 세션의 계정을 이름으로 말할 때 쓴다.
+    var accountNames: [String: String] {
+        Dictionary(orgs.map { ($0.uuid, $0.name) }, uniquingKeysWith: { a, _ in a })
+    }
     /// 띄우는 중인 계정. 245MB 를 푸느라 십수 초 걸린다.
     @Published private(set) var opening: Set<String> = []
     /// 창을 띄우거나 지운 결과. 팝오버를 다시 열면 사라진다.
