@@ -20,9 +20,15 @@ public struct AltLauncher: Sendable {
     /// 계정 하나짜리 인스턴스를 띄운다. 이미 씨앗이 있으면 다시 심지 않는다.
     ///
     /// 디렉토리 이름은 계정 이름에서, 로그인 계정은 uuid 로 정한다.
+    ///
+    /// `mirrorFrom` 을 주면 그 계정의 세션 목록을 새 인스턴스에도 심는다.
+    /// 레코드는 포인터일 뿐이고 트랜스크립트는 공유되므로 같은 대화가 새
+    /// 계정에서 열린다.
     @discardableResult
-    public func launch(name: String, uuid: String) throws -> URL {
+    public func launch(name: String, uuid: String, mirrorFrom sourceOrg: String? = nil)
+    throws -> URL {
         let dir = try seed(name: name, uuid: uuid)
+        if let sourceOrg { mirrorIn(dir: dir, targetOrg: uuid, sourceOrg: sourceOrg) }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: AltInstance.executable)
         var env = ProcessInfo.processInfo.environment
@@ -221,5 +227,31 @@ extension AltLauncher {
                          isRunning: running.contains(name))
         }
         return PurgePlan(entries: entries.sorted { $0.name < $1.name })
+    }
+}
+
+extension AltLauncher {
+    /// 기본 인스턴스에서 보던 세션을 새 인스턴스에도 심는다.
+    func mirrorIn(dir: URL, targetOrg: String, sourceOrg: String) {
+        guard let person = SessionStore.person(in: source) else { return }
+        SessionMirror.sync(
+            from: SessionStore(dataDirectory: source, person: person, account: sourceOrg),
+            to: SessionStore(dataDirectory: dir, person: person, account: targetOrg))
+    }
+
+    /// 별도 창에서 한 작업을 기본 인스턴스에도 보이게 한다.
+    ///
+    /// **여기가 사용자의 기본 데이터 디렉토리에 쓰는 유일한 자리다.** 같은
+    /// 계정 폴더에 레코드만 더한다. 기존 파일은 덮지 않고, 기본 창에서 그
+    /// 계정으로 바꾸면 그때 목록에 나타난다.
+    @discardableResult
+    public func mirrorBack(account uuid: String, name: String) -> Int {
+        guard let dir = AltInstance.directory(for: name),
+              FileManager.default.fileExists(atPath: dir.path),
+              let person = SessionStore.person(in: source)
+        else { return 0 }
+        return SessionMirror.sync(
+            from: SessionStore(dataDirectory: dir, person: person, account: uuid),
+            to: SessionStore(dataDirectory: source, person: person, account: uuid))
     }
 }

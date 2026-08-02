@@ -63,9 +63,9 @@ Swift 6 툴체인과 macOS 13 이상이 필요하다. Xcode 프로젝트는 없�
 
 - **데스크톱 앱의 파일을 쓰지 않는다.** 읽기만 한다
 - **추론 요청을 보내지 않는다.** 사용량 조회는 토큰을 소모하지 않는다
-- **계정을 자동으로 바꾸지 않는다.** 바꾸려면 앱 재시작이 필요하고 대화 이력이
-  끊긴다. 한도에 걸려 잠깐 기다리는 것보다 불편하다
-  ([09 문서](docs/design/09-desktop-org-switch.md))
+- **계정을 자동으로 바꾸지 않는다.** 대신 계정마다 창을 따로 띄운다.
+  기본 창은 그대로 두고 다른 계정에서 이어서 일할 수 있다
+  ([13 문서](docs/design/13-multi-instance.md))
 
 토큰 갱신도 앱이 하게 두고, 만료되면 그 사실만 말한다.
 
@@ -122,6 +122,7 @@ clflctl desktop bar <active|all>   막대에 그릴 범위
 | [10 사용량 읽기](docs/design/10-desktop-usage.md) | 토큰 캐시, 스코프, 설정, 갱신 주기 |
 | [11 메뉴바 앱](docs/design/11-menubar-app.md) | 번들, 화면 치수, 로그인 항목, 429 |
 | [12 Enterprise](docs/design/12-enterprise-spend.md) | 시간 창이 없는 플랜과 월 예산 |
+| [13 인스턴스 둘](docs/design/13-multi-instance.md) | 계정마다 창을 띄우고 대화를 옮긴다 |
 | [진행 현황](docs/design/status.html) | 검증 사다리와 계층별 상태 (HTML) |
 
 ---

@@ -89,6 +89,7 @@ final class UsageModel: ObservableObject {
                 }.value
                 await MainActor.run { self?.instances = live }
                 await self?.applyActiveOrg(uuid)
+                await self?.mirrorBackAll()
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
             }
         }
@@ -112,10 +113,12 @@ final class UsageModel: ObservableObject {
         let launcher = self.launcher
         let uuid = org.uuid
         let name = org.name
+        // 기본 창에서 보던 대화를 새 계정에도 심는다
+        let sourceOrg = activeUUID
         Task { [weak self] in
             do {
                 try await Task.detached(priority: .userInitiated) {
-                    try launcher.launch(name: name, uuid: uuid)
+                    try launcher.launch(name: name, uuid: uuid, mirrorFrom: sourceOrg)
                 }.value
             } catch {
                 await MainActor.run {
@@ -145,6 +148,22 @@ final class UsageModel: ObservableObject {
         }
     }
 
+    /// 별도 창에서 한 작업을 기본 인스턴스에도 보이게 한다.
+    ///
+    /// 기본 창에서 그 계정으로 바꾸면 그때 목록에 나타난다. 앱이 계정을 바꿀
+    /// 때 세션 디렉토리를 다시 읽기 때문이다.
+    private func mirrorBackAll() async {
+        let launcher = self.launcher
+        let targets = known.compactMap { org -> (String, String)? in
+            guard let slug = AltInstance.slug(org.name), instances[slug] != nil else { return nil }
+            return (org.uuid, org.name)
+        }
+        guard !targets.isEmpty else { return }
+        await Task.detached(priority: .utility) {
+            for (uuid, name) in targets { launcher.mirrorBack(account: uuid, name: name) }
+        }.value
+    }
+
     /// 팝오버를 열었을 때 곧바로 계정을 다시 본다.
     ///
     /// 감시 루프는 5초마다 도는데, 그 사이에 열면 최대 5초 동안 옛 계정이
@@ -156,6 +175,7 @@ final class UsageModel: ObservableObject {
         }.value
         instances = live
         await applyActiveOrg(uuid)
+        await mirrorBackAll()
     }
 
     /// 이미 떠 있는 창을 앞으로 꺼낸다.
