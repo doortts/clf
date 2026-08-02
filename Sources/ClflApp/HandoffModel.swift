@@ -121,10 +121,16 @@ final class HandoffModel: ObservableObject {
 
         var moved = 0
         var stuck: [String] = []
+        // 넘긴 직후에는 옛 창이 레코드를 되살려 겹침이 반드시 생긴다.
+        // 방금 넘긴 대화는 장부에 적어 팝오버가 15분 동안 참게 한다
+        let grace = try? HandoffGrace()
         for name in picked.sorted() {
             do {
                 try SessionHandoff.move(name, from: src, to: dst)
                 moved += 1
+                if let id = sessions.first(where: { $0.fileName == name })?.cliSessionID {
+                    grace?.note(id)
+                }
             } catch {
                 stuck.append("\(error)")
             }

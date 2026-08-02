@@ -126,11 +126,16 @@ extension SessionDuplicate {
     /// `spokeAt` 은 트랜스크립트의 마지막 대화 시각이다. 레코드의
     /// `lastActivityAt` 으로 거르지 않는 이유는 그 값이 뒤처지기 때문이다.
     /// 실측에서 22:51 로 적혔는데 세션은 22:58 에 일하고 있었다.
+    ///
+    /// `muted` 는 방금 넘긴 대화들이다. 넘기면 옛 창이 레코드를 되살려
+    /// 겹침이 반드시 생기는데, 사용자가 스스로 한 일이라 경고하지 않는다.
     public static func live(_ owners: [Owner], now: Date,
                             within: TimeInterval = liveWindow,
+                            muted: Set<String> = [],
                             spokeAt: (String) -> Date?) -> [Live] {
         var byConversation: [String: [Owner]] = [:]
-        for owner in owners where !owner.transcriptID.isEmpty {
+        for owner in owners
+        where !owner.transcriptID.isEmpty && !muted.contains(owner.transcriptID) {
             byConversation[owner.transcriptID, default: []].append(owner)
         }
         return byConversation
@@ -169,7 +174,8 @@ extension SessionDuplicate {
     public static func scanLive(stores: [SessionStore],
                                 projects: URL = FileManager.default.homeDirectoryForCurrentUser
                                     .appendingPathComponent(".claude/projects"),
-                                now: Date = Date()) -> [Live] {
+                                now: Date = Date(),
+                                muted: Set<String> = []) -> [Live] {
         let fm = FileManager.default
         var owners: [Owner] = []
         for store in stores {
@@ -184,7 +190,7 @@ extension SessionDuplicate {
                         .map { Date(timeIntervalSince1970: $0 / 1000) }))
             }
         }
-        return live(owners, now: now,
+        return live(owners, now: now, muted: muted,
                     spokeAt: { writtenAt($0, projects: projects, now: now) })
     }
 

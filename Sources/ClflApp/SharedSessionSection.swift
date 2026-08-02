@@ -30,7 +30,9 @@ final class SharedSessionModel: ObservableObject {
     func refresh() {
         readAt = Date()
         let stores = SessionDuplicate.stores(inside: primary)
-        shared = SessionDuplicate.scanLive(stores: stores, now: readAt)
+        // 방금 넘긴 대화는 참는다. 넘기기가 만든 겹침은 사용자가 아는 일이다
+        let muted = (try? HandoffGrace())?.muted(now: readAt) ?? []
+        shared = SessionDuplicate.scanLive(stores: stores, now: readAt, muted: muted)
         // 제목은 겹친 대화 것만 읽는다. 열 때 한 번, 많아야 한두 개다
         titles = Dictionary(uniqueKeysWithValues: shared.map {
             ($0.transcriptID,

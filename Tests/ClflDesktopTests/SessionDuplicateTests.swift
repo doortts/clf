@@ -204,6 +204,14 @@ final class SessionDuplicateLiveTests: XCTestCase {
         XCTAssertEqual(live[0].owners.map(\.account), ["B", "A"])
     }
 
+    /// 방금 넘긴 대화는 겹쳐 보여도 참는다. 사용자가 스스로 한 일이다.
+    func test_mutedConversationIsNotReported() {
+        let live = SessionDuplicate.live([owner("A", "c1"), owner("B", "c1")],
+                                         now: now, muted: ["c1"],
+                                         spokeAt: { _ in self.ago(60) })
+        XCTAssertEqual(live, [])
+    }
+
     /// 한 계정에 레코드가 둘이면 최근 시각 하나로 합친다. 계정은 한 줄이다.
     func test_oneSightingPerAccount() {
         let live = SessionDuplicate.live([owner("A", "c1", activeAt: ago(600)),
