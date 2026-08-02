@@ -84,7 +84,7 @@ public struct AltLauncher: Sendable {
         return (removed, kept, freed)
     }
 
-    private func directorySize(_ url: URL) -> Int {
+    func directorySize(_ url: URL) -> Int {
         var total = 0
         let walker = FileManager.default.enumerator(at: url,
             includingPropertiesForKeys: [.totalFileAllocatedSizeKey])
@@ -163,5 +163,63 @@ func writeCookieBlob(_ blob: Data, to url: URL, name: String) throws {
     }
     guard sqlite3_changes(db) > 0 else {
         throw SafeStorageError(description: "\(name) 쿠키가 없어 못 바꿨다. 먼저 로그인해야 한다")
+    }
+}
+
+/// 지우기 전에 무엇이 사라지는지 담아 둔다.
+///
+/// 되돌릴 수 없는 일이므로 먼저 보여주고 확인을 받는다.
+public struct PurgePlan: Sendable, Equatable {
+    public struct Entry: Sendable, Equatable {
+        public let name: String
+        public let bytes: Int64
+        public let isRunning: Bool
+        public init(name: String, bytes: Int64, isRunning: Bool) {
+            self.name = name; self.bytes = bytes; self.isRunning = isRunning
+        }
+    }
+
+    public let entries: [Entry]
+    public init(entries: [Entry]) { self.entries = entries }
+
+    /// 떠 있는 창의 것은 안 지운다. 쓰는 중에 지우면 그 인스턴스가 깨진다.
+    public var deletable: [Entry] { entries.filter { !$0.isRunning } }
+    public var keptRunning: [Entry] { entries.filter(\.isRunning) }
+    public var freedBytes: Int64 { deletable.reduce(0) { $0 + $1.bytes } }
+    public var isEmpty: Bool { deletable.isEmpty }
+
+    /// 몇 개인지가 아니라 무엇인지 말한다. 이름을 봐야 판단할 수 있다.
+    public var summary: String {
+        var out = deletable.map { "\($0.name) (\(Self.size($0.bytes)))" }
+            .joined(separator: ", ")
+        if !keptRunning.isEmpty {
+            out += "\n창이 떠 있는 " + keptRunning.map(\.name).joined(separator: ", ")
+                + " 는 남긴다"
+        }
+        return out
+    }
+
+    /// 무엇을 잃는지. 이게 없으면 사용자가 판단할 수 없다.
+    public var consequence: String {
+        "그 계정 창의 대화 목록이 사라진다. 대화 내용 자체는 남고 다시 띄우면 로그인도 유지된다"
+    }
+
+    public static func size(_ bytes: Int64) -> String {
+        "\(max(0, Int((Double(bytes) / 1024 / 1024).rounded())))MB"
+    }
+}
+
+extension AltLauncher {
+    /// 무엇이 지워질지 미리 센다. 아무것도 건드리지 않는다.
+    public func plan(running: Set<String>,
+                     home: URL = FileManager.default.homeDirectoryForCurrentUser) -> PurgePlan {
+        let fm = FileManager.default
+        let all = (try? fm.contentsOfDirectory(at: home, includingPropertiesForKeys: nil)) ?? []
+        let entries = all.filter(AltInstance.isOurs).map { url -> PurgePlan.Entry in
+            let name = String(url.lastPathComponent.dropFirst(AltInstance.prefix.count))
+            return .init(name: name, bytes: Int64(directorySize(url)),
+                         isRunning: running.contains(name))
+        }
+        return PurgePlan(entries: entries.sorted { $0.name < $1.name })
     }
 }

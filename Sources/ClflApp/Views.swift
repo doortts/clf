@@ -146,6 +146,61 @@ struct OrgCard: View {
 struct SettingsPane: View {
     @ObservedObject var model: UsageModel
 
+    /// 되돌릴 수 없는 일이다. 무엇이 사라지는지 보여주고 확인을 받는다.
+    @ViewBuilder private var purgeSection: some View {
+        if let plan = model.purgePlan {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("지울 것").font(.system(size: 10, weight: .semibold))
+                Text(plan.summary)
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(plan.consequence)
+                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    Button { model.cancelPurge() } label: {
+                        boxLabel("취소", color: .secondary, filled: false)
+                    }
+                    .buttonStyle(.plain)
+                    Button { model.confirmPurge() } label: {
+                        boxLabel("\(PurgePlan.size(plan.freedBytes)) 지운다",
+                                 color: .red, filled: true)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("확인하고 지운다")
+                }
+            }
+            .padding(8)
+            .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 5))
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                Button { model.previewPurge() } label: {
+                    boxLabel("멀티 인스턴스 정보 삭제", color: .red, filled: false)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("새 창용 데이터 디렉토리 삭제")
+
+                Text("~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다")
+                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func boxLabel(_ text: String, color: Color, filled: Bool) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(filled ? .white : color)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(filled ? color : color.opacity(0.12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 4)
+                            .strokeBorder(filled ? .clear : color.opacity(0.45), lineWidth: 1)
+                    }
+            }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("막대", selection: Binding(
@@ -198,20 +253,7 @@ struct SettingsPane: View {
             Divider()
 
             // 새 창을 띄우면 계정마다 300MB 쯤 쌓인다. 지울 자리가 필요하다
-            VStack(alignment: .leading, spacing: 3) {
-                Button {
-                    model.purgeInstanceData()
-                } label: {
-                    Text("멀티 인스턴스 정보 삭제")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.red)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("새 창용 데이터 디렉토리 전부 삭제")
-
-                Text("~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다")
-                    .font(.system(size: 9)).foregroundStyle(.tertiary)
-            }
+            purgeSection
 
             Divider()
 

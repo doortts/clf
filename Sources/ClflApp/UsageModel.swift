@@ -26,6 +26,8 @@ final class UsageModel: ObservableObject {
     @Published private(set) var opening: Set<String> = []
     /// 띄우다 실패한 이유.
     @Published private(set) var launchError: String?
+    /// 삭제 확인을 기다리는 중. 되돌릴 수 없어서 먼저 보여준다.
+    @Published private(set) var purgePlan: PurgePlan?
 
     private let reader: DesktopReader
     private let file: DesktopPreferencesFile?
@@ -139,17 +141,37 @@ final class UsageModel: ObservableObject {
         }
     }
 
-    /// 새 창을 띄우며 만든 디렉토리를 전부 지운다. 떠 있는 창의 것은 남긴다.
-    func purgeInstanceData() {
+    /// 무엇이 지워질지 먼저 센다. 아무것도 건드리지 않는다.
+    func previewPurge() {
+        let launcher = self.launcher
+        let live = running
+        Task { [weak self] in
+            let plan = await Task.detached { launcher.plan(running: live) }.value
+            await MainActor.run {
+                if plan.isEmpty {
+                    self?.launchError = plan.keptRunning.isEmpty
+                        ? "지울 것이 없다"
+                        : "떠 있는 창의 것뿐이라 지울 것이 없다. 창을 먼저 닫는다"
+                } else {
+                    self?.purgePlan = plan
+                }
+            }
+        }
+    }
+
+    func cancelPurge() { purgePlan = nil }
+
+    /// 확인을 받은 뒤에만 지운다.
+    func confirmPurge() {
+        guard purgePlan != nil else { return }
+        purgePlan = nil
         let launcher = self.launcher
         let live = running
         Task { [weak self] in
             let r = await Task.detached { launcher.removeAll(keeping: live) }.value
             await MainActor.run {
-                let mb = Double(r.freedBytes) / 1024 / 1024
-                var say = r.removed == 0 ? "지울 것이 없었다"
-                    : String(format: "%d개를 지웠다. %.0fMB 확보", r.removed, mb)
-                if r.keptRunning > 0 { say += ". 창이 떠 있는 \(r.keptRunning)개는 남겼다" }
+                var say = "\(r.removed)개를 지웠다. \(PurgePlan.size(r.freedBytes)) 확보"
+                if r.keptRunning > 0 { say += ". 떠 있는 \(r.keptRunning)개는 남겼다" }
                 self?.launchError = say
             }
         }
