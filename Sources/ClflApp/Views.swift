@@ -237,22 +237,72 @@ struct SettingsPane: View {
             }
     }
 
+    /// 계정 한 줄. 켜고 끄고 차례를 바꾼다.
+    private func accountRow(_ org: OrgUsage) -> some View {
+        HStack(spacing: 6) {
+            Toggle(isOn: Binding(
+                get: { !model.prefs.isHidden(org.uuid) },
+                set: { model.setHidden(org.uuid, !$0) }
+            )) {
+                Text(org.name).font(.system(size: 11))
+            }
+            .toggleStyle(.checkbox)
+            Spacer()
+            // 화살표 그림에는 읽을 글자가 없다. 이름을 붙여줘야 한다
+            Button { model.move(org.uuid, by: -1) } label: { Image(systemName: "chevron.up") }
+                .accessibilityLabel("\(org.name) 위로")
+            Button { model.move(org.uuid, by: 1) } label: { Image(systemName: "chevron.down") }
+                .accessibilityLabel("\(org.name) 아래로")
+        }
+        .buttonStyle(.borderless)
+        .font(.system(size: 9))
+    }
+
+    /// 범위를 고르는 칸과 계정 목록은 한 가지를 정하는 짝이다. 떼어 놓으면
+    /// 목록이 무엇을 정하는지 안 보인다. docs/design/settings-group-mockup.html
+    private var barAccountsGroup: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("메뉴바에 표시할 계정")
+                .font(.system(size: 11, weight: .semibold))
+
+            VStack(alignment: .leading, spacing: 0) {
+                Picker("막대", selection: Binding(
+                    get: { model.prefs.barContent },
+                    set: { model.setBarContent($0) }
+                )) {
+                    ForEach(BarContent.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                // 두 항목의 기준이 달라서 이름만으로는 안 갈린다. 고른 쪽이
+                // 무엇을 보고 정하는지 한 줄로 붙인다
+                Text(model.prefs.barContent.detail)
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .padding(.top, 5)
+
+                Divider().padding(.vertical, 9)
+
+                ForEach(model.known) { org in accountRow(org) }
+
+                // 목록이 막대를 정하는지 아닌지가 고른 칸에 따라 다르다
+                Text(model.prefs.barContent.listNote)
+                    .font(.system(size: 9)).foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .background(RoundedRectangle(cornerRadius: 7).fill(Color.black.opacity(0.14)))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.10)))
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker("막대", selection: Binding(
-                get: { model.prefs.barContent },
-                set: { model.setBarContent($0) }
-            )) {
-                ForEach(BarContent.allCases, id: \.self) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            barAccountsGroup
 
-            // 두 항목의 기준이 달라서 이름만으로는 안 갈린다. 고른 쪽이
-            // 무엇을 보고 정하는지 한 줄로 붙인다
-            Text(model.prefs.barContent.detail)
-                .font(.system(size: 10)).foregroundStyle(.secondary)
-                .padding(.top, -4)
+            Divider()
 
             Picker("자세히", selection: Binding(
                 get: { model.prefs.barDetail },
@@ -272,8 +322,10 @@ struct SettingsPane: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            Text("팝오버에는 켜 둔 계정이 전부 나온다. 색은 잔여 기준 그대로다")
+            // 숫자 방향은 골라도 색은 안 따라간다. 잔여가 바닥이면 빨강이다
+            Text("색은 잔여 기준 그대로다")
                 .font(.system(size: 9)).foregroundStyle(.tertiary)
+                .padding(.top, -4)
 
             Divider()
 
@@ -305,28 +357,6 @@ struct SettingsPane: View {
 
             // 새 창을 띄우면 계정마다 300MB 쯤 쌓인다. 지울 자리가 필요하다
             purgeSection
-
-            Divider()
-
-            ForEach(model.known) { org in
-                HStack(spacing: 6) {
-                    Toggle(isOn: Binding(
-                        get: { !model.prefs.isHidden(org.uuid) },
-                        set: { model.setHidden(org.uuid, !$0) }
-                    )) {
-                        Text(org.name).font(.system(size: 11))
-                    }
-                    .toggleStyle(.checkbox)
-                    Spacer()
-                    // 화살표 그림에는 읽을 글자가 없다. 이름을 붙여줘야 한다
-                    Button { model.move(org.uuid, by: -1) } label: { Image(systemName: "chevron.up") }
-                        .accessibilityLabel("\(org.name) 위로")
-                    Button { model.move(org.uuid, by: 1) } label: { Image(systemName: "chevron.down") }
-                        .accessibilityLabel("\(org.name) 아래로")
-                }
-                .buttonStyle(.borderless)
-                .font(.system(size: 9))
-            }
         }
     }
 }

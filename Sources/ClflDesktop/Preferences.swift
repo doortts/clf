@@ -102,6 +102,18 @@ public enum BarContent: String, Codable, Sendable, CaseIterable {
         }
     }
 
+    /// 계정 목록 밑에 붙는 한 줄.
+    ///
+    /// 목록이 막대를 정하는지 아닌지가 고른 칸에 따라 다르다. `창이 열려있는
+    /// 계정만` 은 숨김 목록을 안 보므로, 제목만 보고 목록을 껐다가 막대가
+    /// 그대로라 어리둥절해지는 것을 막는다.
+    public var listNote: String {
+        switch self {
+        case .windowed: return "지금은 창을 보고 정하므로 이 목록은 팝오버와 차례에만 쓰인다"
+        case .chosen:   return "끈 계정은 팝오버에서도 빠진다"
+        }
+    }
+
     /// 옛 파일에는 `active_only` / `all_visible` 로 적혀 있다. 이름을 바꿨다고
     /// 설정이 초기화되면 안 된다.
     public init(from decoder: Decoder) throws {

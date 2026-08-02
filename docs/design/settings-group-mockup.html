@@ -1,0 +1,139 @@
+<meta charset="utf-8">
+<title>설정 묶기 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  h2 { font-size:13px; margin:28px 0 10px; }
+  h3 { font-size:11px; color:#98989d; font-weight:500; margin:0 0 8px; }
+  p.lede { color:#98989d; margin:0 0 8px; max-width:840px; }
+  p.cap { color:#98989d; font-size:12px; margin:8px 0 0; max-width:312px; }
+  .cols { display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+  .pane { width:312px; background:#2c2c2e; border:1px solid rgba(255,255,255,.08);
+          border-radius:10px; padding:12px 14px; }
+
+  .seg { display:flex; background:#3a3a3c; border-radius:6px; padding:2px; gap:2px; }
+  .seg span { flex:1; text-align:center; font-size:11px; padding:3px 4px; border-radius:5px;
+              color:#d6d6d8; }
+  .seg span.on { background:#5a5a5d; color:#fff; box-shadow:0 1px 1px rgba(0,0,0,.3); }
+  .hint { font-size:10px; color:#98989d; margin:5px 0 0; }
+  .tiny { font-size:9px; color:#8e8e93; margin:4px 0 0; }
+  .rule { height:1px; background:rgba(255,255,255,.10); margin:11px 0; }
+
+  /* 그룹 제목 */
+  .grp { font-size:11px; font-weight:600; margin:0 0 6px; }
+  .grp.first { margin-top:0; }
+  .box { border:1px solid rgba(255,255,255,.10); border-radius:7px; padding:9px 10px;
+         background:rgba(0,0,0,.14); }
+
+  .acct { display:flex; align-items:center; gap:7px; padding:2px 0; font-size:11px; }
+  .cb { width:13px; height:13px; border-radius:3px; background:#0a84ff; flex:none;
+        position:relative; }
+  .cb::after { content:"\2713"; color:#fff; font-size:9px; position:absolute;
+               left:2px; top:-1px; }
+  .cb.off { background:transparent; border:1px solid rgba(255,255,255,.35); }
+  .cb.off::after { content:""; }
+  .arr { color:#8e8e93; font-size:9px; }
+  .grow { flex:1; }
+
+  .chk { display:flex; align-items:center; gap:6px; font-size:11px; }
+  .btn { display:inline-block; font-size:10px; font-weight:500; color:#ff453a;
+         border:1px solid rgba(255,69,58,.45); background:rgba(255,69,58,.12);
+         border-radius:4px; padding:3px 9px; }
+  .note { margin-top:26px; color:#98989d; max-width:840px; }
+  .note b { color:#f2f2f7; }
+</style>
+
+<h1>설정: 메뉴바에 표시할 계정으로 묶기</h1>
+<p class="lede">
+  범위를 고르는 칸과 계정 목록이 설정 맨 위와 맨 아래로 떨어져 있다. 둘은
+  한 가지를 정하는 짝이므로 붙여서 한 묶음으로 만든다.
+</p>
+
+<h2>지금</h2>
+<div class="cols">
+  <div>
+    <div class="pane">
+      <div class="seg"><span>창이 열려있는 계정만</span><span class="on">설정에서 지정한 계정</span></div>
+      <p class="hint">아래 목록에서 켠 계정을 그대로 그린다</p>
+      <div class="seg" style="margin-top:8px"><span class="on">기본</span><span>도트만</span><span>숫자만</span><span>코드만</span></div>
+      <div class="seg" style="margin-top:8px"><span class="on">남은 용량</span><span>사용률</span></div>
+      <p class="tiny">팝오버에는 켠 계정이 전부 나온다. 색은 잔여 기준 그대로다</p>
+      <div class="rule"></div>
+      <div class="chk"><span class="cb off"></span> 로그인할 때 실행</div>
+      <div class="rule"></div>
+      <span class="btn">멀티 인스턴스 정보 삭제</span>
+      <p class="tiny">~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다</p>
+      <div class="rule"></div>
+      <div class="acct"><span class="cb"></span> NAVER_TEAM_40 <span class="grow"></span><span class="arr">^ v</span></div>
+      <div class="acct"><span class="cb"></span> NAVER_TEAM_52 <span class="grow"></span><span class="arr">^ v</span></div>
+      <div class="acct"><span class="cb"></span> Naver <span class="grow"></span><span class="arr">^ v</span></div>
+    </div>
+    <p class="cap">고르는 칸은 맨 위, 목록은 맨 아래. 사이에 상관없는 항목 넷이 끼어 있다.</p>
+  </div>
+
+  <div>
+    <h3>바꾼 뒤 - 설정에서 지정한 계정</h3>
+    <div class="pane">
+      <p class="grp first">메뉴바에 표시할 계정</p>
+      <div class="box">
+        <div class="seg"><span>창이 열려있는 계정만</span><span class="on">설정에서 지정한 계정</span></div>
+        <p class="hint">아래 목록에서 켠 계정을 그대로 그린다</p>
+        <div class="rule" style="margin:9px 0"></div>
+        <div class="acct"><span class="cb"></span> NAVER_TEAM_40 <span class="grow"></span><span class="arr">^ v</span></div>
+        <div class="acct"><span class="cb"></span> NAVER_TEAM_52 <span class="grow"></span><span class="arr">^ v</span></div>
+        <div class="acct"><span class="cb off"></span> Naver <span class="grow"></span><span class="arr">^ v</span></div>
+        <p class="tiny">끈 계정은 팝오버에서도 빠진다</p>
+      </div>
+      <div class="rule"></div>
+      <div class="seg"><span class="on">기본</span><span>도트만</span><span>숫자만</span><span>코드만</span></div>
+      <div class="seg" style="margin-top:8px"><span class="on">남은 용량</span><span>사용률</span></div>
+      <div class="rule"></div>
+      <div class="chk"><span class="cb off"></span> 로그인할 때 실행</div>
+      <div class="rule"></div>
+      <span class="btn">멀티 인스턴스 정보 삭제</span>
+      <p class="tiny">~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다</p>
+    </div>
+    <p class="cap">
+      고르는 칸 바로 아래에 목록이 온다. 목록이 무엇을 정하는지가 제목으로 붙는다.
+    </p>
+  </div>
+
+  <div>
+    <h3>바꾼 뒤 - 창이 열려있는 계정만</h3>
+    <div class="pane">
+      <p class="grp first">메뉴바에 표시할 계정</p>
+      <div class="box">
+        <div class="seg"><span class="on">창이 열려있는 계정만</span><span>설정에서 지정한 계정</span></div>
+        <p class="hint">기본 창과 우리가 띄운 창을 따라간다</p>
+        <div class="rule" style="margin:9px 0"></div>
+        <div class="acct"><span class="cb"></span> NAVER_TEAM_40 <span class="grow"></span><span class="arr">^ v</span></div>
+        <div class="acct"><span class="cb"></span> NAVER_TEAM_52 <span class="grow"></span><span class="arr">^ v</span></div>
+        <div class="acct"><span class="cb off"></span> Naver <span class="grow"></span><span class="arr">^ v</span></div>
+        <p class="tiny">지금은 창을 보고 정하므로 이 목록은 팝오버와 차례에만 쓰인다</p>
+      </div>
+      <div class="rule"></div>
+      <div class="seg"><span class="on">기본</span><span>도트만</span><span>숫자만</span><span>코드만</span></div>
+      <div class="seg" style="margin-top:8px"><span class="on">남은 용량</span><span>사용률</span></div>
+      <div class="rule"></div>
+      <div class="chk"><span class="cb off"></span> 로그인할 때 실행</div>
+      <div class="rule"></div>
+      <span class="btn">멀티 인스턴스 정보 삭제</span>
+      <p class="tiny">~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다</p>
+    </div>
+    <p class="cap">
+      이 칸을 고르면 목록이 막대를 정하지 않는다. 목록 밑의 한 줄이 그때만 바뀐다.
+    </p>
+  </div>
+</div>
+
+<p class="note">
+  <b>목록 밑의 한 줄은 고른 칸에 따라 바뀐다.</b> '설정에서 지정한 계정' 이면
+  목록이 곧 막대이고, '창이 열려있는 계정만' 이면 목록은 막대를 안 건드린다.
+  제목만 보고 목록을 껐다가 막대가 그대로라 어리둥절해지는 것을 막는다.
+</p>
+<p class="note">
+  '팝오버에는 켠 계정이 전부 나온다' 는 줄은 원래 세그먼트 셋 밑에 있었다.
+  계정 목록을 설명하는 말이므로 목록 밑으로 옮긴다. 남은 자리의 '색은 잔여
+  기준 그대로다' 는 퍼센트 칸 옆으로 간다.
+</p>

@@ -203,6 +203,14 @@ final class BarContentTests: XCTestCase {
         XCTAssertTrue(prefs.barOrgs(from: orgs).isEmpty)
     }
 
+    /// 계정 목록이 막대를 정하는지 아닌지가 고른 칸에 따라 다르다. 제목만
+    /// 보고 목록을 껐는데 막대가 그대로면 어리둥절해진다.
+    func test_listNoteSaysWhetherTheListDrivesTheBar() {
+        XCTAssertTrue(BarContent.chosen.listNote.contains("팝오버"))
+        XCTAssertTrue(BarContent.windowed.listNote.contains("창을 보고"))
+        XCTAssertNotEqual(BarContent.chosen.listNote, BarContent.windowed.listNote)
+    }
+
     func test_barContentSurvivesRoundTrip() throws {
         var prefs = DesktopPreferences()
         prefs.barContent = .chosen
