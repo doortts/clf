@@ -20,8 +20,9 @@ final class UsageModel: ObservableObject {
     @Published private(set) var prefs = DesktopPreferences()
     /// 시스템이 쥔 값이라 우리 설정 파일에 없다. 열 때마다 물어본다.
     @Published private(set) var loginItem = LoginItemState.off
-    /// 별도 창이 떠 있는 계정.
-    @Published private(set) var running: Set<String> = []
+    /// 별도 창이 떠 있는 계정과 그 인스턴스의 pid.
+    @Published private(set) var instances: [String: Int32] = [:]
+    var running: Set<String> { Set(instances.keys) }
     /// 띄우는 중인 계정. 245MB 를 푸느라 십수 초 걸린다.
     @Published private(set) var opening: Set<String> = []
     /// 창을 띄우거나 지운 결과. 팝오버를 다시 열면 사라진다.
@@ -84,9 +85,9 @@ final class UsageModel: ObservableObject {
         orgWatch = Task { [weak self] in
             while !Task.isCancelled {
                 let (uuid, live) = await Task.detached(priority: .utility) {
-                    (reader.activeOrgUUID(), AltInstance.scanRunning())
+                    (reader.activeOrgUUID(), AltInstance.scanInstances())
                 }.value
-                await MainActor.run { self?.running = live }
+                await MainActor.run { self?.instances = live }
                 await self?.applyActiveOrg(uuid)
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
             }
@@ -126,11 +127,14 @@ final class UsageModel: ObservableObject {
             // 뜰 때까지 지켜본다. 안 뜨면 60초 뒤 표시를 거둔다
             for _ in 0..<30 {
                 try? await Task.sleep(for: .seconds(2))
-                let live = await Task.detached { AltInstance.scanRunning() }.value
+                let live = await Task.detached { AltInstance.scanInstances() }.value
                 let done = await MainActor.run { () -> Bool in
-                    self?.running = live
-                    if live.contains(slug) { self?.opening.remove(slug); return true }
-                    return false
+                    self?.instances = live
+                    guard let pid = live[slug] else { return false }
+                    self?.opening.remove(slug)
+                    // 띄웠으면 앞으로 꺼내 준다. 뒤에 숨어 뜨면 안 뜬 줄 안다
+                    AppFocus.bringToFront(pid: pid)
+                    return true
                 }
                 if done { return }
             }
@@ -139,6 +143,12 @@ final class UsageModel: ObservableObject {
                 self?.instanceNotice = "\(name) 창이 안 떴다"
             }
         }
+    }
+
+    /// 이미 떠 있는 창을 앞으로 꺼낸다.
+    func focus(_ org: OrgUsage) {
+        guard let slug = AltInstance.slug(org.name), let pid = instances[slug] else { return }
+        AppFocus.bringToFront(pid: pid)
     }
 
     /// 무엇이 지워질지 먼저 센다. 아무것도 건드리지 않는다.

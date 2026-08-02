@@ -75,19 +75,29 @@ public enum AltInstance {
         return name.hasPrefix(prefix) && name.count > prefix.count
     }
 
+    /// 계정마다 그 인스턴스의 pid. 창을 앞으로 꺼낼 때 쓴다.
+    public static func scanInstances() -> [String: Int32] {
+        runningInstances(psOutput: psOutput())
+    }
+
     /// 지금 떠 있는 별도 인스턴스의 계정. 로컬 프로세스만 본다.
     public static func scanRunning() -> Set<String> {
+        runningAccounts(psOutput: psOutput())
+    }
+
+    private static func psOutput() -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/ps")
         // -A 가 없으면 지금 터미널 세션의 프로세스만 나온다. 실제로 그래서 못 잡았다
-        process.arguments = ["-A", "-E", "-o", "command="]
+        // -A 가 없으면 지금 터미널 세션의 프로세스만 나온다. 실제로 그래서 못 잡았다
+        process.arguments = ["-A", "-E", "-o", "pid=,command="]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = Pipe()
-        guard (try? process.run()) != nil else { return [] }
+        guard (try? process.run()) != nil else { return "" }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
-        return runningAccounts(psOutput: String(decoding: data, as: UTF8.self))
+        return String(decoding: data, as: UTF8.self)
     }
 
     /// `ps -E` 출력에서 우리가 띄운 인스턴스의 계정을 골라낸다.
@@ -95,18 +105,30 @@ public enum AltInstance {
     /// 환경변수가 명령줄 뒤에 붙어 나온다. 기본 인스턴스에는 그 변수가 없고,
     /// 헬퍼 프로세스는 실행 파일 경로가 다르다.
     public static func runningAccounts(psOutput: String) -> Set<String> {
-        var found: Set<String> = []
-        for line in psOutput.split(separator: "\n") {
+        Set(slugAndPID(psOutput).map(\.slug))
+    }
+
+    /// 계정 이름과 그 인스턴스의 pid.
+    public static func runningInstances(psOutput: String) -> [String: Int32] {
+        Dictionary(slugAndPID(psOutput).compactMap { pair in
+            pair.pid.map { (pair.slug, $0) }
+        }, uniquingKeysWith: { a, _ in a })
+    }
+
+    private static func slugAndPID(_ psOutput: String) -> [(slug: String, pid: Int32?)] {
+        psOutput.split(separator: "\n").compactMap { line in
             guard line.contains(executable),
                   !line.contains("Helper"),
                   let range = line.range(of: "CLAUDE_USER_DATA_DIR=")
-            else { continue }
+            else { return nil }
             let path = line[range.upperBound...].prefix { !$0.isWhitespace }
             guard let name = path.split(separator: "/").last,
-                  name.hasPrefix(prefix) else { continue }
+                  name.hasPrefix(prefix) else { return nil }
             let slug = String(name.dropFirst(prefix.count))
-            if !slug.isEmpty { found.insert(slug) }
+            guard !slug.isEmpty else { return nil }
+            // `ps` 가 pid 를 앞에 붙여 준 경우에만 창을 꺼낼 수 있다
+            let pid = line.split(separator: " ", maxSplits: 1).first.flatMap { Int32($0) }
+            return (slug, pid)
         }
-        return found
     }
 }

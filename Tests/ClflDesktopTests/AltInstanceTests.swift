@@ -146,3 +146,32 @@ final class DomainHashTests: XCTestCase {
                        "fcd63625da82168ee9066a8eefca57fa5845d6752b4514f434249ec35916bd60")
     }
 }
+
+/// 창을 앞으로 꺼내려면 pid 가 있어야 한다.
+final class InstancePIDTests: XCTestCase {
+    let sample = """
+      821 /Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-NAVER_TEAM_52 PATH=/usr/bin
+      950 /Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-Naver PATH=/usr/bin
+    28705 /Applications/Claude.app/Contents/MacOS/Claude PATH=/usr/bin
+    30011 /Applications/Claude.app/Contents/Frameworks/Claude Helper.app/Contents/MacOS/Claude Helper --type=renderer
+    """
+
+    func test_mapsAccountToPID() {
+        let found = AltInstance.runningInstances(psOutput: sample)
+        XCTAssertEqual(found["NAVER_TEAM_52"], 821)
+        XCTAssertEqual(found["Naver"], 950)
+        XCTAssertEqual(found.count, 2)
+    }
+
+    /// 계정 목록은 그 지도의 열쇠다. 두 값이 어긋나면 안 된다.
+    func test_accountsMatchTheMap() {
+        XCTAssertEqual(AltInstance.runningAccounts(psOutput: sample),
+                       Set(AltInstance.runningInstances(psOutput: sample).keys))
+    }
+
+    /// pid 가 없는 줄은 버린다. 앞에 pid 가 붙어 나오지 않는 형식일 수 있다.
+    func test_ignoresLinesWithoutAPID() {
+        let noPID = "/Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-A"
+        XCTAssertTrue(AltInstance.runningInstances(psOutput: noPID).isEmpty)
+    }
+}

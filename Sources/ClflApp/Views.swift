@@ -20,6 +20,7 @@ struct OrgCard: View {
     let org: OrgUsage
     var slot: InstanceSlot = .none
     var onLaunch: (() -> Void)?
+    var onFocus: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -81,7 +82,12 @@ struct OrgCard: View {
             .buttonStyle(.plain)
             .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
         case .running:
-            statusBox(slot.label, tint: .yellow, filled: true)
+            // 상태이면서 누를 수 있다. 눌러 그 창을 앞으로 꺼낸다
+            Button { onFocus?() } label: {
+                statusBox(slot.label, tint: .yellow, filled: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(org.name) 창을 앞으로")
         case .opening:
             statusBox(slot.label, tint: .secondary, filled: false)
         case .primary, .unavailable:
@@ -330,7 +336,9 @@ struct PopoverView: View {
             } else {
                 ForEach(Array(model.orgs.enumerated()), id: \.element.id) { index, org in
                     if index > 0 { Divider() }
-                    OrgCard(org: org, slot: model.slot(org)) { model.launch(org) }
+                    OrgCard(org: org, slot: model.slot(org),
+                            onLaunch: { model.launch(org) },
+                            onFocus: { model.focus(org) })
                 }
             }
 
