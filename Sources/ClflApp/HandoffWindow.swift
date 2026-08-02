@@ -23,7 +23,7 @@ enum HandoffWindow {
             let window = NSWindow(contentViewController:
                                     NSHostingController(rootView: HandoffView(model: model)))
             window.title = "세션 넘기기"
-            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.styleMask = [.titled, .closable]
             // 닫아도 놓아주지 않는다. 다시 열 때 같은 창을 쓴다
             window.isReleasedWhenClosed = false
             window.center()

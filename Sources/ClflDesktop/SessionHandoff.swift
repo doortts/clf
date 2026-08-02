@@ -219,13 +219,14 @@ public struct HandoffAdvice: Sendable, Equatable {
             dormant: both.filter { $0.slot == .none || $0.slot == .opening }.map(\.name))
     }
 
-    public var text: String {
-        var parts = ["\(moved)개를 옮겼다."]
+    public var text: String { "\(moved)개를 옮겼다. " + detail }
+
+    /// 옮겼다는 말 다음에 붙는 안내. 화면은 두 줄로 나눠 보여준다.
+    public var detail: String {
+        var parts: [String] = []
         if needsPrimaryRestart { parts.append("기본 앱을 재시작해야 목록에 반영된다.") }
         if !relaunch.isEmpty { parts.append("\(relaunch.joined(separator: ", ")) 창은 다시 띄워야 한다.") }
-        if relaunch.isEmpty && !needsPrimaryRestart {
-            parts.append("창이 없으니 다음에 띄우면 보인다.")
-        }
+        if parts.isEmpty { parts.append("창이 없으니 다음에 띄우면 보인다.") }
         return parts.joined(separator: " ")
     }
 }
