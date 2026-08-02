@@ -77,6 +77,18 @@ public enum UsageBand: Sendable, Equatable, CaseIterable {
 
     /// 배지로 내보일 만한 상태인가. 정상은 아무 말도 하지 않는다.
     public var isNoteworthy: Bool { self != .normal }
+
+    /// 게이지 숫자를 흰 글자로 쓰나.
+    ///
+    /// 게이지 바깥을 막대보다 한 단 어둡게 깔면서 회색과 빨강 위의 검은
+    /// 글자가 묻혔다. 노랑은 어둡게 해도 여전히 밝아서 검정이 낫다.
+    /// 어두워진 노랑 위의 흰 글자는 대비가 2.5 뿐이고 검정은 8.2 다.
+    public var prefersLightInk: Bool {
+        switch self {
+        case .normal, .empty: return true
+        case .low, .ample:    return false
+        }
+    }
 }
 
 /// Enterprise 구독의 월 예산.
