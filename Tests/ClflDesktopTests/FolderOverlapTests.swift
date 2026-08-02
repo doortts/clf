@@ -63,6 +63,15 @@ final class FolderOverlapTests: XCTestCase {
                       .init(cwd: "/three", wroteAt: ago(3))])
         XCTAssertEqual(f.map(\.path), ["/three", "/two"])
     }
+
+    /// "세션 2" 같은 개수는 무엇인지 말해주지 않는다. 제목으로 말하려면
+    /// 폴더가 겹친 세션의 id 를 들고 있어야 한다. 최근 것이 먼저다.
+    func test_folderKeepsItsSessionsMostRecentFirst() {
+        let f = find([.init(id: "old", cwd: "/repo", wroteAt: ago(120)),
+                      .init(id: "new", cwd: "/repo", wroteAt: ago(60))])
+        XCTAssertEqual(f[0].sessionIDs, ["new", "old"])
+        XCTAssertEqual(f[0].sessions, 2)
+    }
 }
 
 /// 실제 파일을 훑는다.
@@ -120,5 +129,22 @@ final class FolderOverlapScanTests: XCTestCase {
 
     func test_emptyDataDirectoryHasNoStores() {
         XCTAssertEqual(FolderOverlap.stores(inside: root.appendingPathComponent("없다")).count, 0)
+    }
+
+    func test_scanCarriesSessionIDs() throws {
+        try put("A", cli: "c1", cwd: "/repo")
+        try put("B", cli: "c2", cwd: "/repo")
+        let f = FolderOverlap.scan(stores: FolderOverlap.stores(inside: data), projects: projects)
+        XCTAssertEqual(Set(f[0].sessionIDs), ["c1", "c2"])
+    }
+
+    /// 제목은 트랜스크립트 양끝에서 읽는다. 못 읽으면 자리 표시로 말한다.
+    /// 빈 배지("세션 2")보다 제목이 어느 창인지 알려준다.
+    func test_titlesComeFromTranscripts() throws {
+        try put("A", cli: "c1", cwd: "/repo")
+        try Data(#"{"aiTitle":"게이지 방향 작업"}"#.utf8)
+            .write(to: projects.appendingPathComponent("proj/c1.jsonl"))
+        XCTAssertEqual(FolderOverlap.titles(ids: ["c1", "없는세션"], projects: projects),
+                       ["게이지 방향 작업", FolderOverlap.untitled])
     }
 }

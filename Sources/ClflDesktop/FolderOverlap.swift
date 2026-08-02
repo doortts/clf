@@ -16,6 +16,8 @@ public enum FolderOverlap {
 
     /// 세션 하나가 어느 폴더를 언제 썼나.
     public struct Use: Sendable, Equatable {
+        /// cliSessionId. 겹쳤을 때 제목을 찾아가는 열쇠다.
+        public let id: String
         public let cwd: String
         /// 트랜스크립트에 마지막으로 쓴 시각.
         ///
@@ -23,7 +25,8 @@ public enum FolderOverlap {
         /// 세션은 22:58 에 일하고 있었다. 파일 mtime 이 살아 있는 신호다.
         public let wroteAt: Date?
 
-        public init(cwd: String, wroteAt: Date?) {
+        public init(id: String = "", cwd: String, wroteAt: Date?) {
+            self.id = id
             self.cwd = cwd
             self.wroteAt = wroteAt
         }
@@ -32,12 +35,15 @@ public enum FolderOverlap {
     /// 세션이 둘 이상 붙어 있는 폴더.
     public struct Folder: Sendable, Equatable, Identifiable {
         public let path: String
-        public let sessions: Int
+        /// 겹친 세션들. 최근에 쓴 것이 먼저다. 개수만 보여주면 무엇인지
+        /// 모르므로 화면은 이 id 로 제목을 찾아 보여준다.
+        public let sessionIDs: [String]
+        public var sessions: Int { sessionIDs.count }
         public var id: String { path }
 
-        public init(path: String, sessions: Int) {
+        public init(path: String, sessionIDs: [String]) {
             self.path = path
-            self.sessions = sessions
+            self.sessionIDs = sessionIDs
         }
 
         /// 화면에 쓸 이름. 경로 전체는 팝오버 폭에 안 들어간다.
@@ -50,18 +56,47 @@ public enum FolderOverlap {
     /// 보여준다. 평소에 조용해야 진짜 겹쳤을 때 눈에 띈다.
     public static func find(_ uses: [Use], now: Date,
                             within: TimeInterval = liveWindow) -> [Folder] {
-        var counts: [String: Int] = [:]
+        var byFolder: [String: [(id: String, at: Date)]] = [:]
         for use in uses {
             // 경로를 모르면 셀 수 없다. 트랜스크립트가 없으면 쓴 적이 없다
             guard !use.cwd.isEmpty, let at = use.wroteAt else { continue }
             // 시계가 어긋나 미래로 찍힐 수 있다. 그것도 최근으로 본다
             guard now.timeIntervalSince(at) <= within else { continue }
-            counts[use.cwd, default: 0] += 1
+            byFolder[use.cwd, default: []].append((use.id, at))
         }
-        return counts
-            .filter { $0.value >= 2 }
-            .map { Folder(path: $0.key, sessions: $0.value) }
+        return byFolder
+            .filter { $0.value.count >= 2 }
+            .map { path, entries in
+                Folder(path: path, sessionIDs: entries.sorted { $0.at > $1.at }.map(\.id))
+            }
             .sorted { $0.sessions != $1.sessions ? $0.sessions > $1.sessions : $0.path < $1.path }
+    }
+
+    // MARK: 화면이 쓰는 말
+
+    /// 제목을 못 읽은 세션의 자리 표시.
+    public static let untitled = "제목 없는 세션"
+
+    /// 무엇이 문제인가.
+    public static let problem = "같은 폴더의 세션은 서로 남의 변경을 덮을 수 있습니다."
+    /// 그래서 무엇을 하면 되는가. 경고만 있고 길이 없으면 사용자가 막힌다.
+    /// 마지막 문장은 아래 세션 넘기기 단추로 해결하려는 오해를 막는다.
+    public static let advice = "한 세션만 남기고 닫거나 세션마다 작업 폴더를 나누세요. 세션 넘기기를 해도 두 세션은 같은 폴더를 계속 씁니다."
+
+    /// 겹친 세션들의 제목. 순서는 넣어준 id 순서 그대로다.
+    ///
+    /// 훑을 때(scan) 제목을 안 읽는 것과 같은 이유로, 여기서도 **겹친 폴더의
+    /// 세션만** 읽는다. 팝오버를 열 때 한 번, 많아야 서너 개다.
+    public static func titles(ids: [String],
+                              projects: URL = FileManager.default.homeDirectoryForCurrentUser
+                                  .appendingPathComponent(".claude/projects")) -> [String] {
+        ids.map { id in
+            guard let url = SessionMirror.transcriptPath(id, projects: projects) else {
+                return untitled
+            }
+            let title = TranscriptTitle.of(url)
+            return title.isEmpty ? untitled : title
+        }
     }
 }
 
@@ -89,7 +124,8 @@ extension FolderOverlap {
                       seen.insert(cli).inserted
                 else { continue }
 
-                uses.append(Use(cwd: json["cwd"] as? String ?? json["originCwd"] as? String ?? "",
+                uses.append(Use(id: cli,
+                                cwd: json["cwd"] as? String ?? json["originCwd"] as? String ?? "",
                                 wroteAt: writtenAt(cli, projects: projects)))
             }
         }
