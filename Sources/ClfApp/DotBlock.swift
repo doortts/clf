@@ -8,6 +8,32 @@ enum Metrics {
     static let rowHeight: CGFloat = 28
     static let barHeight: CGFloat = 6
 
+    // MARK: macOS 27 UI Kit 실측값
+    //
+    // 킷의 컴포넌트를 하나씩 골라 읽은 값이다. 짐작한 값이 아니므로 여기 모아
+    // 두고 화면 쪽에서는 이 상수만 쓴다.
+    // docs/design/popover-hig27-applied-mockup.html
+
+    /// 푸시 버튼. Buttons / Content Area / Bordered.
+    static let controlHeight: CGFloat = 24
+    static let controlPadding: CGFloat = 16
+    static let controlRadius: CGFloat = 6
+    /// 팝오버 본체. Popover / Fill + Shadow.
+    static let popoverRadius: CGFloat = 20
+    /// 상자급. 팝오버 20 에서 여백 12 를 뺀 동심값.
+    static let boxRadius: CGFloat = 8
+    /// 배지와 세그먼트 칸. _Segment - Selectable.
+    static let badgeRadius: CGFloat = 5
+
+    // MARK: 글자. Text styles 의 크기와 줄 높이 짝
+    //
+    // 크기만 정하고 줄 높이를 기본값에 맡기면 글자마다 줄 높이가 달라져 4의
+    // 배수 격자가 어긋난다. 짝으로 못박는다.
+    static let bodySize: CGFloat = 13,      bodyLine: CGFloat = 16
+    static let calloutSize: CGFloat = 12,   calloutLine: CGFloat = 15
+    static let subheadSize: CGFloat = 11,   subheadLine: CGFloat = 14
+    static let captionSize: CGFloat = 10,   captionLine: CGFloat = 13
+
     /// 메뉴바 게이지. 스무 칸이라 한 칸이 5% 다.
     ///
     /// 칸 1pt = 2px, 안쪽 높이 3pt = 6px, 테두리 0.5pt = 1px, 줄 사이 2pt = 4px.

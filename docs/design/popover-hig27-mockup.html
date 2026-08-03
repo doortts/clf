@@ -1,0 +1,338 @@
+<meta charset="utf-8">
+<title>팝오버를 macOS 27 UI Kit 실측값에 맞춘다</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:34px 0 10px; }
+  h3 { font-size:11px; line-height:14px; color:var(--dim); font-weight:500; margin:0 0 10px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:900px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:15px; margin:10px 0 0; max-width:340px; }
+  .cols { display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .bad { color:#ff6961; } .good { color:#3ce16b; }
+
+  /* 벽지. 재질이 무엇을 통과시키는지 보이려면 바탕이 단색이면 안 된다 */
+  .wall { padding:16px; border-radius:24px; display:inline-block;
+          background:radial-gradient(120% 90% at 15% 0%, #cdd5e8 0%, #b3bdd6 40%, #dcd0c2 100%); }
+  .wall.dk { background:radial-gradient(120% 90% at 15% 0%, #39415a 0%, #282d3d 40%, #473f37 100%); }
+
+  /* 팝오버: 실측 - 모서리 20, 여백 14, 폭 340 */
+  .pop { width:340px; border-radius:20px; padding:14px; box-sizing:border-box;
+         box-shadow:0 1px 2px rgba(0,0,0,.10), 0 8px 20px rgba(0,0,0,.16),
+                    0 24px 48px rgba(0,0,0,.20); }
+  .pop.now { background:#fff; color:#000; }              /* 지금: 불투명 흰 판 */
+  .pop.thick-l { color:#000;                              /* 제안: Thick 재질 */
+    background:linear-gradient(rgba(255,255,255,.70), rgba(255,255,255,.70)),
+               linear-gradient(rgba(191,191,191,.10), rgba(191,191,191,.10)),
+               radial-gradient(120% 90% at 15% 0%, #cdd5e8 0%, #b3bdd6 40%, #dcd0c2 100%); }
+  .pop.thick-d { color:var(--ink);
+    background:linear-gradient(rgba(30,30,32,.72), rgba(30,30,32,.72)),
+               linear-gradient(rgba(120,120,128,.14), rgba(120,120,128,.14)),
+               radial-gradient(120% 90% at 15% 0%, #39415a 0%, #282d3d 40%, #473f37 100%); }
+
+  /* 머리 줄. Body 13/16, Callout 12/15 */
+  .head { display:flex; align-items:center; gap:6px; height:24px; }
+  .app { font-size:13px; line-height:16px; font-weight:600; }
+  .sub { font-size:12px; line-height:15px; opacity:.6; }
+  .spacer { flex:1; }
+  .icon { width:24px; height:24px; border-radius:6px; display:grid; place-items:center;
+          font-size:13px; opacity:.7; }
+
+  /* 계정 카드. 모서리 8 = 팝오버 20 에서 여백 12 를 뺀 동심 반지름 */
+  .card { padding:8px; margin:0 -8px; border-radius:8px; }
+  .cname { display:flex; align-items:center; gap:6px; height:24px; }
+  .cname b { font-size:13px; line-height:16px; font-weight:600; }
+  .badge { font-size:10px; line-height:13px; font-weight:500; padding:1px 6px; border-radius:5px; }
+  .thick-l .badge, .now .badge { background:rgba(0,0,0,.06); }
+  .thick-d .badge { background:rgba(255,255,255,.12); }
+  .warn { background:rgba(255,204,0,.22) !important; color:#8a6100; }
+  .thick-d .warn { color:#ffd60a; }
+
+  /* 단추: 실측 - 높이 24, 좌우 여백 16, 모서리 6 */
+  .btn { height:24px; padding:0 16px; border-radius:6px; font-size:12px; line-height:24px;
+         font-weight:500; box-sizing:border-box; }
+  .btn.prom { background:#0a84ff; color:#fff; }
+  .now .btn.bord, .thick-l .btn.bord { background:rgba(255,255,255,.8);
+    box-shadow:0 0 0 .5px rgba(0,0,0,.16), 0 1px 1px rgba(0,0,0,.06); }
+  .thick-d .btn.bord { background:rgba(255,255,255,.14);
+    box-shadow:0 0 0 .5px rgba(255,255,255,.14); }
+  .btn.plain { padding:0 8px; background:none; box-shadow:none; }
+
+  /* 지금: 숫자를 품은 18pt 알약 */
+  .row-now { display:flex; align-items:center; gap:7px; height:28px; }
+  .rl { font-size:11px; line-height:14px; width:58px; flex:none; opacity:.6; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; background:#249d42; overflow:hidden; }
+  .pill .num { width:44px; text-align:center; font-size:12px; font-weight:700; color:#fff;
+               font-variant-numeric:tabular-nums; z-index:2; }
+  .pill .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+                 border-radius:6.5px; background:rgba(0,0,0,.28); }
+  .pill .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px;
+                background:#30d158; }
+
+  /* 제안: 실측 - 트랙 높이 10, 모서리 100(알약), 빈 칸 = 라벨색 6% */
+  .row-new { display:flex; align-items:center; gap:8px; height:24px; }
+  .lvl { flex:1; height:10px; border-radius:5px; overflow:hidden; }
+  .thick-l .lvl { background:rgba(0,0,0,.06); }
+  .thick-d .lvl { background:rgba(255,255,255,.10); }
+  .lvl span { display:block; height:100%; border-radius:5px; }
+  .val { width:36px; text-align:right; font-size:12px; line-height:15px; font-weight:600;
+         font-variant-numeric:tabular-nums; }
+  .g { background:#30d158; } .y { background:#ffcc00; } .r { background:#ff453a; }
+  .vg { color:#1d7a33; } .vy { color:#8a6100; } .vr { color:#c9241b; }
+  .thick-d .vg { color:#30d158; } .thick-d .vy { color:#ffd60a; } .thick-d .vr { color:#ff6961; }
+  .reset { font-size:10px; line-height:13px; opacity:.5; margin-left:66px; }
+
+  /* 세그먼트: 실측 - 높이 24(기본) 20(작게), 칸 모서리 5, 칸 사이 -1 */
+  .srow { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .slbl { font-size:11px; line-height:14px; width:66px; flex:none; opacity:.6; }
+  .seg { display:flex; flex:1; height:24px; border-radius:6px; padding:1px; box-sizing:border-box; }
+  .thick-l .seg { background:rgba(0,0,0,.06); }
+  .thick-d .seg { background:rgba(255,255,255,.08); }
+  .seg span { flex:1; text-align:center; font-size:11px; line-height:22px; border-radius:5px;
+              opacity:.7; }
+  .seg span.on { background:#0a84ff; color:#fff; opacity:1; font-weight:600; }
+
+  .divider { height:1px; margin:12px 0; }
+  .now .divider, .thick-l .divider { background:rgba(0,0,0,.10); }
+  .thick-d .divider { background:rgba(255,255,255,.12); }
+  .foot { display:flex; align-items:center; gap:8px; margin-top:16px; }
+  .stamp { font-size:10px; line-height:13px; opacity:.5; }
+
+  table { border-collapse:collapse; margin-top:10px; font-size:12px; line-height:16px;
+          max-width:1060px; }
+  th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  td.q { color:var(--dim); }
+  .note { margin-top:24px; color:var(--dim); max-width:900px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>팝오버를 macOS 27 UI Kit 실측값에 맞춘다</h1>
+<p class="lede">
+  Apple Design Resources 의 macOS 27 UI Kit 을 열어 컴포넌트를 하나씩 골라
+  치수를 읽었다. 아래 수치는 문서에서 옮긴 것이 아니라 그 킷의 레이어에 적혀
+  있는 값이다. 이전 시안에서 짐작으로 적었던 값 두 개(트랙 8pt, 팝오버 모서리 14pt)가
+  실측과 달랐다.
+</p>
+
+<h2>1. 킷에서 읽은 값</h2>
+<table>
+  <tr><th>컴포넌트</th><th>레이어</th><th>실측</th></tr>
+  <tr><td>팝오버 본체</td><td class="q">Popover / Light / Fill + Shadow</td>
+      <td>모서리 <b>20</b>, 채움 <code>#FFFFFF 70%</code> + <code>#BFBFBF 10%</code>,
+          그림자 3겹</td></tr>
+  <tr><td>팝오버 꼬리</td><td class="q">Popover / Light, Bottom (Leading)</td>
+      <td>본체 200 에 전체 높이 210.5 라 꼬리 <b>10.5</b></td></tr>
+  <tr><td>선형 트랙</td><td class="q">Linear - Determinate / _Tracks</td>
+      <td>높이 <b>10</b>, 모서리 100(알약), 빈 칸 <code>Labels/Primary 6%</code>,
+          비활성 채움 <code>Labels/Primary 17%</code></td></tr>
+  <tr><td>세그먼트 컨트롤</td><td class="q">Segmented Control (기본 / Small)</td>
+      <td>높이 <b>24</b> / <b>20</b>, 칸 모서리 5, 칸 사이 -1</td></tr>
+  <tr><td>푸시 버튼</td><td class="q">Buttons / Content Area / Bordered</td>
+      <td>높이 <b>24</b>, 좌우 여백 <b>16</b>, 모서리 <b>6</b></td></tr>
+  <tr><td>버튼 문맥</td><td class="q">Examples - Light, Content Area / Over Glass</td>
+      <td>같은 버튼에 <b>문맥이 둘</b>이다. 재질 위에 얹는 버튼은 Over Glass 쪽</td></tr>
+  <tr><td>재질 토큰</td><td class="q">Color styles / Materials</td>
+      <td>Ultrathick, Thick, Medium, Thin, Ultrathin (각각 Dark 짝)</td></tr>
+  <tr><td>글자 스타일</td><td class="q">Text styles</td>
+      <td>Body 13/16, Callout 12/15, Subheadline 11/14, Footnote 및 Caption 10/13</td></tr>
+</table>
+
+<h2>2. 지금과 제안</h2>
+<div class="cols">
+
+  <div>
+    <h3>지금 (라이트, 불투명 흰 판)</h3>
+    <div class="wall">
+      <div class="pop now">
+        <div class="head"><span class="app">clf</span><span class="sub">사용률 기준</span>
+          <span class="spacer"></span><span class="icon">&#8635;</span><span class="icon">&#9881;</span></div>
+        <div class="card">
+          <div class="cname"><b>NAVER_TEAM_52</b><span class="badge">team</span>
+            <span class="spacer"></span><span class="btn bord">앞으로 꺼내기</span></div>
+          <div class="row-now"><span class="rl">5시간</span>
+            <span class="pill"><span class="num">93%</span><span class="track"></span>
+              <span class="fill" style="width:88%"></span></span></div>
+          <div class="reset">리셋: 25%, 3시간 44분 뒤</div>
+          <div class="row-now"><span class="rl">주간 전체</span>
+            <span class="pill"><span class="num">77%</span><span class="track"></span>
+              <span class="fill" style="width:72%"></span></span></div>
+          <div class="reset">리셋: 61%, 1일 21시간 뒤 (수요일 오전 6:00)</div>
+        </div>
+        <div class="divider"></div>
+        <div class="foot"><span class="stamp">01:45 갱신</span><span class="spacer"></span>
+          <span class="btn bord">세션 작업 이전하기</span>
+          <span class="btn plain" style="color:#ff3b30">종료</span></div>
+      </div>
+    </div>
+    <p class="cap bad">
+      흰 판이 벽지를 덮는다. 모서리 14, 알약 18pt, 버튼 높이 20 은 어느 것도
+      킷 값이 아니다.
+    </p>
+  </div>
+
+  <div>
+    <h3>제안 (라이트, Thick 재질)</h3>
+    <div class="wall">
+      <div class="pop thick-l">
+        <div class="head"><span class="app">clf</span><span class="sub">사용률 기준</span>
+          <span class="spacer"></span><span class="icon">&#8635;</span><span class="icon">&#9881;</span></div>
+        <div class="card">
+          <div class="cname"><b>NAVER_TEAM_52</b><span class="badge">team</span>
+            <span class="spacer"></span><span class="btn bord">앞으로 꺼내기</span></div>
+          <div class="row-new"><span class="rl">5시간</span>
+            <span class="lvl"><span class="g" style="width:93%"></span></span>
+            <span class="val vg">93%</span></div>
+          <div class="reset">리셋: 25%, 3시간 44분 뒤</div>
+          <div class="row-new"><span class="rl">주간 전체</span>
+            <span class="lvl"><span class="g" style="width:77%"></span></span>
+            <span class="val vg">77%</span></div>
+          <div class="reset">리셋: 61%, 1일 21시간 뒤 (수요일 오전 6:00)</div>
+          <div class="row-new"><span class="rl">주간 Fable</span>
+            <span class="lvl"><span class="y" style="width:12%"></span></span>
+            <span class="val vy">12%</span></div>
+          <div class="reset">리셋: 61%, 1일 21시간 뒤 (수요일 오전 6:00)</div>
+        </div>
+        <div class="divider"></div>
+        <div class="srow"><span class="slbl">리셋 표기</span>
+          <span class="seg"><span>주기</span><span class="on">남은 시간</span><span>없음</span></span></div>
+        <div class="foot"><span class="stamp">01:45 갱신</span><span class="spacer"></span>
+          <span class="btn bord">세션 작업 이전...</span>
+          <span class="btn plain">종료</span></div>
+      </div>
+    </div>
+    <p class="cap good">
+      재질 위에 얹고, 트랙 10pt 알약에 숫자는 밖으로. 팝오버 20, 카드 8,
+      배지 5 가 동심으로 맞물린다.
+    </p>
+  </div>
+
+  <div>
+    <h3>제안 (다크). 같은 규격</h3>
+    <div class="wall dk">
+      <div class="pop thick-d">
+        <div class="head"><span class="app">clf</span><span class="sub">사용률 기준</span>
+          <span class="spacer"></span><span class="icon">&#8635;</span><span class="icon">&#9881;</span></div>
+        <div class="card">
+          <div class="cname"><b>NAVER_TEAM_40</b><span class="badge">team</span>
+            <span class="badge warn">주의</span>
+            <span class="spacer"></span><span class="btn prom">새 창 띄우기</span></div>
+          <div class="row-new"><span class="rl">5시간</span>
+            <span class="lvl"><span class="g" style="width:100%"></span></span>
+            <span class="val vg">100%</span></div>
+          <div class="reset">창 안 열림</div>
+          <div class="row-new"><span class="rl">주간 전체</span>
+            <span class="lvl"><span class="r" style="width:4%"></span></span>
+            <span class="val vr">4%</span></div>
+          <div class="reset">리셋: 96%, 3일 6시간 뒤 (토요일 오전 6:00)</div>
+          <div class="row-new"><span class="rl">월 예산</span>
+            <span class="lvl"><span class="g" style="width:100%"></span></span>
+            <span class="val vg">100%</span></div>
+          <div class="reset">$0.00 / $75.00 사용</div>
+        </div>
+        <div class="divider"></div>
+        <div class="srow"><span class="slbl">메뉴바 구성</span>
+          <span class="seg"><span class="on">기본</span><span>도트만</span><span>숫자만</span><span>코드만</span></span></div>
+        <div class="srow"><span class="slbl">표시 기준</span>
+          <span class="seg"><span>남은 용량</span><span class="on">사용률</span></span></div>
+      </div>
+    </div>
+    <p class="cap">
+      세그먼트 높이 24 는 버튼 높이와 같다. 네 칸까지는 11pt 라벨이 들어간다.
+    </p>
+  </div>
+</div>
+
+<h2>3. 무엇을 왜 바꾸나</h2>
+<table>
+  <tr><th>요소</th><th>지금</th><th>킷 값</th><th>제안</th></tr>
+  <tr>
+    <td>팝오버 바탕</td>
+    <td class="bad">라이트에서 불투명 <code>Color.white</code></td>
+    <td>흰색 <b>70%</b> + 회색 10%. 재질 토큰은 Ultrathick~Ultrathin 다섯</td>
+    <td>흰 판을 걷고 <code>.regularMaterial</code>(Thick 대응)로. 글자는 시스템
+        라벨 색에 맡긴다</td>
+  </tr>
+  <tr>
+    <td>팝오버 모서리</td>
+    <td>14</td><td><b>20</b></td>
+    <td>20 으로. 카드는 <code>20 - 12 = 8</code>, 배지와 세그먼트 칸은 5 로 동심을 맞춘다</td>
+  </tr>
+  <tr>
+    <td>사용량 게이지</td>
+    <td class="bad">18pt 알약 안에 숫자, 오른쪽을 파낸다</td>
+    <td>트랙 높이 <b>10</b>, 알약 모서리, 빈 칸은 라벨색 <b>6%</b></td>
+    <td>10pt 알약 트랙 + 트랙 밖 오른쪽에 숫자. 빈 칸도 고정 회색 대신 라벨색 6%</td>
+  </tr>
+  <tr>
+    <td>게이지 색</td>
+    <td>잔여 구간마다 초록/기본/노랑/빨강</td>
+    <td class="q">킷의 트랙은 강조색 한 가지. 등급색은 우리 것</td>
+    <td>그대로 둔다. HIG 는 구간마다 채움색을 바꾸라고 권한다</td>
+  </tr>
+  <tr>
+    <td>단추</td>
+    <td>높이 20 남짓, 좌우 9, 모서리 7</td>
+    <td>높이 <b>24</b>, 좌우 <b>16</b>, 모서리 <b>6</b></td>
+    <td>킷 값으로. 팝오버 안이므로 Content Area 가 아니라 <b>Over Glass</b> 쪽 채움을 쓴다</td>
+  </tr>
+  <tr>
+    <td>세그먼트 컨트롤</td>
+    <td>시스템 기본에 맡김</td>
+    <td>높이 <b>24</b>(기본) / <b>20</b>(작게), 칸 모서리 5</td>
+    <td>기본 크기(24)로 두고 라벨 열과 높이를 맞춘다</td>
+  </tr>
+  <tr>
+    <td>줄 높이</td>
+    <td>3 / 6 / 7 / 9 / 10 이 섞여 있다</td>
+    <td>글자 스타일이 16 / 15 / 14 / 13</td>
+    <td>줄 높이를 스타일 값으로 못박고 여백은 4의 배수로</td>
+  </tr>
+  <tr>
+    <td>창을 여는 단추</td>
+    <td class="bad"><code>세션 작업 이전하기</code>, <code>열기</code></td>
+    <td class="q">HIG: 다른 창을 여는 푸시 버튼에는 말줄임표</td>
+    <td><code>세션 작업 이전...</code>, <code>열기...</code></td>
+  </tr>
+  <tr>
+    <td>빨간 글씨</td>
+    <td class="bad">종료가 빨강</td>
+    <td class="q">킷의 Destructive 는 데이터가 사라지는 동작용 빨강</td>
+    <td>종료는 보통 색. 빨강은 계정 창 데이터를 지우는 삭제에만</td>
+  </tr>
+  <tr>
+    <td>메뉴바 막대</td>
+    <td class="bad">9pt 두 줄</td>
+    <td class="q">HIG: 최소 10pt, 메뉴바 높이 24pt</td>
+    <td>10pt 두 줄(줄 높이 11, 합 22)로 올린다</td>
+  </tr>
+</table>
+
+<h2>4. 어긋나도 둘 것</h2>
+<table>
+  <tr><th>항목</th><th>가이드</th><th>두는 이유</th></tr>
+  <tr><td>메뉴바 항목에 메뉴 대신 팝오버</td>
+      <td class="q">메뉴로 담기 너무 복잡한 경우만 예외</td>
+      <td>세 계정 x 세 창의 게이지와 설정 세그먼트는 메뉴 항목으로 못 그린다</td></tr>
+  <tr><td>메뉴바의 20칸 눈금 게이지</td>
+      <td class="q">범위가 넓으면 이산 칸이 너무 작아진다</td>
+      <td>한 칸이 5% 라는 눈금이 정보다. 팝오버는 연속으로 가므로 역할이 갈린다</td></tr>
+  <tr><td>계정 이름 옆 배지</td>
+      <td class="q">킷에 이 배지 규격은 없다</td>
+      <td>세 계정을 한눈에 갈라야 한다. 소진, 주의에서만 켜진다</td></tr>
+</table>
+
+<p class="note">
+  <b>이전 시안에서 달라진 것.</b> 트랙 높이 8 -> <b>10</b>, 팝오버 모서리 14 -> <b>20</b>,
+  단추 높이/여백/모서리를 24 / 16 / 6 으로, 빈 트랙과 카드 바탕을 고정 회색 대신
+  라벨색 퍼센트로. 재질도 "regular Liquid Glass" 라는 말 대신 킷의 다섯 토큰 중
+  Thick 에 맞췄다.
+</p>
+<p class="note">
+  <b>동심 반지름이 이 화면의 골격이다.</b> 팝오버 20 에서 여백 12 를 빼면 카드가 8,
+  카드 안 여백을 빼면 배지와 세그먼트 칸이 5 다. 지금은 8 과 5 와 7 이 이유 없이
+  섞여 있는데, 값은 비슷해도 맞물리지 않는다.
+</p>

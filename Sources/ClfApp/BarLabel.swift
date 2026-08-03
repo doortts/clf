@@ -42,7 +42,8 @@ struct BarOrgView: View {
             if detail.showsNumbers {
                 // 세 창인데 숫자는 두 줄이 한계다. 어느 창인지 라벨로 못박는다.
                 // 셋째 줄은 자리가 없어 게이지만 남는다
-                VStack(alignment: .leading, spacing: -1) {
+                // 줄 상자가 11pt 고정이라 겹칠 필요가 없다. 두 줄 = 22pt
+                VStack(alignment: .leading, spacing: 0) {
                     if let spend = org.spend, org.limits.isEmpty {
                         // Enterprise 는 창이 없다. 예산 한 줄이 전부다.
                         // 리셋도 없으므로 남은 시간을 골라도 라벨은 `예산` 이다
@@ -85,23 +86,27 @@ struct BarOrgView: View {
         // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
         // 상자를 걷어내고 간격만 남긴다. 오른쪽 끝이 들쭉날쭉해지지만
         // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
+        // 글자 10pt 는 macOS 최소치다. 9pt 는 그 아래였다. 줄 상자를 11pt 로
+        // 고정하면 두 줄이 22pt 로 메뉴바 24pt 안에 들어간다.
+        // docs/design/popover-hig27-applied-mockup.html
         HStack(spacing: 2.5) {
             // 라벨을 끄면 칸이 아니라 열이 사라진다. 빈 Text 를 두면 간격만 남아
             // 폭이 안 줄어든다
             if let tag {
                 Text(tag)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 10, weight: .medium))
                     // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
                     // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
                     .foregroundStyle(Color(white: 0.78))
             }
             Text(text)
-                .font(.system(size: 9, weight: .medium).monospacedDigit())
+                .font(.system(size: 10, weight: .medium).monospacedDigit())
                 .foregroundStyle(band?.fillColor ?? .secondary)
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
+        .frame(height: 11)
     }
 }
 

@@ -46,7 +46,8 @@ struct HandoffView: View {
             }
         }
         .frame(height: Self.listHeight)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.black.opacity(0.14)))
+        // 검정 덮기 대신 라벨색 퍼센트. 라이트에서도 같은 만큼 가라앉는다
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10)))
         .overlay {
             if model.sessions.isEmpty {

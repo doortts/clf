@@ -12,6 +12,61 @@ extension UsageBand {
     }
 }
 
+/// 크기와 줄 높이를 짝으로 못박는다.
+///
+/// 크기만 정하면 줄 높이는 SF Pro 의 자연값(크기의 1.21배 남짓)이 되어
+/// 13pt 글자가 15.7pt 를 차지한다. 킷의 스타일은 13/16 이라 4의 배수 격자가
+/// 어긋난다. 자연값과의 차이만 줄 사이에 더해 스타일 값에 맞춘다.
+/// docs/design/popover-hig27-applied-mockup.html
+private struct TextStyle: ViewModifier {
+    let size: CGFloat
+    let line: CGFloat
+    let weight: Font.Weight
+
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: size, weight: weight))
+            .lineSpacing(max(0, line - size * 1.21))
+    }
+}
+
+extension View {
+    /// 킷의 Body 13/16.
+    func bodyStyle(_ weight: Font.Weight = .regular) -> some View {
+        modifier(TextStyle(size: Metrics.bodySize, line: Metrics.bodyLine, weight: weight))
+    }
+    /// Callout 12/15.
+    func calloutStyle(_ weight: Font.Weight = .regular) -> some View {
+        modifier(TextStyle(size: Metrics.calloutSize, line: Metrics.calloutLine, weight: weight))
+    }
+    /// Subheadline 11/14.
+    func subheadStyle(_ weight: Font.Weight = .regular) -> some View {
+        modifier(TextStyle(size: Metrics.subheadSize, line: Metrics.subheadLine, weight: weight))
+    }
+    /// Footnote 및 Caption 10/13.
+    func captionStyle(_ weight: Font.Weight = .regular) -> some View {
+        modifier(TextStyle(size: Metrics.captionSize, line: Metrics.captionLine, weight: weight))
+    }
+
+    /// 재질 위에 얹는 단추.
+    ///
+    /// 킷은 같은 버튼을 Content Area 와 **Over Glass** 두 벌로 나눠 둔다.
+    /// 팝오버는 재질 위이므로 후자다. macOS 26 이 준 유리 스타일이 그 자리고,
+    /// 그 아래에서는 테두리 스타일이 가장 가깝다.
+    @ViewBuilder func glassButton(prominent: Bool = false) -> some View {
+        if #available(macOS 26.0, *) {
+            if prominent { buttonStyle(.glassProminent) } else { buttonStyle(.glass) }
+        } else {
+            if prominent { buttonStyle(.borderedProminent) } else { buttonStyle(.bordered) }
+        }
+    }
+
+    /// 킷의 푸시 버튼 높이. 시스템 스타일은 글자 크기로 높이가 안 정해진다.
+    func controlHeight() -> some View {
+        frame(height: Metrics.controlHeight)
+    }
+}
+
 /// 계정 하나. 세 줄이 5시간, 주간, 모델별이다.
 ///
 /// docs/design/ui-spec.html 의 팝오버. 리셋 문구는 값 옆이 아니라 아랫줄에
@@ -35,14 +90,14 @@ struct OrgCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 // 기본 인스턴스가 쓰는 계정은 악센트 점을 붙인다. 빨강은 이
                 // 화면에서 소진이라 강조로 쓰면 위험 신호로 읽힌다.
                 // docs/design/popover-hig-mockup.html
                 if slot == .primary {
-                    Circle().fill(Color.accentColor).frame(width: 7, height: 7)
+                    Circle().fill(Color.accentColor).frame(width: 8, height: 8)
                 }
-                Text(org.name).font(.system(size: 13, weight: .semibold))
+                Text(org.name).bodyStyle(.semibold)
                 if let plan = org.plan { badge(plan, tint: .accentColor) }
                 // 정상은 아무 말도 하지 않는다. 배지가 늘 켜져 있으면 안 읽힌다
                 if let band = org.binding?.band, band.isNoteworthy {
@@ -50,17 +105,17 @@ struct OrgCard: View {
                 }
                 // 창이 떠 있다는 상태. 동작은 오른쪽 단추가 맡는다
                 if let state = slot.badgeLabel { runningBadge(state) }
-                Spacer(minLength: 6)
+                Spacer(minLength: 8)
                 slotControl
             }
 
             if !org.hasUsage, let error = org.error {
-                Text(error).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(error).subheadStyle().foregroundStyle(.secondary)
             } else if let spend = org.spend, org.limits.isEmpty {
                 // Enterprise 는 시간 창이 없다. 없는 창 셋을 억지로 그리지 않는다
                 budgetRow(spend)
             } else {
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 8) {
                     ForEach(LimitKind.allCases, id: \.self) { kind in
                         row(kind, org.limits[kind])
                     }
@@ -69,11 +124,11 @@ struct OrgCard: View {
                 // 옛 값을 지금 값으로 믿는다
                 if org.isStale, let error = org.error {
                     Text("갱신 못 함. \(error)")
-                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .captionStyle().foregroundStyle(.secondary)
                 }
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         // 방금까지 보던 창의 계정이 한눈에 잡히게 카드를 깐다. 이 색은
         // 카드 전용이다. 점, 배지, 메뉴바 밑줄의 파랑(악센트)과 게이지의
         // 빨강/주황/초록에서 색을 갈라 카드만 "방금 그 창" 을 말한다.
@@ -96,17 +151,19 @@ struct OrgCard: View {
     /// 시스템 스타일이라 hover 와 눌림, 포커스 링이 공짜로 생긴다.
     @ViewBuilder private var slotControl: some View {
         switch slot {
+        // 크기는 기본(regular)이다. 킷의 푸시 버튼이 높이 24, 글자 12 라
+        // .small(20) 은 한 단 작다. docs/design/popover-hig27-applied-mockup.html
         case .none:
             Button(slot.actionLabel ?? "") { onLaunch?() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .font(.system(size: 10, weight: .semibold))
+                .glassButton(prominent: true)
+                .calloutStyle(.medium)
+                .controlHeight()
                 .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
         case .running:
             Button(slot.actionLabel ?? "") { onFocus?() }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .font(.system(size: 10, weight: .medium))
+                .glassButton()
+                .calloutStyle(.medium)
+                .controlHeight()
                 .accessibilityLabel("\(org.name) 창을 앞으로")
         case .opening:
             statusBox(slot.label, tint: .secondary)
@@ -115,66 +172,74 @@ struct OrgCard: View {
         }
     }
 
+    /// 단추가 앉는 자리에 상태만 앉는 경우다. 누를 수는 없지만 **높이는 같아야
+    /// 한다.** 카드마다 이 자리가 단추와 상자로 갈리는데 높이가 다르면 줄이
+    /// 들쭉날쭉해진다.
     private func statusBox(_ text: String, tint: Color) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .medium))
+            .calloutStyle(.medium)
             .foregroundStyle(tint)
-            .padding(.horizontal, 7).padding(.vertical, 2)
+            .padding(.horizontal, Metrics.controlPadding)
+            .frame(height: Metrics.controlHeight)
             .background {
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(tint.opacity(0.22))
+                RoundedRectangle(cornerRadius: Metrics.controlRadius)
+                    .fill(tint.opacity(0.12))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 5)
-                            .strokeBorder(tint.opacity(0.5), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: Metrics.controlRadius)
+                            .strokeBorder(tint.opacity(0.35), lineWidth: 1)
                     }
             }
     }
 
     /// 창이 떠 있다는 상태 배지. 노란 점이 창을 뜻한다.
     private func runningBadge(_ text: String) -> some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             Circle().fill(Color.yellow).frame(width: 5, height: 5)
-            Text(text).font(.system(size: 10, weight: .semibold))
+            Text(text).captionStyle(.semibold)
         }
         .foregroundStyle(Color.yellow)
-        .padding(.horizontal, 5).padding(.vertical, 1)
-        .background(Color.yellow.opacity(0.18), in: RoundedRectangle(cornerRadius: 5))
+        .padding(.horizontal, 6)
+        .frame(height: Metrics.captionLine + 4)
+        .background(Color.yellow.opacity(0.18),
+                    in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
     }
 
     private func badge(_ text: String, tint: Color) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .semibold))
+            .captionStyle(.semibold)
             .foregroundStyle(tint)
-            .padding(.horizontal, 5).padding(.vertical, 1)
-            .background(tint.opacity(0.22), in: RoundedRectangle(cornerRadius: 5))
+            .padding(.horizontal, 6)
+            .frame(height: Metrics.captionLine + 4)
+            .background(tint.opacity(0.22),
+                        in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
     }
 
     /// 월 예산 한 줄. 리셋 자리에는 쓴 금액과 한도를 적는다.
     private func budgetRow(_ spend: SpendUsage) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 7) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
                 Text("월 예산")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .subheadStyle().foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
                 UsageGauge(spend: spend, direction: direction)
             }
             Text("\(spend.usedText) / \(spend.limitText) 사용")
-                .font(.system(size: 10)).foregroundStyle(.tertiary)
-                .padding(.leading, 65)
+                .captionStyle().foregroundStyle(.tertiary)
+                .padding(.leading, 66)
         }
     }
 
     private func row(_ kind: LimitKind, _ limit: UsageLimit?) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 7) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
                 Text(kind.label)
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .subheadStyle().foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
                 UsageGauge(limit: limit, direction: direction)
             }
             Text(BarText.reset(limit?.resetsAt, window: kind.window, direction: direction))
-                .font(.system(size: 10)).foregroundStyle(.tertiary)
-                .padding(.leading, 65)
+                .captionStyle().foregroundStyle(.tertiary)
+                .padding(.leading, 66)
         }
     }
 }
@@ -186,15 +251,15 @@ struct SettingsPane: View {
     /// 되돌릴 수 없는 일이다. 무엇이 사라지는지 보여주고 확인을 받는다.
     @ViewBuilder private var purgeSection: some View {
         if let plan = model.purgePlan {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("지울 것").font(.system(size: 10, weight: .semibold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("지울 것").captionStyle(.semibold)
                 Text(plan.summary)
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .captionStyle().foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(plan.consequence)
-                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                    .captionStyle().foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     Button { model.cancelPurge() } label: {
                         boxLabel("취소", color: .secondary, filled: false)
                     }
@@ -208,9 +273,10 @@ struct SettingsPane: View {
                 }
             }
             .padding(8)
-            .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 5))
+            // 상자급 반지름은 8 로 통일한다. 팝오버 20 에서 여백을 뺀 동심값
+            .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: Metrics.boxRadius))
         } else {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Button { model.previewPurge() } label: {
                     boxLabel("멀티 인스턴스 정보 삭제", color: .red, filled: false)
                 }
@@ -218,15 +284,15 @@ struct SettingsPane: View {
                 .accessibilityLabel("새 창용 데이터 디렉토리 삭제")
 
                 Text("~/.claude-alt-* 를 지운다. 떠 있는 창의 것은 남는다")
-                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                    .captionStyle().foregroundStyle(.tertiary)
             }
         }
         // 결과는 누른 자리 바로 아래 둔다. 위에 있으면 눈이 안 간다
         if let notice = model.instanceNotice {
             Text(notice)
-                .font(.system(size: 10)).foregroundStyle(.orange)
+                .captionStyle().foregroundStyle(.orange)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
+                .padding(.top, 4)
         }
     }
 
@@ -235,22 +301,24 @@ struct SettingsPane: View {
                             @ViewBuilder content: () -> some View) -> some View {
         HStack(spacing: 8) {
             Text(label)
-                .font(.system(size: 10)).foregroundStyle(.secondary)
+                .subheadStyle().foregroundStyle(.secondary)
                 .frame(width: 58, alignment: .leading)
             content()
         }
     }
 
+    /// 킷의 푸시 버튼 치수다. 높이 24, 좌우 16, 모서리 6, 글자 12.
     private func boxLabel(_ text: String, color: Color, filled: Bool) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: .medium))
+            .calloutStyle(.medium)
             .foregroundStyle(filled ? .white : color)
-            .padding(.horizontal, 9).padding(.vertical, 4)
+            .padding(.horizontal, Metrics.controlPadding)
+            .frame(height: Metrics.controlHeight)
             .background {
-                RoundedRectangle(cornerRadius: 5)
+                RoundedRectangle(cornerRadius: Metrics.controlRadius)
                     .fill(filled ? color : color.opacity(0.12))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 5)
+                        RoundedRectangle(cornerRadius: Metrics.controlRadius)
                             .strokeBorder(filled ? .clear : color.opacity(0.45), lineWidth: 1)
                     }
             }
@@ -258,12 +326,12 @@ struct SettingsPane: View {
 
     /// 계정 한 줄. 켜고 끄고 차례를 바꾼다.
     private func accountRow(_ org: OrgUsage) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Toggle(isOn: Binding(
                 get: { !model.prefs.isHidden(org.uuid) },
                 set: { model.setHidden(org.uuid, !$0) }
             )) {
-                Text(org.name).font(.system(size: 11))
+                Text(org.name).subheadStyle()
             }
             .toggleStyle(.checkbox)
             Spacer()
@@ -274,15 +342,15 @@ struct SettingsPane: View {
                 .accessibilityLabel("\(org.name) 아래로")
         }
         .buttonStyle(.borderless)
-        .font(.system(size: 10))
+        .captionStyle()
     }
 
     /// 범위를 고르는 칸과 계정 목록은 한 가지를 정하는 짝이다. 떼어 놓으면
     /// 목록이 무엇을 정하는지 안 보인다. docs/design/settings-group-mockup.html
     private var barAccountsGroup: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("메뉴바에 표시할 계정")
-                .font(.system(size: 11, weight: .semibold))
+                .subheadStyle(.semibold)
 
             VStack(alignment: .leading, spacing: 0) {
                 Picker("막대", selection: Binding(
@@ -297,23 +365,25 @@ struct SettingsPane: View {
                 // 두 항목의 기준이 달라서 이름만으로는 안 갈린다. 고른 쪽이
                 // 무엇을 보고 정하는지 한 줄로 붙인다
                 Text(model.prefs.barContent.detail)
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-                    .padding(.top, 5)
+                    .captionStyle().foregroundStyle(.secondary)
+                    .padding(.top, 4)
 
-                Divider().padding(.vertical, 9)
+                Divider().padding(.vertical, 8)
 
                 ForEach(model.known) { org in accountRow(org) }
 
                 // 목록이 막대를 정하는지 아닌지가 고른 칸에 따라 다르다
                 Text(model.prefs.barContent.listNote)
-                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                    .captionStyle().foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 9)
-            .background(RoundedRectangle(cornerRadius: 7).fill(Color.black.opacity(0.14)))
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.primary.opacity(0.10)))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            // 검정 덮기 대신 라벨색 퍼센트. 킷의 빈 트랙과 카드 바탕이 이렇게
+            // 되어 있어 라이트에서도 다크에서도 같은 만큼 가라앉는다
+            .background(RoundedRectangle(cornerRadius: Metrics.boxRadius).fill(Color.primary.opacity(0.06)))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.boxRadius).stroke(Color.primary.opacity(0.10)))
         }
     }
 
@@ -364,27 +434,28 @@ struct SettingsPane: View {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Toggle(isOn: Binding(
                     get: { model.loginItem.isChecked },
                     set: { model.setLoginItem($0) }
                 )) {
-                    Text(model.loginItem.label).font(.system(size: 11))
+                    Text(model.loginItem.label).subheadStyle()
                 }
                 .toggleStyle(.checkbox)
                 .disabled(!model.loginItem.isToggleable)
 
                 if let hint = model.loginItem.hint {
                     HStack(spacing: 4) {
-                        Text(hint).font(.system(size: 10)).foregroundStyle(.secondary)
+                        Text(hint).captionStyle().foregroundStyle(.secondary)
                         if model.loginItem == .needsApproval {
                             // 경로를 말로 설명하는 것보다 열어주는 편이 낫다
-                            Button("열기") { model.openLoginItemSettings() }
-                                .buttonStyle(.borderless).font(.system(size: 10))
+                            Button("열기...") { model.openLoginItemSettings() }
+                                .buttonStyle(.borderless).captionStyle()
                                 .accessibilityLabel("로그인 항목 설정 열기")
                         }
                     }
-                    .padding(.leading, 18)
+                    // 체크박스 글자와 맞추는 들여쓰기다. 4의 배수로 맞춘다
+                    .padding(.leading, 20)
                 }
             }
 
@@ -405,43 +476,45 @@ struct PopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("clf").font(.system(size: 13, weight: .semibold))
+                Text("clf").bodyStyle(.semibold)
                 // 숫자가 어느 기준인지 연 순간 알린다. 항상 떠 있는 표시라
                 // 눈길을 끌면 안 된다. docs/design/header-direction-mockup.html
                 Text("\(model.prefs.gaugeDirection.label) 기준")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                    .calloutStyle().foregroundStyle(.secondary)
                 Spacer()
                 Button { Task { await model.refresh() } } label: {
                     Image(systemName: "arrow.clockwise")
                 }
                 .disabled(model.refreshing)
+                .help("지금 새로고침")
                 .accessibilityLabel("지금 새로고침")
                 Button {
                     withAnimation(.easeOut(duration: 0.12)) { showingSettings.toggle() }
                 } label: {
                     Image(systemName: showingSettings ? "gearshape.fill" : "gearshape")
                 }
+                .help(showingSettings ? "설정 닫기" : "설정 열기")
                 .accessibilityLabel(showingSettings ? "설정 닫기" : "설정 열기")
             }
             .buttonStyle(.borderless)
-            .font(.system(size: 12))
+            .calloutStyle()
             .padding(.bottom, 8)
 
             if let failure = model.failure {
                 Text(failure)
-                    .font(.system(size: 10)).foregroundStyle(.red)
-                    .padding(.bottom, 6)
+                    .captionStyle().foregroundStyle(.red)
+                    .padding(.bottom, 8)
             }
             if let wait = model.waitText {
                 Text("요청이 몰려 쉬는 중. \(wait) 다시 읽는다")
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-                    .padding(.bottom, 6)
+                    .captionStyle().foregroundStyle(.secondary)
+                    .padding(.bottom, 8)
             }
 
             if model.orgs.isEmpty {
                 Text(model.readAt == nil ? "읽는 중" : "볼 계정을 하나도 안 켰다")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-                    .padding(.vertical, 10)
+                    .subheadStyle().foregroundStyle(.secondary)
+                    .padding(.vertical, 12)
             } else {
                 // 카드 사이에 선을 긋지 않는다. 카드마다 위아래 여백이
                 // 있어서 선까지 그으면 칸막이가 두 겹이 된다
@@ -458,13 +531,13 @@ struct PopoverView: View {
 
             if showingSettings {
                 SettingsPane(model: model)
-                    .padding(.top, 10)
-                Divider().padding(.vertical, 6)
+                    .padding(.top, 12)
+                Divider().padding(.vertical, 8)
             }
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Text(model.readAt.map { stamp($0) } ?? "-")
-                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                    .captionStyle().foregroundStyle(.tertiary)
                 Spacer()
                 // 여기만 테두리를 두른다. 종료까지 단추로 만들면 창을 끄는
                 // 쪽이 같은 무게로 올라선다
@@ -474,18 +547,20 @@ struct PopoverView: View {
                     NSApp.keyWindow?.close()
                     HandoffWindow.open()
                 } label: {
-                    Label("세션 작업 이전하기", systemImage: "arrow.left.arrow.right")
-                        .font(.system(size: 11, weight: .medium))
+                    // 창을 여는 단추에는 말줄임표를 붙인다
+                    Label("세션 작업 이전...", systemImage: "arrow.left.arrow.right")
+                        .calloutStyle(.medium)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .glassButton()
+                .controlHeight()
                 .hoverTip(Copy.handoffHelp)
                 .accessibilityLabel("세션 작업을 다른 계정으로 이전한다")
                 .accessibilityHint(Copy.handoffHelp)
                 Button { NSApplication.shared.terminate(nil) } label: {
+                    // 빨강은 데이터가 사라지는 삭제의 색이다. 앱을 닫는 것은
+                    // 그 역할이 아니라서 보통 색으로 둔다
                     Label("종료", systemImage: "power")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.red)
+                        .calloutStyle(.medium)
                 }
                 .accessibilityLabel("clf 종료")
             }
@@ -497,10 +572,22 @@ struct PopoverView: View {
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
-        // 라이트에서는 흰 바탕을 깐다. MenuBarExtra 가 기본으로 주는 반투명
-        // 바탕은 벽지가 그대로 배어 나와 글씨와 게이지가 안 읽힌다.
-        // 다크는 그 반투명이 이미 충분히 어두워 그대로 둔다
-        .background(scheme == .dark ? Color.clear : Color.white)
+        // 킷의 팝오버는 블러(Glass Effect) 위에 흰색 70% + 회색 10% 를 덮는다.
+        // SwiftUI 에서 블러만 주는 것이 .ultraThinMaterial 이라 그 위에 킷의 두
+        // 겹을 그대로 얹는다. 불투명 흰 판을 깔던 예전 방식보다 얇고, 기본
+        // 반투명보다는 두꺼워서 라이트에서도 글씨가 읽힌다.
+        //
+        // 다크는 킷의 Dark 짝 값을 안 읽었으므로 시스템 재질을 그대로 믿는다.
+        // docs/design/popover-hig27-applied-mockup.html
+        .background {
+            if scheme == .dark {
+                Rectangle().fill(.regularMaterial)
+            } else {
+                Rectangle().fill(.ultraThinMaterial)
+                    .overlay(Color(white: 0.75).opacity(0.10))
+                    .overlay(Color.white.opacity(0.70))
+            }
+        }
         .task {
             // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
             model.clearNotice()
@@ -553,14 +640,14 @@ struct HoverTip: ViewModifier {
 
     private var bubble: some View {
         Text(text)
-            .font(.system(size: 11))
+            .subheadStyle()
             .fixedSize(horizontal: false, vertical: true)
             .frame(width: width, alignment: .leading)
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 5)
+            .padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 8)
                 .fill(Color(nsColor: .controlBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 5)
+            .overlay(RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.primary.opacity(0.14)))
             .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
             // 툴팁이 클릭을 가로채면 단추가 안 눌린다

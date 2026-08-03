@@ -51,37 +51,37 @@ struct SharedSessionSection: View {
 
     var body: some View {
         if !model.shared.isEmpty {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("여러 계정이 같은 세션을 쓰는 중")
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .captionStyle().foregroundStyle(.secondary)
                 ForEach(model.shared) { live in
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(model.title(live.transcriptID))
-                            .font(.system(size: 11, weight: .semibold))
+                            .subheadStyle(.semibold)
                             .lineLimit(1).truncationMode(.tail)
                         // 계정마다 언제까지 썼는지 적어야 사용자가 어느
                         // 창을 닫을지 고를 수 있다
                         ForEach(Array(live.owners.enumerated()),
                                 id: \.offset) { _, sighting in
                             Text("- \(note(sighting))")
-                                .font(.system(size: 10)).foregroundStyle(.secondary)
-                                .padding(.leading, 10)
+                                .captionStyle().foregroundStyle(.secondary)
+                                .padding(.leading, 12)
                         }
                     }
                 }
                 // 경고만 있고 길이 없으면 사용자가 막힌다. 할 일을 같이 적는다
                 Text(SessionDuplicate.problem)
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .captionStyle().foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+                    .padding(.top, 4)
                 Text(SessionDuplicate.advice)
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .captionStyle().foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             // 위 계정 카드에 붙여 두면 카드의 꼬리처럼 읽힌다. 딴 얘기임을
             // 간격으로 말한다
-            .padding(.top, 10)
-            .padding(.bottom, 2)
+            .padding(.top, 12)
+            .padding(.bottom, 4)
         }
     }
 
