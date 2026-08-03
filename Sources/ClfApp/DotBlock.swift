@@ -14,25 +14,46 @@ enum Metrics {
     // 두고 화면 쪽에서는 이 상수만 쓴다.
     // docs/design/popover-hig27-applied-mockup.html
 
-    /// 푸시 버튼. Buttons / Content Area / Bordered.
-    static let controlHeight: CGFloat = 24
-    static let controlPadding: CGFloat = 16
+    /// 손으로 그리는 상자를 시스템 단추와 같은 높이로 앉힌다.
+    ///
+    /// 킷은 푸시 버튼을 높이 24, 좌우 16 으로 적는다. **그런데 이 OS 의 시스템
+    /// 단추는 그 높이가 안 나온다.** `.bordered` 를 재 보면 mini 17, small 17,
+    /// regular 20, large 28 이고 24 는 어느 크기에도 없다. frame 으로 24 를
+    /// 줘도 베젤은 20 만 그리고 남은 4 는 빈 공기다.
+    ///
+    /// 그래서 킷 숫자가 아니라 **시스템 단추 실측값**을 따른다. 한 줄에 단추와
+    /// 상자가 나란히 서는 자리라 둘이 같은 높이인 것이 킷 숫자를 맞추는 것보다
+    /// 중요하다. 킷 값은 macOS 26 이 유리 단추를 주면 그때 다시 본다.
+    static let controlHeight: CGFloat = 20
+    static let controlPadding: CGFloat = 12
+    /// 모서리는 킷 값 그대로다. 이건 시스템과 어긋나지 않는다.
     static let controlRadius: CGFloat = 6
     /// 팝오버 본체. Popover / Fill + Shadow.
+    ///
+    /// 창 모서리 자체는 MenuBarExtra 가 그리므로 우리가 못 바꾼다. 안쪽
+    /// 반지름을 이 값에서 파생시키는 데만 쓴다.
     static let popoverRadius: CGFloat = 20
-    /// 상자급. 팝오버 20 에서 여백 12 를 뺀 동심값.
-    static let boxRadius: CGFloat = 8
+    /// 상자급. 팝오버 모서리에서 여백을 뺀 동심값이다.
+    ///
+    /// 시안은 8 이라고 적었는데 그건 여백을 12 로 잡은 계산이었다. 실제 여백은
+    /// 14 라 6 이 맞고, 마침 킷의 푸시 버튼 모서리와 같은 값이다.
+    static let boxRadius: CGFloat = popoverRadius - popoverPadding
     /// 배지와 세그먼트 칸. _Segment - Selectable.
     static let badgeRadius: CGFloat = 5
+    /// 배지 높이. 4의 배수 격자에 앉힌다.
+    static let badgeHeight: CGFloat = 16
 
-    // MARK: 글자. Text styles 의 크기와 줄 높이 짝
+    // MARK: 글자. Text styles 의 크기
     //
-    // 크기만 정하고 줄 높이를 기본값에 맡기면 글자마다 줄 높이가 달라져 4의
-    // 배수 격자가 어긋난다. 짝으로 못박는다.
-    static let bodySize: CGFloat = 13,      bodyLine: CGFloat = 16
-    static let calloutSize: CGFloat = 12,   calloutLine: CGFloat = 15
-    static let subheadSize: CGFloat = 11,   subheadLine: CGFloat = 14
-    static let captionSize: CGFloat = 10,   captionLine: CGFloat = 13
+    // 킷의 짝은 Body 13/16, Callout 12/15, Subheadline 11/14, Caption 10/13 이다.
+    // **줄 높이를 우리가 손댈 일이 없다.** 재 보면 SwiftUI 의 기본 줄 상자가
+    // 10pt -> 13.00, 11 -> 14.00, 12 -> 15.00, 13 -> 16.00 으로 이미 킷 값과
+    // 같다. lineSpacing 으로 보정하려 했던 것은 없는 문제를 고치는 짓이었다.
+    // 크기만 여기 모아 두고 줄 높이는 시스템에 맡긴다.
+    static let bodySize: CGFloat = 13
+    static let calloutSize: CGFloat = 12
+    static let subheadSize: CGFloat = 11
+    static let captionSize: CGFloat = 10
 
     /// 메뉴바 게이지. 스무 칸이라 한 칸이 5% 다.
     ///

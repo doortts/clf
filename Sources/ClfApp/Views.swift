@@ -12,40 +12,26 @@ extension UsageBand {
     }
 }
 
-/// 크기와 줄 높이를 짝으로 못박는다.
+/// 킷의 글자 스타일. 크기를 한 자리에 모으는 것이 전부다.
 ///
-/// 크기만 정하면 줄 높이는 SF Pro 의 자연값(크기의 1.21배 남짓)이 되어
-/// 13pt 글자가 15.7pt 를 차지한다. 킷의 스타일은 13/16 이라 4의 배수 격자가
-/// 어긋난다. 자연값과의 차이만 줄 사이에 더해 스타일 값에 맞춘다.
-/// docs/design/popover-hig27-applied-mockup.html
-private struct TextStyle: ViewModifier {
-    let size: CGFloat
-    let line: CGFloat
-    let weight: Font.Weight
-
-    func body(content: Content) -> some View {
-        content
-            .font(.system(size: size, weight: weight))
-            .lineSpacing(max(0, line - size * 1.21))
-    }
-}
-
+/// 줄 높이는 손대지 않는다. SwiftUI 의 기본 줄 상자가 이미 킷의 짝
+/// (13/16, 12/15, 11/14, 10/13) 과 같다. `Metrics` 의 글자 절을 보라.
 extension View {
-    /// 킷의 Body 13/16.
+    /// Body 13/16.
     func bodyStyle(_ weight: Font.Weight = .regular) -> some View {
-        modifier(TextStyle(size: Metrics.bodySize, line: Metrics.bodyLine, weight: weight))
+        font(.system(size: Metrics.bodySize, weight: weight))
     }
     /// Callout 12/15.
     func calloutStyle(_ weight: Font.Weight = .regular) -> some View {
-        modifier(TextStyle(size: Metrics.calloutSize, line: Metrics.calloutLine, weight: weight))
+        font(.system(size: Metrics.calloutSize, weight: weight))
     }
     /// Subheadline 11/14.
     func subheadStyle(_ weight: Font.Weight = .regular) -> some View {
-        modifier(TextStyle(size: Metrics.subheadSize, line: Metrics.subheadLine, weight: weight))
+        font(.system(size: Metrics.subheadSize, weight: weight))
     }
     /// Footnote 및 Caption 10/13.
     func captionStyle(_ weight: Font.Weight = .regular) -> some View {
-        modifier(TextStyle(size: Metrics.captionSize, line: Metrics.captionLine, weight: weight))
+        font(.system(size: Metrics.captionSize, weight: weight))
     }
 
     /// 재질 위에 얹는 단추.
@@ -59,11 +45,6 @@ extension View {
         } else {
             if prominent { buttonStyle(.borderedProminent) } else { buttonStyle(.bordered) }
         }
-    }
-
-    /// 킷의 푸시 버튼 높이. 시스템 스타일은 글자 크기로 높이가 안 정해진다.
-    func controlHeight() -> some View {
-        frame(height: Metrics.controlHeight)
     }
 }
 
@@ -97,7 +78,10 @@ struct OrgCard: View {
                 if slot == .primary {
                     Circle().fill(Color.accentColor).frame(width: 8, height: 8)
                 }
+                // 배지 둘과 단추가 같은 줄에 서면 폭 312 가 모자란다. 이름을
+                // 줄이고 나머지를 살린다. 접히면 카드 높이가 카드마다 달라진다
                 Text(org.name).bodyStyle(.semibold)
+                    .lineLimit(1).truncationMode(.tail)
                 if let plan = org.plan { badge(plan, tint: .accentColor) }
                 // 정상은 아무 말도 하지 않는다. 배지가 늘 켜져 있으면 안 읽힌다
                 if let band = org.binding?.band, band.isNoteworthy {
@@ -151,19 +135,18 @@ struct OrgCard: View {
     /// 시스템 스타일이라 hover 와 눌림, 포커스 링이 공짜로 생긴다.
     @ViewBuilder private var slotControl: some View {
         switch slot {
-        // 크기는 기본(regular)이다. 킷의 푸시 버튼이 높이 24, 글자 12 라
-        // .small(20) 은 한 단 작다. docs/design/popover-hig27-applied-mockup.html
+        // 크기는 기본(regular)이다. 재 보면 small 이 17, regular 가 20 이고
+        // 킷이 적은 24 는 어느 크기에도 없다. 우리가 그리는 상자도 20 에
+        // 맞춰 둔다. docs/design/popover-hig27-applied-mockup.html
         case .none:
             Button(slot.actionLabel ?? "") { onLaunch?() }
                 .glassButton(prominent: true)
                 .calloutStyle(.medium)
-                .controlHeight()
                 .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
         case .running:
             Button(slot.actionLabel ?? "") { onFocus?() }
                 .glassButton()
                 .calloutStyle(.medium)
-                .controlHeight()
                 .accessibilityLabel("\(org.name) 창을 앞으로")
         case .opening:
             statusBox(slot.label, tint: .secondary)
@@ -172,23 +155,20 @@ struct OrgCard: View {
         }
     }
 
-    /// 단추가 앉는 자리에 상태만 앉는 경우다. 누를 수는 없지만 **높이는 같아야
-    /// 한다.** 카드마다 이 자리가 단추와 상자로 갈리는데 높이가 다르면 줄이
-    /// 들쭉날쭉해진다.
+    /// 단추가 앉는 자리에 상태만 앉는 경우다.
+    ///
+    /// **높이는 단추와 같아야 한다.** 카드마다 이 자리가 단추와 상자로 갈리는데
+    /// 높이가 다르면 줄이 들쭉날쭉해진다. 대신 **누를 수 있게 보여서는 안 된다.**
+    /// 테두리를 두르고 12pt 글자를 쓰면 옆 카드의 단추와 똑같이 생겨서 눌러
+    /// 보게 된다. 테두리를 빼고 글자를 한 단 내려 배지처럼 읽히게 둔다.
     private func statusBox(_ text: String, tint: Color) -> some View {
         Text(text)
-            .calloutStyle(.medium)
+            .captionStyle(.medium)
             .foregroundStyle(tint)
             .padding(.horizontal, Metrics.controlPadding)
             .frame(height: Metrics.controlHeight)
-            .background {
-                RoundedRectangle(cornerRadius: Metrics.controlRadius)
-                    .fill(tint.opacity(0.12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Metrics.controlRadius)
-                            .strokeBorder(tint.opacity(0.35), lineWidth: 1)
-                    }
-            }
+            .background(tint.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: Metrics.controlRadius))
     }
 
     /// 창이 떠 있다는 상태 배지. 노란 점이 창을 뜻한다.
@@ -199,7 +179,7 @@ struct OrgCard: View {
         }
         .foregroundStyle(Color.yellow)
         .padding(.horizontal, 6)
-        .frame(height: Metrics.captionLine + 4)
+        .frame(height: Metrics.badgeHeight)
         .background(Color.yellow.opacity(0.18),
                     in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
     }
@@ -209,7 +189,7 @@ struct OrgCard: View {
             .captionStyle(.semibold)
             .foregroundStyle(tint)
             .padding(.horizontal, 6)
-            .frame(height: Metrics.captionLine + 4)
+            .frame(height: Metrics.badgeHeight)
             .background(tint.opacity(0.22),
                         in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
     }
@@ -217,7 +197,9 @@ struct OrgCard: View {
     /// 월 예산 한 줄. 리셋 자리에는 쓴 금액과 한도를 적는다.
     private func budgetRow(_ spend: SpendUsage) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
+            // 이 줄의 간격 7 과 아래 들여쓰기 65 는 게이지 폭을 정한다.
+            // 게이지는 이번 범위가 아니므로 4의 배수 정리에서 뺀다
+            HStack(spacing: 7) {
                 Text("월 예산")
                     .subheadStyle().foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
@@ -225,13 +207,14 @@ struct OrgCard: View {
             }
             Text("\(spend.usedText) / \(spend.limitText) 사용")
                 .captionStyle().foregroundStyle(.tertiary)
-                .padding(.leading, 66)
+                .padding(.leading, 65)
         }
     }
 
     private func row(_ kind: LimitKind, _ limit: UsageLimit?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
+            // 간격 7 과 들여쓰기 65 는 게이지 폭을 정한다. 건드리지 않는다
+            HStack(spacing: 7) {
                 Text(kind.label)
                     .subheadStyle().foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
@@ -239,7 +222,7 @@ struct OrgCard: View {
             }
             Text(BarText.reset(limit?.resetsAt, window: kind.window, direction: direction))
                 .captionStyle().foregroundStyle(.tertiary)
-                .padding(.leading, 66)
+                .padding(.leading, 65)
         }
     }
 }
@@ -469,7 +452,6 @@ struct SettingsPane: View {
 
 struct PopoverView: View {
     @ObservedObject var model: UsageModel
-    @Environment(\.colorScheme) private var scheme
     @State private var showingSettings = false
     @StateObject private var sharedSessions = SharedSessionModel()
 
@@ -486,6 +468,8 @@ struct PopoverView: View {
                     Image(systemName: "arrow.clockwise")
                 }
                 .disabled(model.refreshing)
+                // 여기만 시스템 툴팁이다. 우리 hoverTip 은 단추 위로 띄우는데
+                // 이 둘은 팝오버 맨 윗줄이라 위가 없어서 잘린다
                 .help("지금 새로고침")
                 .accessibilityLabel("지금 새로고침")
                 Button {
@@ -552,7 +536,6 @@ struct PopoverView: View {
                         .calloutStyle(.medium)
                 }
                 .glassButton()
-                .controlHeight()
                 .hoverTip(Copy.handoffHelp)
                 .accessibilityLabel("세션 작업을 다른 계정으로 이전한다")
                 .accessibilityHint(Copy.handoffHelp)
@@ -572,22 +555,15 @@ struct PopoverView: View {
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
-        // 킷의 팝오버는 블러(Glass Effect) 위에 흰색 70% + 회색 10% 를 덮는다.
-        // SwiftUI 에서 블러만 주는 것이 .ultraThinMaterial 이라 그 위에 킷의 두
-        // 겹을 그대로 얹는다. 불투명 흰 판을 깔던 예전 방식보다 얇고, 기본
-        // 반투명보다는 두꺼워서 라이트에서도 글씨가 읽힌다.
+        // 두 테마 모두 재질 하나로 간다. 테마마다 다른 것을 깔던 것이 원래
+        // 문제였다. 라이트만 불투명 흰 판이라 다크와 다른 앱처럼 보였고,
+        // 흰 판을 흰색 70% 세 겹으로 바꾸는 것도 결국 같은 분기다.
         //
-        // 다크는 킷의 Dark 짝 값을 안 읽었으므로 시스템 재질을 그대로 믿는다.
+        // 킷은 재질을 Ultrathick~Ultrathin 다섯 토큰으로 두고 팝오버에는 Thick
+        // 을 쓴다. 그 자리가 SwiftUI 의 .thickMaterial 이다. 기본 반투명보다
+        // 두꺼워서 벽지가 배어 나오지 않는다.
         // docs/design/popover-hig27-applied-mockup.html
-        .background {
-            if scheme == .dark {
-                Rectangle().fill(.regularMaterial)
-            } else {
-                Rectangle().fill(.ultraThinMaterial)
-                    .overlay(Color(white: 0.75).opacity(0.10))
-                    .overlay(Color.white.opacity(0.70))
-            }
-        }
+        .background(.thickMaterial)
         .task {
             // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
             model.clearNotice()

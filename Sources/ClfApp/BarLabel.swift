@@ -42,7 +42,6 @@ struct BarOrgView: View {
             if detail.showsNumbers {
                 // 세 창인데 숫자는 두 줄이 한계다. 어느 창인지 라벨로 못박는다.
                 // 셋째 줄은 자리가 없어 게이지만 남는다
-                // 줄 상자가 11pt 고정이라 겹칠 필요가 없다. 두 줄 = 22pt
                 VStack(alignment: .leading, spacing: 0) {
                     if let spend = org.spend, org.limits.isEmpty {
                         // Enterprise 는 창이 없다. 예산 한 줄이 전부다.
@@ -86,8 +85,13 @@ struct BarOrgView: View {
         // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
         // 상자를 걷어내고 간격만 남긴다. 오른쪽 끝이 들쭉날쭉해지지만
         // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
-        // 글자 10pt 는 macOS 최소치다. 9pt 는 그 아래였다. 줄 상자를 11pt 로
-        // 고정하면 두 줄이 22pt 로 메뉴바 24pt 안에 들어간다.
+        // 글자 10pt 는 macOS 최소치다. 9pt 는 그 아래였다. 아래 frame 이
+        // 줄 상자를 11pt 로 누른다. 10pt 의 자연 줄 상자가 13pt 라 2pt 를 누르는
+        // 셈이고, 그게 없으면 두 줄이 26pt 로 메뉴바 24pt 를 넘는다. 실측으로
+        // 잘리지는 않지만 위아래 여유가 1px 뿐이다.
+        //
+        // 색을 값으로 박는 것은 이 화면만의 예외다. 구운 이미지라 재질도
+        // vibrancy 도 없어서 시스템 라벨색이 적응할 바탕 자체가 없다.
         // docs/design/popover-hig27-applied-mockup.html
         HStack(spacing: 2.5) {
             // 라벨을 끄면 칸이 아니라 열이 사라진다. 빈 Text 를 두면 간격만 남아
