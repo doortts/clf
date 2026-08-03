@@ -59,6 +59,15 @@ struct Desktop: AsyncParsableCommand {
                       + "잔여 \(pad(String(limit.percentRemaining), to: 3, right: true))%   "
                       + when + warn)
             }
+            // Enterprise 는 시간 창이 없다. 그 줄도 그리지 않으면 이름만 남는다
+            if let spend = org.spend, org.limits.isEmpty {
+                let filled = Int((Double(spend.percentUsed) / 100 * 20).rounded())
+                let bar = String(repeating: "#", count: filled)
+                    + String(repeating: ".", count: 20 - filled)
+                print("    \(pad("월 예산", to: 10)) [\(bar)] "
+                      + "잔여 \(pad(String(spend.percentRemaining), to: 3, right: true))%   "
+                      + "\(spend.usedText) / \(spend.limitText) 사용")
+            }
             print()
         }
 

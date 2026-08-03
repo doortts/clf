@@ -7,6 +7,18 @@ public protocol UsageFetching: Sendable {
     func usage(token: String) async throws -> UsageReport
     /// 계정 이름은 토큰 캐시에 없다. claude.ai 세션으로만 얻는다.
     func orgNames(sessionKey: String) async throws -> [String: String]
+    /// 토큰 캐시에 없는 계정을 세션으로 읽는다.
+    ///
+    /// 앱은 그 계정을 실제로 쓸 때까지 OAuth 토큰을 만들지 않고, Enterprise
+    /// 계정은 창을 띄워도 만들지 않는다. 그런 계정도 이 경로로는 읽힌다.
+    func usage(org uuid: String, sessionKey: String) async throws -> UsageReport
+}
+
+extension UsageFetching {
+    /// 세션 경로를 안 쓰는 가짜 구현이 그대로 컴파일되게 둔다.
+    public func usage(org uuid: String, sessionKey: String) async throws -> UsageReport {
+        throw UsageFetchError(description: "세션으로 읽는 경로가 없다")
+    }
 }
 
 public struct UsageFetchError: Error, CustomStringConvertible {
@@ -34,13 +46,34 @@ public struct LiveUsageFetcher: UsageFetching {
         var request = URLRequest(url: Self.usageURL, timeoutInterval: timeout)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "authorization")
         request.setValue(Self.oauthBeta, forHTTPHeaderField: "anthropic-beta")
+        return try await send(request)
+    }
 
+    /// 계정별 사용량을 claude.ai 세션으로 읽는다. 응답 모양은 OAuth 쪽과 같다.
+    public func usage(org uuid: String, sessionKey: String) async throws -> UsageReport {
+        guard let url = Self.orgUsageURL(uuid) else {
+            throw UsageFetchError(description: "계정 uuid 로 주소를 못 만든다")
+        }
+        var request = URLRequest(url: url, timeoutInterval: timeout)
+        request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "cookie")
+        request.setValue("Mozilla/5.0 (Macintosh) Claude/1.0", forHTTPHeaderField: "user-agent")
+        return try await send(request)
+    }
+
+    /// uuid 가 경로 한 조각이 된다. 서버가 준 값이지만 그대로 붙이지 않는다.
+    static func orgUsageURL(_ uuid: String) -> URL? {
+        guard let escaped = uuid.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+              !escaped.isEmpty else { return nil }
+        return URL(string: "https://claude.ai/api/organizations/\(escaped)/usage")
+    }
+
+    private func send(_ request: URLRequest) async throws -> UsageReport {
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         switch status {
         case 200:
             break
-        case 401:
+        case 401, 403:
             // 우리가 갱신하지 않고 사용자에게 길을 알려준다
             throw UsageFetchError(description: "토큰 만료. 앱에서 이 계정을 한 번 열면 갱신된다")
         case 429:

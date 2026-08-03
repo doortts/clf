@@ -71,7 +71,7 @@ public struct DesktopSnapshot: Sendable, Equatable {
     public var knownOrgs: [OrgUsage] {
         orgs + unreadableByUUID.map { uuid, name in
             OrgUsage(uuid: uuid, name: name, isActive: false, plan: nil, limits: [:],
-                     error: "앱에서 이 계정을 한 번 열면 사용량이 읽힌다")
+                     error: "사용량을 알려면 적어도 한 번은 \(name) 으로 계정을 변경해야 합니다")
         }.sorted { $0.name < $1.name }
     }
 }
@@ -87,11 +87,14 @@ public struct DesktopReader: Sendable {
             .appendingPathComponent("Library/Application Support/Claude", isDirectory: true)
 
     private let support: URL
+    private let home: URL
     private let session: any UsageFetching
 
     public init(supportDirectory: URL = DesktopReader.defaultSupportDirectory,
+                home: URL = FileManager.default.homeDirectoryForCurrentUser,
                 session: any UsageFetching = LiveUsageFetcher()) {
         self.support = supportDirectory
+        self.home = home
         self.session = session
     }
 
@@ -104,8 +107,7 @@ public struct DesktopReader: Sendable {
     public func read(now: Date = Date(),
                      names cached: [String: String] = [:]) async throws -> DesktopSnapshot {
         let key = try safeStorageKeyFromKeychain()
-        let tokens = try parseTokenCache(
-            try decryptConfigValue(key: key, keys: ["oauth:tokenCacheV2", "oauth:tokenCache"]))
+        let tokens = try allTokens(key: key)
         let current = try? activeOrg(key: key)
         let names = cached.isEmpty
             ? ((try? await session.orgNames(sessionKey: sessionKey(key: key))) ?? [:])
@@ -133,10 +135,28 @@ public struct DesktopReader: Sendable {
                                      error: "\(error)"))
             }
         }
+        // 토큰이 없는 계정도 세션으로 한 번 물어본다. 앱은 그 계정을 실제로
+        // 쓸 때까지 토큰을 만들지 않고 Enterprise 계정은 아예 만들지 않는다.
+        // 창을 띄워 놓고도 영원히 "못 읽음" 이던 것이 이 경로로 읽힌다
+        var missing: [String: String] = [:]
+        let cookie = try? sessionKey(key: key)
+        for (uuid, name) in names where tokens[uuid] == nil {
+            guard let cookie else { missing[uuid] = name; continue }
+            do {
+                let report = try await session.usage(org: uuid, sessionKey: cookie)
+                // 창도 예산도 없으면 보여줄 것이 없다. 빈 카드를 그리지 않는다
+                guard !report.isEmpty else { missing[uuid] = name; continue }
+                orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
+                                     plan: nil, limits: report.limits, spend: report.spend))
+            } catch {
+                if (error as? UsageFetchError)?.throttled == true { throttled = true }
+                missing[uuid] = name
+            }
+        }
+
         // 활성 계정을 맨 위에. 나머지는 이름순
         orgs.sort { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
 
-        let missing = names.filter { tokens[$0.key] == nil }
         return DesktopSnapshot(orgs: orgs,
                                unreadable: missing.values.sorted(),
                                unreadableByUUID: missing,
@@ -147,8 +167,45 @@ public struct DesktopReader: Sendable {
 
     // MARK: 파일에서 읽기
 
-    private func decryptConfigValue(key: Data, keys: [String]) throws -> Data {
-        let path = support.appendingPathComponent("config.json")
+    /// 기본 디렉토리와 우리가 띄운 별도 창의 디렉토리에 있는 토큰을 다 모은다.
+    ///
+    /// 앱은 계정마다 토큰을 자기 데이터 디렉토리의 `config.json` 에만 쓴다.
+    /// 별도 창에서 처음 쓴 계정은 그 창의 디렉토리에만 토큰이 생기므로,
+    /// 기본 디렉토리만 보면 창을 띄워 놓고도 계속 "못 읽음" 으로 남는다.
+    /// docs/design/13-multi-instance.md
+    private func allTokens(key: Data) throws -> [String: DesktopToken] {
+        // 기본 디렉토리는 실패하면 던진다. 앱을 못 읽는다는 뜻이다
+        var all = try parseTokenCache(try decryptConfigValue(in: support, key: key))
+        for dir in altDirectories() {
+            // 별도 창은 있으면 더하고 없으면 넘어간다. 씨앗을 심는 중이거나
+            // 다른 버전이 쓴 파일일 수 있다
+            guard let data = try? decryptConfigValue(in: dir, key: key),
+                  let extra = try? parseTokenCache(data) else { continue }
+            all.merge(extra) { mine, theirs in DesktopReader.fresher(mine, theirs) }
+        }
+        return all
+    }
+
+    private func altDirectories() -> [URL] {
+        // 숨김 디렉토리를 찾는 것이 목적이므로 걸러내지 않는다
+        ((try? FileManager.default.contentsOfDirectory(at: home,
+                                                       includingPropertiesForKeys: nil)) ?? [])
+            .filter(AltInstance.isOurs)
+    }
+
+    /// 같은 계정이 두 곳에 있으면 어느 쪽을 쓰나. 사용량을 읽을 수 있는 쪽이
+    /// 먼저고, 둘 다 읽을 수 있으면 늦게 만료되는 쪽이다.
+    static func fresher(_ a: DesktopToken, _ b: DesktopToken) -> DesktopToken {
+        if a.canReadUsage != b.canReadUsage { return a.canReadUsage ? a : b }
+        return (b.expiresAt ?? .distantPast) > (a.expiresAt ?? .distantPast) ? b : a
+    }
+
+    private func decryptConfigValue(in directory: URL, key: Data) throws -> Data {
+        try decryptConfigValue(at: directory.appendingPathComponent("config.json"), key: key,
+                               keys: ["oauth:tokenCacheV2", "oauth:tokenCache"])
+    }
+
+    private func decryptConfigValue(at path: URL, key: Data, keys: [String]) throws -> Data {
         guard let data = FileManager.default.contents(atPath: path.path),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { throw SafeStorageError(description: "config.json 을 읽지 못했다") }
