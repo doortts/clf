@@ -1,6 +1,6 @@
 # 04. 구현 설계
 
-> 2절과 3절은 방향이 바뀐 뒤 갱신했다. 4절 아래 `ClflProxy` 부분은
+> 2절과 3절은 방향이 바뀐 뒤 갱신했다. 4절 아래 `ClfProxy` 부분은
 > **터미널 트랙**이다. 전체 범위는 [00 범위](00-scope.md) 를 본다.
 
 코드를 치기 직전 수준. 패키지 구성, 의존성 결정, 타겟별 공개 API, 동시성 주석,
@@ -70,15 +70,15 @@ dependencies: [
 import PackageDescription
 
 let package = Package(
-    name: "clfl",
+    name: "clf",
     platforms: [.macOS(.v13)],          // MenuBarExtra 요구 사항
     products: [
-        .library(name: "ClflCore",  targets: ["ClflCore"]),
-        .library(name: "ClflStore", targets: ["ClflStore"]),
-        .library(name: "ClflProxy", targets: ["ClflProxy"]),
-        .library(name: "ClflDesktop", targets: ["ClflDesktop"]),
-        .executable(name: "clflctl", targets: ["clflctl"]),
-        .executable(name: "ClflApp", targets: ["ClflApp"]),
+        .library(name: "ClfCore",  targets: ["ClfCore"]),
+        .library(name: "ClfStore", targets: ["ClfStore"]),
+        .library(name: "ClfProxy", targets: ["ClfProxy"]),
+        .library(name: "ClfDesktop", targets: ["ClfDesktop"]),
+        .executable(name: "clfctl", targets: ["clfctl"]),
+        .executable(name: "ClfApp", targets: ["ClfApp"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
@@ -86,30 +86,30 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.4.0"),
     ],
     targets: [
-        .target(name: "ClflCore"),                       // 의존성 0. 이것이 규칙이다
-        .target(name: "ClflStore", dependencies: ["ClflCore"]),
-        .target(name: "ClflDesktop", dependencies: ["ClflCore", "ClflStore"]),
-        .executableTarget(name: "ClflApp", dependencies: ["ClflDesktop"]),
-        .target(name: "ClflProxy", dependencies: [
-            "ClflCore", "ClflStore",
+        .target(name: "ClfCore"),                       // 의존성 0. 이것이 규칙이다
+        .target(name: "ClfStore", dependencies: ["ClfCore"]),
+        .target(name: "ClfDesktop", dependencies: ["ClfCore", "ClfStore"]),
+        .executableTarget(name: "ClfApp", dependencies: ["ClfDesktop"]),
+        .target(name: "ClfProxy", dependencies: [
+            "ClfCore", "ClfStore",
             .product(name: "NIOCore",        package: "swift-nio"),
             .product(name: "NIOPosix",       package: "swift-nio"),
             .product(name: "NIOHTTP1",       package: "swift-nio"),
             .product(name: "AsyncHTTPClient", package: "async-http-client"),
         ]),
-        .testTarget(name: "ClflCoreTests",  dependencies: ["ClflCore"]),
-        .testTarget(name: "ClflStoreTests", dependencies: ["ClflStore"]),
-        .testTarget(name: "ClflProxyTests", dependencies: ["ClflProxy"]),
+        .testTarget(name: "ClfCoreTests",  dependencies: ["ClfCore"]),
+        .testTarget(name: "ClfStoreTests", dependencies: ["ClfStore"]),
+        .testTarget(name: "ClfProxyTests", dependencies: ["ClfProxy"]),
     ],
     swiftLanguageModes: [.v6]
 )
 ```
 
-`ClflApp` 은 패키지 타겟이 아니라 **Xcode 앱 타겟**이다. 앱 번들, Info.plist,
+`ClfApp` 은 패키지 타겟이 아니라 **Xcode 앱 타겟**이다. 앱 번들, Info.plist,
 서명, 리소스가 필요해 SPM 실행 타겟으로는 만들 수 없다. Xcode 프로젝트가 이 패키지를
 로컬 의존성으로 참조한다.
 
-**`ClflCore` 의 의존성이 0인 것이 이 구성의 핵심이다.** 여기에 NIO 가 한 번 들어오면
+**`ClfCore` 의 의존성이 0인 것이 이 구성의 핵심이다.** 여기에 NIO 가 한 번 들어오면
 테스트가 이벤트 루프를 필요로 하기 시작하고, claulay 에서 옮겨올 오프라인 테스트
 자산이 무너진다.
 
@@ -118,7 +118,7 @@ let package = Package(
 ## 3. 파일 목록
 
 ```
-Sources/ClflCore/
+Sources/ClfCore/
 +-- Model/
 |   +-- Account.swift              Account, Plan, AccountID, ModelID, SessionID
 |   +-- AccountRuntime.swift       AccountRuntime, RateLimitSnapshot, Availability
@@ -142,7 +142,7 @@ Sources/ClflCore/
     +-- Headroom.swift             band, 잔여 계산
     `-- ShortCode.swift            shortCodes, mostRecentOther
 
-Sources/ClflStore/
+Sources/ClfStore/
 +-- KeychainTokenStore.swift       TokenStoring 구현
 +-- AccountsFile.swift             accounts.json 읽기/쓰기
 +-- RuntimeFile.swift              runtime.json. debounce + 원자적 교체
@@ -151,7 +151,7 @@ Sources/ClflStore/
 +-- ClaudeSettings.swift           ~/.claude/settings.json 병합 편집
 `-- AtomicWrite.swift              tmp + rename + 0600
 
-Sources/ClflProxy/
+Sources/ClfProxy/
 +-- Router.swift                   actor. 런타임 상태의 단일 소유자
 +-- ProxyServer.swift              NIOAsyncChannel 수신, 요청당 Task
 +-- RequestPipeline.swift          body 버퍼링, model/session 추출, 스왑 루프
@@ -160,7 +160,7 @@ Sources/ClflProxy/
 +-- RelayPump.swift                클라이언트 릴레이. once-write 불변식
 `-- ProxyError.swift
 
-Sources/ClflDesktop/            남의 앱을 읽는다. 데스크톱 트랙의 전부
+Sources/ClfDesktop/            남의 앱을 읽는다. 데스크톱 트랙의 전부
 +-- SafeStorage.swift              PBKDF2 + AES-128-CBC. Chromium safe storage
 +-- TokenCache.swift               config.json 의 조직별 OAuth 토큰
 +-- Usage.swift                    Usage API 응답 파싱, 잔여와 등급
@@ -171,13 +171,13 @@ Sources/ClflDesktop/            남의 앱을 읽는다. 데스크톱 트랙의 
 +-- BarText.swift                  막대 글자, 이름 줄이기, 남은 시간
 `-- LoginItem.swift                SMAppService.Status 판정 (호출은 앱에서)
 
-Sources/ClflApp/                앱. 판단이 없다
-+-- ClflAppMain.swift              @main, MenuBarExtra
+Sources/ClfApp/                앱. 판단이 없다
++-- ClfAppMain.swift              @main, MenuBarExtra
 +-- UsageModel.swift               @MainActor. 읽기와 설정과 주기를 쥔다
 +-- Views.swift                    팝오버, 조직 카드, 설정 패널
 `-- LoginItem.swift                ServiceManagement 를 부르는 유일한 자리
 
-Sources/clflctl/                앱 없이 단계별로 실행하는 도구
+Sources/clfctl/                앱 없이 단계별로 실행하는 도구
 `-- *Command.swift                 doctor, settings, accounts, ..., desktop
 ```
 
@@ -188,8 +188,8 @@ Sources/clflctl/                앱 없이 단계별로 실행하는 도구
 `scripts/make-app.sh` 가 조립한다.
 
 ```
-clfl.app/Contents/MacOS/clfl        SPM 이 만든 실행 파일
-clfl.app/Contents/Info.plist        LSUIElement
+clf.app/Contents/MacOS/clf        SPM 이 만든 실행 파일
+clf.app/Contents/Info.plist        LSUIElement
                                     임시 서명
 ```
 
@@ -200,7 +200,7 @@ clfl.app/Contents/Info.plist        LSUIElement
 
 ## 4. 타겟별 공개 API
 
-### ClflCore
+### ClfCore
 
 전부 순수하다. `Date()` 를 내부에서 부르는 곳이 하나도 없어야 한다.
 
@@ -241,7 +241,7 @@ public func shortCodes(for ids: [AccountID]) -> [AccountID: String]
 스트림에 적용하는 루프를 분리**하면 어려운 쪽(경계 판정, 주석 건너뛰기, 청크 걸침)이
 전부 오프라인 테스트 대상이 된다.
 
-### ClflStore
+### ClfStore
 
 ```swift
 public protocol CredentialStoring: Sendable {
@@ -274,7 +274,7 @@ public actor RuntimeFile  { ... }   // load/save runtime.json, 1초 debounce
 `accounts.json` 이 깨지면 던진다. 런타임은 다시 관측하면 되지만 등록 목록은 사용자가
 손으로 넣은 것이라, 조용히 빈 문서로 시작했다가 다음 저장에서 덮어쓰면 그대로 사라진다.
 
-### ClflProxy
+### ClfProxy
 
 ```swift
 public actor Router {
@@ -305,7 +305,7 @@ Swift 6 strict concurrency 를 켠다. `@unchecked Sendable` 은 금지한다. �
 
 | 대상 | 주석 | 근거 |
 |---|---|---|
-| ClflCore 전 타입 | `Sendable` (값 타입) | 순수 데이터. 공유해도 안전 |
+| ClfCore 전 타입 | `Sendable` (값 타입) | 순수 데이터. 공유해도 안전 |
 | `Router` | `actor` | 런타임 상태의 유일한 가변 소유자 |
 | `AccountsFile`, `RuntimeFile` | `actor` | 파일 쓰기 직렬화 + debounce 타이머 소유 |
 | `KeychainTokenStore` | `struct: Sendable` | Keychain API 자체가 스레드 안전 |
@@ -390,13 +390,13 @@ public enum ProxyError: Error, Sendable {
 
 ## 7. 테스트 전략
 
-### ClflCoreTests: claulay 자산 이식
+### ClfCoreTests: claulay 자산 이식
 
 [포팅 문서](../porting/README.md) 각 장 끝의 테스트 케이스 목록이 그대로 여기 온다.
 네트워크도 파일도 시계도 없다.
 
 ```
-ClflCoreTests/
+ClfCoreTests/
 +-- HeadersTests.swift          rewriteAuth OAuth 분기 5개 포함
 +-- ClassifierTests.swift       429/401/통과 분기, resolveResetEpoch 6개
 +-- SSEBoundaryTests.swift      분할 패킷, CRLF, 주석 프레임, 8KiB 초과
@@ -424,7 +424,7 @@ Tests/Fixtures/
 손으로 만든 JSON 이 아니라 **실제 응답의 복사본**이어야 한다. 필드 하나 빠뜨린 가짜
 fixture 로 통과하는 테스트는 가치가 없다.
 
-### ClflProxyTests: 가짜 executor 로 스왑 루프
+### ClfProxyTests: 가짜 executor 로 스왑 루프
 
 ```swift
 struct ScriptedExecutor: UpstreamExecuting {
@@ -493,18 +493,18 @@ try SMAppService.mainApp.register()      // macOS 13+
 
 | 순서 | 할 일 | 끝났다는 기준 |
 |---|---|---|
-| 1 | 패키지 스캐폴딩, ClflCore 빈 타겟, CI 없이 `swift test` | 빈 테스트가 돈다 |
+| 1 | 패키지 스캐폴딩, ClfCore 빈 타겟, CI 없이 `swift test` | 빈 테스트가 돈다 |
 | 2 | HeaderBag, ProxyHeaders + 테스트 | claulay headers.test.ts 케이스 전부 통과 |
 | 3 | Classification + ResetEpoch + 테스트 | claulay interceptor.test.ts 케이스 전부 통과 |
 | 4 | SSE 경계 스캐너, 파서 + 테스트 | 분할 패킷과 멀티바이트 케이스 통과 |
 | 5 | Selection, Cooldown, Headroom, ShortCode + 테스트 | FixedClock 으로 경계값 통과 |
-| 6 | ClflStore: Keychain, accounts.json, runtime.json | 임시 디렉토리 단위 테스트 |
+| 6 | ClfStore: Keychain, accounts.json, runtime.json | 임시 디렉토리 단위 테스트 |
 | 7 | UpstreamExecutor + SSEPeek | 실제 api.anthropic.com 에 한 번 붙어본다 |
 | 8 | ProxyServer 단일 계정 통과 (스왑 없음) | **Claude Code 데스크톱 앱으로 대화 성공** |
 
 각 단계를 손으로 실행하는 명령과 통과 기준은
 [08 단계별 실행과 외부 검증](08-verification.md) 4절의 사다리에 있다.
-1번부터 6번까지는 `clflctl` 로 앱 없이 전부 밟을 수 있다.
+1번부터 6번까지는 `clfctl` 로 앱 없이 전부 밟을 수 있다.
 
 **8번이 첫 관문이다.** 여기서 [README](../../README.md) 에 적은 MCP tool search 와
 Remote Control 제약이 실제로 어떻게 나타나는지, `X-Claude-Session-Id` 헤더가 오는지

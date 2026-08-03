@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clfl 설계 문서 - 사용량 한도 관리와 조직 전환</title>
+<title>clf 설계 문서 - 사용량 한도 관리와 조직 전환</title>
 <style>
 /* ============================================================
    토큰. macOS 시스템 값을 그대로 쓴다.
@@ -545,7 +545,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 <body>
 
 <div class="bar"><div class="wrap">
-  <b>clfl</b>
+  <b>clf</b>
   <nav>
     <a href="#why">왜 만드나</a>
     <a href="#how">동작 원리</a>
@@ -601,7 +601,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
           <code>NAVER_TEAM_40</code> 이 함께 달려 있다. 한도는 조직마다 따로 찬다.</div>
         <div class="inner">
           <div><b>기존 앱</b> 이메일로 계정을 구분해 둘째 조직부터 거부한다</div>
-          <div><b>clfl</b> 신원을 묻지 않는다. 사용자가 이름을 붙이고 자격증명을 묶는다</div>
+          <div><b>clf</b> 신원을 묻지 않는다. 사용자가 이름을 붙이고 자격증명을 묶는다</div>
         </div>
       </div>
       <div class="link"><span class="ln"></span></div>
@@ -609,14 +609,14 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
         <div class="bt">2. 한도는 모델마다 따로 찬다</div>
         <div class="bd">주간 한도가 있는 모델 하나가 소진돼도 같은 조직의 다른 모델은 멀쩡하다.
           조직 단위로만 전환하면 쓸 수 있는 것을 버리게 된다.</div>
-        <div class="inner"><div><b>clfl</b> (조직, 모델) 쌍으로 쿨다운을 건다</div></div>
+        <div class="inner"><div><b>clf</b> (조직, 모델) 쌍으로 쿨다운을 건다</div></div>
       </div>
       <div class="link"><span class="ln"></span></div>
       <div class="box">
         <div class="bt">3. 이미 날아간 요청은 되돌릴 수 없다</div>
         <div class="bd">자격증명만 바꾸는 방식은 다음 호출부터 반영된다. 방금 한도에 걸린
           그 요청은 그대로 실패한다.</div>
-        <div class="inner"><div><b>clfl</b> 응답 첫 조각을 열어보고 판정해 같은 턴 안에서 다시 보낸다</div></div>
+        <div class="inner"><div><b>clf</b> 응답 첫 조각을 열어보고 판정해 같은 턴 안에서 다시 보낸다</div></div>
       </div>
     </div>
     <p class="cap">프록시 비용을 지불하는 세 가지 근거</p>
@@ -637,18 +637,18 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
     <h2>동작 원리</h2>
     <p class="sub">데스크톱 앱은 Dock 에서 실행되므로 부모 셸의 환경변수를 물려받지 못한다.
       대신 <code>~/.claude/settings.json</code> 의 <code>env</code> 블록에 로컬 주소를 심어
-      모든 모델 호출을 clfl 로 통과시킨다.</p>
+      모든 모델 호출을 clf 로 통과시킨다.</p>
   </div>
 
   <div class="canvas">
     <div class="dia">
       <div class="box">
         <div class="bt">Claude Code 데스크톱 앱</div>
-        <div class="bd">clfl 이 소유하지 않는다. 건드리는 것은 <code>env</code> 블록의 두 줄뿐</div>
+        <div class="bd">clf 이 소유하지 않는다. 건드리는 것은 <code>env</code> 블록의 두 줄뿐</div>
       </div>
       <div class="link"><span class="ln"></span><span class="tx">HTTP 127.0.0.1:51710</span><span class="ln"></span></div>
       <div class="box hi">
-        <div class="bt">clfl.app</div>
+        <div class="bt">clf.app</div>
         <div class="bd">상시 실행. 앱 자체가 데몬이므로 별도 백그라운드 프로세스가 없다</div>
         <div class="inner">
           <div><b>Router</b> 조직 선택, 쿨다운, 우선순위</div>
@@ -675,7 +675,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
       캐시 생성 비용으로 청구된다. 선제 전환을 대화 시작 시점에만 적용하는 이유다.</p>
     <div class="note">
       <span class="nt">앱을 꺼도 안전하다</span>
-      <p>정상 종료할 때 settings.json 에서 clfl 이 심은 줄을 지운다. 앱이 없으면 Claude Code 는
+      <p>정상 종료할 때 settings.json 에서 clf 이 심은 줄을 지운다. 앱이 없으면 Claude Code 는
         원래대로 직접 호출로 돌아간다. 죽은 포트를 가리킨 채 남겨두지 않는다.</p>
     </div>
   </div>
@@ -893,7 +893,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
     <figure class="spec">
       <div class="pop">
         <div class="pop-top">
-          <span class="t">clfl</span>
+          <span class="t">clf</span>
           <span class="grow"></span>
           <button class="ibtn" type="button" title="설정">
             <svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="2.1"/><path d="M8 1.8v1.7M8 12.5v1.7M14.2 8h-1.7M3.5 8H1.8M12.4 3.6l-1.2 1.2M4.8 11.2l-1.2 1.2M12.4 12.4l-1.2-1.2M4.8 4.8 3.6 3.6"/></svg>
@@ -1060,7 +1060,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
   <div class="canvas">
     <figure class="spec">
       <div class="win">
-        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clf 설정</span></div>
         <div class="tabs">
           <span class="tab on"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="5.4" r="2.4"/><path d="M3.2 13c0-2.3 2.1-3.6 4.8-3.6s4.8 1.3 4.8 3.6"/></svg>조직</span>
           <span class="tab"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h9m0 0L8.5 3M11 5.5 8.5 8"/><path d="M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13"/></svg>전환</span>
@@ -1180,7 +1180,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 
     <figure class="spec">
       <div class="win">
-        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clf 설정</span></div>
         <div class="tabs">
           <span class="tab">조직</span><span class="tab on">전환</span><span class="tab">표시</span><span class="tab">연결</span><span class="tab">점검</span>
         </div>
@@ -1220,7 +1220,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 
     <figure class="spec">
       <div class="win">
-        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clf 설정</span></div>
         <div class="tabs">
           <span class="tab">조직</span><span class="tab">전환</span><span class="tab on">표시</span><span class="tab">연결</span><span class="tab">점검</span>
         </div>
@@ -1273,7 +1273,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 
     <figure class="spec">
       <div class="win">
-        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clf 설정</span></div>
         <div class="tabs">
           <span class="tab">조직</span><span class="tab">전환</span><span class="tab">표시</span><span class="tab on">연결</span><span class="tab">점검</span>
         </div>
@@ -1281,7 +1281,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
           <div class="field">
             <label>Claude Code 연결</label>
             <div class="ctl">
-              <div class="line"><span class="sw on"></span><span>모델 호출을 clfl 로 통과시키기</span></div>
+              <div class="line"><span class="sw on"></span><span>모델 호출을 clf 로 통과시키기</span></div>
               <div class="help"><code>~/.claude/settings.json</code> 의 <code>env</code> 블록을
                 관리합니다. 다른 키는 건드리지 않고, 처음 쓰기 전에 백업을 만듭니다.</div>
             </div>
@@ -1297,7 +1297,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
             <label>MCP 도구 검색</label>
             <div class="ctl">
               <div class="line"><span class="sw on"></span><span>되살리기</span><span class="tag g">기본 켬</span></div>
-              <div class="help">프록시를 거치면 Claude Code 가 도구 검색을 스스로 끕니다. clfl 은
+              <div class="help">프록시를 거치면 Claude Code 가 도구 검색을 스스로 끕니다. clf 은
                 응답을 바이트 그대로 전달하므로 문제가 없어 <b>처음부터 다시 켜둡니다.</b>
                 원격 제어는 되살릴 방법이 없습니다.</div>
             </div>
@@ -1318,14 +1318,14 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 
     <figure class="spec">
       <div class="win">
-        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clfl 설정</span></div>
+        <div class="title"><span class="lights"><i></i><i></i><i></i></span><span class="t">clf 설정</span></div>
         <div class="tabs">
           <span class="tab">조직</span><span class="tab">전환</span><span class="tab">표시</span><span class="tab">연결</span><span class="tab on">점검</span>
         </div>
         <div class="wbody">
           <div class="checks">
             <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>포트 51710 에서 대기 중</span><span class="d"></span></div>
-            <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>Claude Code 가 clfl 을 바라보고 있음</span><span class="d">settings.json</span></div>
+            <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>Claude Code 가 clf 을 바라보고 있음</span><span class="d">settings.json</span></div>
             <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>MCP 도구 검색 켜짐</span><span class="d"></span></div>
             <div class="chk"><span class="st-no"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4.6 4.6l6.8 6.8M11.4 4.6l-6.8 6.8"/></svg></span><span>team3 의 자격증명이 거부됨</span><span class="d"><button class="btn" type="button">다시 등록</button></span></div>
             <div class="chk"><span class="st-ok"><svg class="sym" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3.6 8.4 3 3 6-6.4"/></svg></span><span>쓸 수 있는 조직 3개</span><span class="d">전체 5개, 자동 전환 대상 4개</span></div>
@@ -1424,7 +1424,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
     </div>
     <div class="note">
       <span class="nt">모든 조직이 막혔다면</span>
-      <p>마지막으로 받은 실패 응답을 그대로 클라이언트에 전달한다. clfl 이 만든 가짜 오류가
+      <p>마지막으로 받은 실패 응답을 그대로 클라이언트에 전달한다. clf 이 만든 가짜 오류가
         아니라 서버가 실제로 준 응답이라야, 사용자가 보는 메시지와 실제 상황이 어긋나지 않는다.</p>
     </div>
   </div>
@@ -1470,7 +1470,7 @@ footer { padding: 48px 0 72px; color: var(--ink-3); font-size: 13px; border-top:
 </div></section>
 
 <footer><div class="wrap">
-  <p>clfl 설계 문서. 이 페이지는 요약이고 구현에 쓰는 것은
+  <p>clf 설계 문서. 이 페이지는 요약이고 구현에 쓰는 것은
     <code>docs/design/</code> 와 <code>docs/porting/</code> 의 마크다운이다.</p>
 </div></footer>
 

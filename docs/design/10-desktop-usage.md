@@ -91,12 +91,12 @@ IV   = 0x20 * 16
 
 ## 4. 도구
 
-Swift 로 옮겼다. `ClflDesktop` 타겟이 본체이고 메뉴바 앱이 이걸 그대로 쓴다.
+Swift 로 옮겼다. `ClfDesktop` 타겟이 본체이고 메뉴바 앱이 이걸 그대로 쓴다.
 
 ```
-clflctl desktop usage            표로
-clflctl desktop usage --json     기계가 읽을 형태로
-clflctl desktop usage --active   활성 계정만
+clfctl desktop usage            표로
+clfctl desktop usage --json     기계가 읽을 형태로
+clfctl desktop usage --active   활성 계정만
 ```
 
 `scripts/desktop-usage.py` 는 먼저 만든 원형이다. 두 구현이 같은 숫자를 내는 것을
@@ -216,15 +216,15 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
 ### 명령
 
 ```
-clflctl desktop orgs               아는 계정 전부와 표시 여부
-clflctl desktop hide <이름|uuid>    목록에서 뺀다
-clflctl desktop show <이름|uuid>    다시 넣는다
-clflctl desktop order <이름>...     순서를 정한다
+clfctl desktop orgs               아는 계정 전부와 표시 여부
+clfctl desktop hide <이름|uuid>    목록에서 뺀다
+clfctl desktop show <이름|uuid>    다시 넣는다
+clfctl desktop order <이름>...     순서를 정한다
 ```
 
 이름으로도 uuid 로도 받는다. uuid 를 외울 이유가 없다.
 
-설정은 `~/Library/Application Support/clfl/desktop.json` 에 둔다. 우리 설정이므로
+설정은 `~/Library/Application Support/clf/desktop.json` 에 둔다. 우리 설정이므로
 우리 디렉토리다. 데스크톱 앱의 파일은 읽기만 하고 절대 쓰지 않는다.
 
 파일이 없거나 깨졌으면 기본값으로 시작한다. 설정 파일 하나 때문에 메뉴바가
@@ -238,8 +238,8 @@ clflctl desktop order <이름>...     순서를 정한다
 나머지는 팝오버로 내린다. 전부 보고 싶으면 바꿀 수 있다.
 
 ```
-clflctl desktop bar window    창이 열려있는 계정만 (기본)
-clflctl desktop bar chosen    설정에서 지정한 계정
+clfctl desktop bar window    창이 열려있는 계정만 (기본)
+clfctl desktop bar chosen    설정에서 지정한 계정
 ```
 
 숨긴 계정은 막대에도 안 나온다. 표시 여부를 두 곳에서 따로 정하면 헷갈린다.

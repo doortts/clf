@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>clfl 진행 현황 - 계획, 상태, 검증 도구</title>
+<title>clf 진행 현황 - 계획, 상태, 검증 도구</title>
 <style>
 :root {
   --ink:        #1d1d1f;
@@ -242,7 +242,7 @@ a:hover { text-decoration: underline; }
 <body>
 <div class="wrap">
 
-<h1>clfl 진행 현황</h1>
+<h1>clf 진행 현황</h1>
 <p class="lede">Claude Code 데스크톱 앱의 계정별 잔여 한도를 보여주는 macOS 메뉴바 앱</p>
 <p class="meta">2026-08-02 기준 &nbsp;/&nbsp; 커밋 54개 &nbsp;/&nbsp; main</p>
 
@@ -298,8 +298,8 @@ a:hover { text-decoration: underline; }
 </div>
 
 <div class="callout">
-  메뉴바 앱이 돈다. <code>~/Applications/clfl.app</code> 에서 세 계정의 잔여를 읽어
-  5분마다 갱신한다. 막대에 뜨는 숫자와 <code>clflctl desktop usage</code> 가 같은
+  메뉴바 앱이 돈다. <code>~/Applications/clf.app</code> 에서 세 계정의 잔여를 읽어
+  5분마다 갱신한다. 막대에 뜨는 숫자와 <code>clfctl desktop usage</code> 가 같은
   값을 낸다.
 </div>
 
@@ -323,56 +323,56 @@ a:hover { text-decoration: underline; }
 <div class="card ladder">
   <div class="rung">
     <span class="no">1-5</span>
-    <span class="what">ClflCore 판정 로직
-      <span class="how">swift test --filter ClflCoreTests &nbsp;->&nbsp; 117개 통과</span></span>
+    <span class="what">ClfCore 판정 로직
+      <span class="how">swift test --filter ClfCoreTests &nbsp;->&nbsp; 117개 통과</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6</span>
-    <span class="what">ClflStore 저장 계층
-      <span class="how">swift test --filter ClflStoreTests &nbsp;->&nbsp; 54개 통과</span></span>
+    <span class="what">ClfStore 저장 계층
+      <span class="how">swift test --filter ClfStoreTests &nbsp;->&nbsp; 54개 통과</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6a</span>
     <span class="what">환경 점검
-      <span class="how">clflctl doctor &nbsp;->&nbsp; 실패 항목 0</span></span>
+      <span class="how">clfctl doctor &nbsp;->&nbsp; 실패 항목 0</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6b</span>
     <span class="what">계정 등록
-      <span class="how">clflctl accounts add &nbsp;->&nbsp; list 에 뜨고 Keychain 에 있음</span></span>
+      <span class="how">clfctl accounts add &nbsp;->&nbsp; list 에 뜨고 Keychain 에 있음</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6c</span>
     <span class="what">설정 주입
-      <span class="how">clflctl settings install &nbsp;->&nbsp; show 가 주입됨을 말한다</span></span>
+      <span class="how">clfctl settings install &nbsp;->&nbsp; show 가 주입됨을 말한다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6d</span>
     <span class="what">선택 판정
-      <span class="how">clflctl runtime simulate + select &nbsp;->&nbsp; 표가 예상과 같다</span></span>
+      <span class="how">clfctl runtime simulate + select &nbsp;->&nbsp; 표가 예상과 같다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6e</span>
     <span class="what">응답 분류
-      <span class="how">clflctl classify &nbsp;->&nbsp; 네 경로가 갈린다</span></span>
+      <span class="how">clfctl classify &nbsp;->&nbsp; 네 경로가 갈린다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">6f</span>
     <span class="what">SSE 경계
-      <span class="how">clflctl sse-peek &nbsp;->&nbsp; 주석 프레임을 건너뛴다</span></span>
+      <span class="how">clfctl sse-peek &nbsp;->&nbsp; 주석 프레임을 건너뛴다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">7</span>
     <span class="what">업스트림 왕복
-      <span class="how">clflctl upstream probe &lt;id&gt; &nbsp;->&nbsp; 실제 200 과 사용량 헤더</span></span>
+      <span class="how">clfctl upstream probe &lt;id&gt; &nbsp;->&nbsp; 실제 200 과 사용량 헤더</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung gate">
@@ -384,7 +384,7 @@ a:hover { text-decoration: underline; }
   <div class="rung">
     <span class="no">8t</span>
     <span class="what">같은 칸, 터미널 claude
-      <span class="how">clflctl serve --single &lt;id&gt; &nbsp;->&nbsp; 요청이 잡힌다</span></span>
+      <span class="how">clfctl serve --single &lt;id&gt; &nbsp;->&nbsp; 요청이 잡힌다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
@@ -396,13 +396,13 @@ a:hover { text-decoration: underline; }
   <div class="rung">
     <span class="no">10</span>
     <span class="what">계정 전부의 사용량 읽기
-      <span class="how">clflctl desktop usage &nbsp;->&nbsp; 세 계정의 창 세 개가 다 나온다</span></span>
+      <span class="how">clfctl desktop usage &nbsp;->&nbsp; 세 계정의 창 세 개가 다 나온다</span></span>
     <span class="st done"></span>
   </div>
   <div class="rung">
     <span class="no">11</span>
     <span class="what">메뉴바 앱
-      <span class="how">open ~/Applications/clfl.app &nbsp;->&nbsp; 막대 숫자가 clflctl 과 같다</span></span>
+      <span class="how">open ~/Applications/clf.app &nbsp;->&nbsp; 막대 숫자가 clfctl 과 같다</span></span>
     <span class="st done"></span>
   </div>
 </div>
@@ -422,7 +422,7 @@ a:hover { text-decoration: underline; }
 
 <div class="layers">
   <div class="card layer">
-    <div class="head"><strong>ClflCore</strong><em>18 / 18</em></div>
+    <div class="head"><strong>ClfCore</strong><em>18 / 18</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
@@ -433,7 +433,7 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflStore</strong><em>10 / 10</em></div>
+    <div class="head"><strong>ClfStore</strong><em>10 / 10</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
@@ -443,7 +443,7 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflDesktop</strong><em>9 / 9</em></div>
+    <div class="head"><strong>ClfDesktop</strong><em>9 / 9</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
@@ -453,16 +453,16 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflApp</strong><em>4 / 4</em></div>
+    <div class="head"><strong>ClfApp</strong><em>4 / 4</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
     </div>
     <p class="cap">SwiftUI 메뉴바와 팝오버. <strong>판단이 없다.</strong> 잔여 계산도
-      이름 줄이기도 전부 ClflDesktop 에 있어 뷰에 테스트할 것이 남지 않는다.</p>
+      이름 줄이기도 전부 ClfDesktop 에 있어 뷰에 테스트할 것이 남지 않는다.</p>
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>clflctl</strong><em>12 / 12</em></div>
+    <div class="head"><strong>clfctl</strong><em>12 / 12</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
@@ -472,7 +472,7 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflProxy</strong><em>7 / 12</em></div>
+    <div class="head"><strong>ClfProxy</strong><em>7 / 12</em></div>
     <div class="grid">
       <u class="on"></u><u class="on"></u><u class="on"></u><u class="on"></u>
       <u class="on"></u><u class="on"></u><u class="on"></u>
@@ -483,7 +483,7 @@ a:hover { text-decoration: underline; }
   </div>
 
   <div class="card layer">
-    <div class="head"><strong>ClflApp</strong><em>0 / -</em></div>
+    <div class="head"><strong>ClfApp</strong><em>0 / -</em></div>
     <div class="grid">
       <u></u><u></u><u></u><u></u><u></u><u></u>
     </div>
@@ -495,22 +495,22 @@ a:hover { text-decoration: underline; }
 <h3>코드 규모</h3>
 <div class="card bars">
   <div class="bar-row">
-    <span class="name">ClflProxy</span>
+    <span class="name">ClfProxy</span>
     <span class="gauge"><span class="g-src" style="width:28.0%"></span><span class="g-todo" style="width:9.9%"></span><span class="g-test" style="width:62.1%"></span></span>
     <span class="val">963 + 1581</span>
   </div>
   <div class="bar-row">
-    <span class="name">ClflCore</span>
+    <span class="name">ClfCore</span>
     <span class="gauge"><span class="g-src" style="width:42.8%"></span><span class="g-test" style="width:37.0%"></span></span>
     <span class="val">1089 + 941</span>
   </div>
   <div class="bar-row">
-    <span class="name">ClflStore</span>
+    <span class="name">ClfStore</span>
     <span class="gauge"><span class="g-src" style="width:38.4%"></span><span class="g-test" style="width:35.4%"></span></span>
     <span class="val">978 + 900</span>
   </div>
   <div class="bar-row">
-    <span class="name">clflctl</span>
+    <span class="name">clfctl</span>
     <span class="gauge"><span class="g-src" style="width:45.8%"></span></span>
     <span class="val">1165 + 0</span>
   </div>
@@ -550,7 +550,7 @@ a:hover { text-decoration: underline; }
 <h2>3. 구조</h2>
 <div class="card">
 <svg viewBox="0 0 900 300" style="width:100%;height:auto" role="img"
-     aria-label="ClflCore 를 바닥으로 ClflStore 와 ClflProxy 가 쌓이고 ClflApp 과 clflctl 이 그 위에 붙는 구조">
+     aria-label="ClfCore 를 바닥으로 ClfStore 와 ClfProxy 가 쌓이고 ClfApp 과 clfctl 이 그 위에 붙는 구조">
   <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
@@ -566,27 +566,27 @@ a:hover { text-decoration: underline; }
   </defs>
 
   <rect class="bxo" x="250" y="228" width="400" height="56"/>
-  <text class="t" x="450" y="252" text-anchor="middle">ClflCore</text>
+  <text class="t" x="450" y="252" text-anchor="middle">ClfCore</text>
   <text class="s" x="450" y="270" text-anchor="middle">의존성 0. 순수 판정 함수. 이벤트 루프 없이 테스트된다</text>
 
   <rect class="bxo" x="250" y="140" width="180" height="56"/>
-  <text class="t" x="340" y="164" text-anchor="middle">ClflStore</text>
+  <text class="t" x="340" y="164" text-anchor="middle">ClfStore</text>
   <text class="s" x="340" y="182" text-anchor="middle">파일, Keychain, 설정</text>
 
   <rect class="bxo" x="470" y="140" width="180" height="56"/>
-  <text class="t" x="560" y="164" text-anchor="middle">ClflProxy</text>
+  <text class="t" x="560" y="164" text-anchor="middle">ClfProxy</text>
   <text class="s" x="560" y="182" text-anchor="middle">NIO 서버. 터미널 트랙</text>
 
   <rect class="bxo" x="470" y="42" width="180" height="56"/>
-  <text class="t" x="560" y="66" text-anchor="middle">ClflApp</text>
+  <text class="t" x="560" y="66" text-anchor="middle">ClfApp</text>
   <text class="s" x="560" y="84" text-anchor="middle">SwiftUI 메뉴바</text>
 
   <rect class="bxo" x="690" y="42" width="150" height="56"/>
-  <text class="t" x="765" y="66" text-anchor="middle">ClflDesktop</text>
+  <text class="t" x="765" y="66" text-anchor="middle">ClfDesktop</text>
   <text class="s" x="765" y="84" text-anchor="middle">남의 앱 읽기</text>
 
   <rect class="bxo" x="60" y="42" width="180" height="56"/>
-  <text class="t" x="150" y="66" text-anchor="middle">clflctl</text>
+  <text class="t" x="150" y="66" text-anchor="middle">clfctl</text>
   <text class="s" x="150" y="84" text-anchor="middle">단계별 실행과 점검</text>
 
 
@@ -602,10 +602,10 @@ a:hover { text-decoration: underline; }
 </svg>
 <p class="note" style="margin-top:8px">
   화살표는 의존하는 쪽에서 의존받는 쪽으로 향한다.
-  <code>ClflCore</code> 에 의존성을 하나도 두지 않은 것이 이 구성의 핵심이다.
+  <code>ClfCore</code> 에 의존성을 하나도 두지 않은 것이 이 구성의 핵심이다.
   NIO 가 한 번 들어오면 테스트가 이벤트 루프를 요구하기 시작한다.
   <br><br>
-  <code>ClflDesktop</code> 과 <code>ClflProxy</code> 는 서로 모른다. 트랙이 다르다.
+  <code>ClfDesktop</code> 과 <code>ClfProxy</code> 는 서로 모른다. 트랙이 다르다.
   앱은 Desktop 만 쓴다.
 </p>
 </div>
@@ -620,7 +620,7 @@ a:hover { text-decoration: underline; }
 <div class="flow" style="margin-top:20px">
   <div class="card step">
     <div class="when">요청 전</div>
-    <h4>clflctl</h4>
+    <h4>clfctl</h4>
     <p>터미널에서 단계를 실행한다. 앱 번들도 Xcode 도 없이 돈다.
       지금 요청이 오면 어디로 갈지 미리 판정해 본다.</p>
   </div>
@@ -661,10 +661,10 @@ a:hover { text-decoration: underline; }
   한도에 걸리기를 기다릴 수 없으므로 런타임 상태를 만들어 넣고 판정을 다시 돌린다.
 </p>
 <div class="term">
-$ clflctl runtime simulate naver_team_40 <span class="w">--rate-limit 600</span>
-  naver_team_40 상태를 바꿨다. clflctl select 로 확인한다
+$ clfctl runtime simulate naver_team_40 <span class="w">--rate-limit 600</span>
+  naver_team_40 상태를 바꿨다. clfctl select 로 확인한다
 
-$ clflctl select
+$ clfctl select
   <span class="d">순위  id             판정  여유  이유</span>
   <span class="d">----  -------------  ----  ----  ------------------------------------</span>
   1     naver_team_40  <span class="r">제외</span>  -     claude-opus-4-5 쿨다운 19:40:08 까지
@@ -680,21 +680,21 @@ $ clflctl select
   자격증명은 여전히 진짜 Keychain 으로 간다. 그래서 서비스 이름도 연다.
 </p>
 <div class="term">
-$ clflctl select \
-    <span class="w">--data-dir</span> /tmp/clfl-demo/data \
-    <span class="w">--claude-dir</span> /tmp/clfl-demo/claude \
-    <span class="w">--keychain-service</span> me.clfl.demo
+$ clfctl select \
+    <span class="w">--data-dir</span> /tmp/clf-demo/data \
+    <span class="w">--claude-dir</span> /tmp/clf-demo/claude \
+    <span class="w">--keychain-service</span> me.clf.demo
 </div>
 
 <h3>설치</h3>
 <p class="note">
-  <code>.build/debug/clflctl</code> 은 상대 경로라 저장소 밖에서 부를 수 없고,
+  <code>.build/debug/clfctl</code> 은 상대 경로라 저장소 밖에서 부를 수 없고,
   빌드를 다시 돌리면 자리가 바뀔 수 있다. 릴리스로 빌드해 PATH 에 링크한다.
 </p>
 <div class="term">
-$ ./scripts/install-clflctl.sh
+$ ./scripts/install-clfctl.sh
   <span class="d">빌드하는 중</span>
-  링크했다  ~/.local/bin/clflctl
+  링크했다  ~/.local/bin/clfctl
 </div>
 
 <h3>명령</h3>
@@ -730,7 +730,7 @@ $ ./scripts/install-clflctl.sh
 
 <p class="note">
   프록시가 도는 동안 내부 상태를 읽는 읽기 전용 HTTP 표면이다. 프록시 포트에
-  <code>/_clfl/...</code> 같은 경로를 얹지 않고 별도 포트를 쓴다.
+  <code>/_clf/...</code> 같은 경로를 얹지 않고 별도 포트를 쓴다.
 </p>
 
 <div class="two">
@@ -789,7 +789,7 @@ $ ./scripts/install-clflctl.sh
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
       <h3 style="margin:0"><span class="tag ok">완료</span> &nbsp; 사용량 읽기</h3>
-      <span class="meta">ClflDesktop. 테스트 60여개</span>
+      <span class="meta">ClfDesktop. 테스트 60여개</span>
     </div>
     <p class="note" style="margin-top:10px">
       데스크톱 앱의 <code>config.json</code> 에서 계정별 OAuth 토큰을 꺼낸다. 거기 담긴
@@ -813,11 +813,11 @@ $ ./scripts/install-clflctl.sh
       <code>Package.swift</code> 와 갈라지고 커맨드라인 빌드가 막힌다.
     </p>
     <p class="note">
-      실기기에서 확인했다. 막대에 <code>84%</code> 가 떴고 <code>clflctl</code> 과 같은
+      실기기에서 확인했다. 막대에 <code>84%</code> 가 떴고 <code>clfctl</code> 과 같은
       숫자다. Bartender 5 가 항목을 숨김 영역으로 보내서 눈으로는 못 보고 접근성
       API 로 읽었다.
     </p>
-    <p class="meta">./scripts/install-app.sh 다음 open ~/Applications/clfl.app</p>
+    <p class="meta">./scripts/install-app.sh 다음 open ~/Applications/clf.app</p>
   </div>
 
   <div class="card">
@@ -869,7 +869,7 @@ $ ./scripts/install-clflctl.sh
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
       <h3 style="margin:0"><span class="tag no">보류</span> &nbsp; 터미널 트랙 프록시</h3>
-      <span class="meta">ClflProxy 13파일. 테스트는 통과</span>
+      <span class="meta">ClfProxy 13파일. 테스트는 통과</span>
     </div>
     <p class="note" style="margin-top:10px">
       가짜 업스트림에 붙여 gzip SSE 릴레이와 헤더 병합과 세션 id 기록까지 확인했다.
@@ -929,7 +929,7 @@ $ ./scripts/install-clflctl.sh
   사용자는 토큰이 틀렸다고 생각한다. 등록 시점에 막는 편이 훨씬 싸다.
 </p>
 <div class="term">
-$ claude setup-token | clflctl accounts add naver_team_40 --plan team
+$ claude setup-token | clfctl accounts add naver_team_40 --plan team
   <span class="c">정리    제어 문자와 장식을 걷어내고 토큰을 뽑았다</span>
   종류    setup-token
   등록했다 naver_team_40 (team)
@@ -993,7 +993,7 @@ $ claude setup-token | clflctl accounts add naver_team_40 --plan team
 </div>
 
 <p class="meta" style="margin-top:48px;text-align:center">
-  clfl &nbsp;/&nbsp; 이 문서는 저장소 상태를 손으로 갱신한다. 자동 생성이 아니다.
+  clf &nbsp;/&nbsp; 이 문서는 저장소 상태를 손으로 갱신한다. 자동 생성이 아니다.
 </p>
 
 </div>

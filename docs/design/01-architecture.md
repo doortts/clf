@@ -31,7 +31,7 @@
 
 ## 1. 시스템 경계
 
-clfl 이 소유하는 것과 소유하지 않는 것을 먼저 못박는다. 대상이 둘이고 방식이
+clf 이 소유하는 것과 소유하지 않는 것을 먼저 못박는다. 대상이 둘이고 방식이
 다르다.
 
 ### 데스크톱 트랙 (지금 제품)
@@ -42,7 +42,7 @@ clfl 이 소유하는 것과 소유하지 않는 것을 먼저 못박는다. 대
         |  config.json, Cookies       <- 읽기만 한다. 절대 쓰지 않는다
         v
   +-------------------------------------+
-  |  clfl.app  (LSUIElement)            |
+  |  clf.app  (LSUIElement)            |
   |    MenuBarExtra + 팝오버            |
   |    DesktopReader (조직별 토큰 해독) |
   |    RefreshPacer (갱신 주기)         |
@@ -76,7 +76,7 @@ clfl 이 소유하는 것과 소유하지 않는 것을 먼저 못박는다. 대
   [api.anthropic.com]  또는 계정별 base_url
 ```
 
-clfl 은 **대화를 소유하지 않는다.** Messages API 는 stateless 이고 전체 이력은 매
+clf 은 **대화를 소유하지 않는다.** Messages API 는 stateless 이고 전체 이력은 매
 요청 body 에 담겨 온다. 여기서 하는 일은 요청 하나에 어떤 인증 헤더를 붙일지
 정하는 것뿐이다.
 
@@ -97,32 +97,32 @@ clfl 은 **대화를 소유하지 않는다.** Messages API 는 stateless 이고
 Swift Package Manager 타겟 여섯. **의존은 한 방향으로만 흐른다.**
 
 ```
-ClflApp        (SwiftUI, MenuBarExtra, MainActor)     clflctl  (검증 도구)
+ClfApp        (SwiftUI, MenuBarExtra, MainActor)     clfctl  (검증 도구)
    |                                                     |
-   +--> ClflDesktop  (남의 앱 읽기, 사용량, 설정)  <-----+
+   +--> ClfDesktop  (남의 앱 읽기, 사용량, 설정)  <-----+
    |       |                                             |
-   |       |            ClflProxy  (NIO, 터미널 트랙) <--+
+   |       |            ClfProxy  (NIO, 터미널 트랙) <--+
    |       |               |
-   +-------+---------------+--> ClflStore   (Keychain, 설정 파일, JSONL)
+   +-------+---------------+--> ClfStore   (Keychain, 설정 파일, JSONL)
    |       |               |       |
-   +-------+---------------+-------+--> ClflCore  (순수 도메인. I/O 없음)
+   +-------+---------------+-------+--> ClfCore  (순수 도메인. I/O 없음)
 ```
 
-`ClflDesktop` 과 `ClflProxy` 는 서로 모른다. 트랙이 다르다.
+`ClfDesktop` 과 `ClfProxy` 는 서로 모른다. 트랙이 다르다.
 
 | 타겟 | 담는 것 | 담지 않는 것 |
 |---|---|---|
-| **ClflCore** | HeaderBag, 헤더 변환, 응답 분류, reset epoch 계산, SSE 경계 스캐너/파서, 계정 선택 알고리즘, 쿨다운 산술 | 네트워크, 파일, 시계, 로그 |
-| **ClflStore** | Keychain 토큰, 계정/우선순위 영속화, 모델 쿨다운 캐시, usage/audit JSONL, `~/.claude/settings.json` 관리 | 라우팅 판단 |
-| **ClflDesktop** | safe storage 해독, 토큰 캐시 파싱, Usage API, 표시 문자열, 갱신 주기, 설정 | 화면. 남의 파일 쓰기 |
-| **ClflProxy** | 로컬 HTTP 서버, 업스트림 실행기, peek/릴레이 펌프, Router actor | 헤더/분류 규칙 (Core 호출) |
-| **ClflApp** | MenuBarExtra, 팝오버, 설정 화면, 로그인 항목 등록 | **판단.** 전부 ClflDesktop 에 있다 |
+| **ClfCore** | HeaderBag, 헤더 변환, 응답 분류, reset epoch 계산, SSE 경계 스캐너/파서, 계정 선택 알고리즘, 쿨다운 산술 | 네트워크, 파일, 시계, 로그 |
+| **ClfStore** | Keychain 토큰, 계정/우선순위 영속화, 모델 쿨다운 캐시, usage/audit JSONL, `~/.claude/settings.json` 관리 | 라우팅 판단 |
+| **ClfDesktop** | safe storage 해독, 토큰 캐시 파싱, Usage API, 표시 문자열, 갱신 주기, 설정 | 화면. 남의 파일 쓰기 |
+| **ClfProxy** | 로컬 HTTP 서버, 업스트림 실행기, peek/릴레이 펌프, Router actor | 헤더/분류 규칙 (Core 호출) |
+| **ClfApp** | MenuBarExtra, 팝오버, 설정 화면, 로그인 항목 등록 | **판단.** 전부 ClfDesktop 에 있다 |
 
-`ClflApp` 에 판단을 두지 않는 이유는 뷰를 테스트할 수 없기 때문이다. 잔여를
+`ClfApp` 에 판단을 두지 않는 이유는 뷰를 테스트할 수 없기 때문이다. 잔여를
 몇 퍼센트로 쓸지, 이름을 어떻게 줄일지, 리셋까지 몇 시간인지가 전부 순수
-함수라 `ClflDesktopTests` 가 잠근다. [11 문서](11-menubar-app.md) 2절.
+함수라 `ClfDesktopTests` 가 잠근다. [11 문서](11-menubar-app.md) 2절.
 
-### ClflCore 를 순수하게 유지하는 이유
+### ClfCore 를 순수하게 유지하는 이유
 
 claulay 가 가장 잘한 설계다. `swap.ts` 주석의 표현을 빌리면 "purity posture: 루프는
 주입된 의존성만 만지고 모든 I/O 는 deps 객체를 통과하므로 단위 테스트가 오프라인에서
@@ -134,7 +134,7 @@ claulay 가 가장 잘한 설계다. `swap.ts` 주석의 표현을 빌리면 "pu
 
 규칙:
 
-- ClflCore 의 모든 함수는 입력 -> 출력 순수 함수이거나, 값 타입 상태를 받아 새 값을 낸다
+- ClfCore 의 모든 함수는 입력 -> 출력 순수 함수이거나, 값 타입 상태를 받아 새 값을 낸다
 - 시계는 `now: Date` 파라미터로 받는다. `Date()` 를 내부에서 부르지 않는다
 - 난수, 파일, 소켓 금지
 
@@ -192,7 +192,7 @@ AsyncHTTPClient 의 `AsyncSequence` 를 쓴다. 릴레이 루프에서 클라이
 ## 4. 프로세스 수명과 settings.json 소유권
 
 **이 절이 claulay 대비 가장 큰 신규 설계 부담이다.** claulay 는 invocation 마다 프록시가
-뜨고 죽었으므로 "프록시가 없는 상태" 자체가 정상이었다. clfl 은 아니다.
+뜨고 죽었으므로 "프록시가 없는 상태" 자체가 정상이었다. clf 은 아니다.
 
 ### 정정: 이 방법은 터미널 CLI 에만 통한다
 
@@ -237,7 +237,7 @@ protocol ClaudeSettingsManaging {
 
 - **read-modify-write.** 모르는 키는 전부 보존한다. 사용자의 `hooks`, `statusLine`,
   `permissions`, `model` 을 절대 잃지 않는다
-- 최초 쓰기 전에 `settings.json.clfl.bak` 로 백업
+- 최초 쓰기 전에 `settings.json.clf.bak` 로 백업
 - 우리가 만지는 키는 `env.ANTHROPIC_BASE_URL` 과 `env.ENABLE_TOOL_SEARCH` 둘뿐
 - 이미 다른 값이 들어 있으면 거부하고 사용자에게 알린다. `force` 로만 덮어쓴다
 - `CLAUDE_CONFIG_DIR` 환경변수가 있으면 그 경로를 쓴다
@@ -247,7 +247,7 @@ protocol ClaudeSettingsManaging {
 `ANTHROPIC_BASE_URL` 이 first-party 호스트가 아니면 Claude Code 가 **MCP 도구 검색을
 스스로 끈다.** 프록시가 `tool_reference` 블록을 제대로 전달하는지 알 수 없기 때문이다.
 
-clfl 은 응답을 바이트 그대로 릴레이하므로 그 블록을 온전히 전달한다. 따라서
+clf 은 응답을 바이트 그대로 릴레이하므로 그 블록을 온전히 전달한다. 따라서
 **`env.ENABLE_TOOL_SEARCH = "true"` 를 `ANTHROPIC_BASE_URL` 과 함께 항상 쓴다.**
 
 옵션이 아니라 기본이다. 사용자가 도구 검색이 꺼진 것을 눈치채고 설정을 뒤지게 만들면
@@ -303,7 +303,7 @@ protocol ClaudeSettingsManaging { /* 4절 */ }
 - Keychain 접근 없이 계정 CRUD 테스트가 돈다
 
 claulay 의 `interceptor.test.ts` / `headers.test.ts` / `stream-peek.test.ts` 케이스 목록이
-그대로 ClflCore 테스트가 된다 ([포팅 문서](../porting/README.md) 참고).
+그대로 ClfCore 테스트가 된다 ([포팅 문서](../porting/README.md) 참고).
 
 ---
 
@@ -325,39 +325,39 @@ claulay 의 `interceptor.test.ts` / `headers.test.ts` / `stream-peek.test.ts` �
 ## 7. 디렉토리 레이아웃
 
 ```
-clfl/
+clf/
 +-- Package.swift
 +-- Sources/
-|   +-- ClflCore/
+|   +-- ClfCore/
 |   |   +-- Headers/          HeaderBag, ProxyHeaders
 |   |   +-- Classification/   SwapTrigger, classifyResponse, resolveResetEpoch
 |   |   +-- SSE/              findSSEBoundary, SSEParser, peek 알고리즘
 |   |   +-- Selection/        AccountSelector, 쿨다운 산술
 |   |   `-- Model/            Account, AccountRuntime, RoutingEvent
-|   +-- ClflStore/
+|   +-- ClfStore/
 |   |   +-- KeychainTokenStore.swift
 |   |   +-- ConfigStore.swift
 |   |   +-- JSONLSink.swift
 |   |   `-- ClaudeSettings.swift
-|   +-- ClflProxy/
+|   +-- ClfProxy/
 |   |   +-- ProxyServer.swift
 |   |   +-- Router.swift          (actor)
 |   |   +-- UpstreamExecutor.swift
 |   |   `-- RelayPump.swift
-|   `-- ClflApp/
-|       +-- ClflApp.swift         (MenuBarExtra)
+|   `-- ClfApp/
+|       +-- ClfApp.swift         (MenuBarExtra)
 |       +-- ViewModels/
 |       `-- Views/
 `-- Tests/
-    +-- ClflCoreTests/        <- claulay 테스트 케이스 이식본
-    +-- ClflStoreTests/
-    `-- ClflProxyTests/
+    +-- ClfCoreTests/        <- claulay 테스트 케이스 이식본
+    +-- ClfStoreTests/
+    `-- ClfProxyTests/
 ```
 
 앱 데이터는 macOS 관례를 따른다.
 
 ```
-~/Library/Application Support/clfl/
+~/Library/Application Support/clf/
 +-- accounts.json      계정 메타데이터 + 우선순위 (토큰 없음)
 +-- runtime.json       계정별 런타임 상태 (쿨다운, 무효화, ratelimit 스냅샷)
 +-- usage.jsonl

@@ -5,44 +5,44 @@
 # 갈라지기 때문이다. 번들이 필요한 것은 세 가지뿐이라 손으로 만드는 편이 싸다.
 #   - Contents/MacOS/<실행파일>
 #   - Contents/Info.plist  (LSUIElement 로 Dock 아이콘을 없앤다)
-#   - Contents/Resources/clfl.icns
+#   - Contents/Resources/clf.icns
 #   - 임시 서명            (없으면 실행이 막힌다)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG=${1:-release}
-APP=.build/clfl.app
-BUNDLE_ID=com.suwonchae.clfl
+APP=.build/clf.app
+BUNDLE_ID=com.suwonchae.clf
 VERSION=$(git describe --tags --always 2>/dev/null || echo dev)
 
-swift build -c "$CONFIG" --product ClflApp
+swift build -c "$CONFIG" --product ClfApp
 
 # 아이콘은 코드로 그린다. 결과물은 커밋하지 않고 소스가 바뀔 때만 다시 만든다.
 # Dock 에는 안 뜨지만 메뉴바 관리 앱(Bartender 류)의 목록이 이걸로 항목을 그린다.
 # 아이콘이 없으면 이름 없는 빈 줄이 되어 사용자가 못 찾는다.
-ICON=.build/clfl.icns
+ICON=.build/clf.icns
 if [ ! -f "$ICON" ] || [ tools/make-icon.swift -nt "$ICON" ]; then
   swiftc -O tools/make-icon.swift -o .build/make-icon
-  rm -rf .build/clfl.iconset
-  .build/make-icon .build/clfl.iconset >/dev/null
-  iconutil -c icns .build/clfl.iconset -o "$ICON"
+  rm -rf .build/clf.iconset
+  .build/make-icon .build/clf.iconset >/dev/null
+  iconutil -c icns .build/clf.iconset -o "$ICON"
 fi
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp ".build/$CONFIG/ClflApp" "$APP/Contents/MacOS/clfl"
-cp "$ICON" "$APP/Contents/Resources/clfl.icns"
+cp ".build/$CONFIG/ClfApp" "$APP/Contents/MacOS/clf"
+cp "$ICON" "$APP/Contents/Resources/clf.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key>              <string>clfl</string>
-  <key>CFBundleDisplayName</key>       <string>clfl</string>
+  <key>CFBundleName</key>              <string>clf</string>
+  <key>CFBundleDisplayName</key>       <string>clf</string>
   <key>CFBundleIdentifier</key>        <string>$BUNDLE_ID</string>
-  <key>CFBundleExecutable</key>        <string>clfl</string>
-  <key>CFBundleIconFile</key>          <string>clfl</string>
+  <key>CFBundleExecutable</key>        <string>clf</string>
+  <key>CFBundleIconFile</key>          <string>clf</string>
   <key>CFBundlePackageType</key>       <string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key>           <string>$VERSION</string>
@@ -58,4 +58,4 @@ codesign --force --sign - "$APP" 2>/dev/null
 
 echo "  $APP  ($CONFIG, $VERSION)"
 echo "  open $APP        메뉴바에 뜬다"
-echo "  pkill -f clfl.app  내린다"
+echo "  pkill -f clf.app  내린다"

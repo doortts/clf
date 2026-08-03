@@ -4,7 +4,7 @@
 >
 > 전체 범위는 [00 범위](00-scope.md) 를 본다.
 
-`/Users/cpm4/repos/CCSwitcher` (v1.12.0, build 66) 를 읽고 clfl 설계와 대조한 것.
+`/Users/cpm4/repos/CCSwitcher` (v1.12.0, build 66) 를 읽고 clf 설계와 대조한 것.
 같은 문제를 **정반대 방식**으로 푼 앱이라 배울 것과 다시 생각할 것이 둘 다 있다.
 
 ---
@@ -23,7 +23,7 @@
 | 샌드박스 | 앱은 off, 위젯만 on + app group |
 | 대상 | Claude Code, Codex, Gemini (provider 개념 있음) |
 
-clfl 이 아직 문서만 있는 단계인 것과 대비된다. 배포 파이프라인, 위젯, 다국어까지
+clf 이 아직 문서만 있는 단계인 것과 대비된다. 배포 파이프라인, 위젯, 다국어까지
 갖춘 실제 제품이다.
 
 ---
@@ -51,14 +51,14 @@ Security framework 가 아니라 **`security` CLI** 를 쓴다. 프레임워크�
 Claude 의 keychain 항목은 ACL 이 남의 것이라 매번 프롬프트가 뜨고, 자기 항목조차
 개발 빌드마다 코드서명이 바뀌어 다시 묻는다. CLI 는 "항상 허용" 이 유지된다.
 
-### clfl: HTTP 프록시
+### clf: HTTP 프록시
 
 `settings.json` 의 `env.ANTHROPIC_BASE_URL` 로 트래픽을 우리 포트로 돌리고, 요청마다
 헤더에 토큰을 주입한다. Claude 의 keychain 도 `~/.claude.json` 도 건드리지 않는다.
 
 ### 파생되는 차이
 
-| | CCSwitcher | clfl |
+| | CCSwitcher | clf |
 |---|---|---|
 | 네트워크 개입 | 없음 | 로컬 홉 하나 |
 | 남의 파일/keychain 수정 | **한다** (Claude 의 자격증명 자리) | 안 한다 (settings.json 의 env 한 줄만) |
@@ -68,7 +68,7 @@ Claude 의 keychain 항목은 ACL 이 남의 것이라 매번 프롬프트가 �
 | Remote Control | **정상** | 사용 불가 |
 | 앱이 꺼져 있을 때 | 마지막 계정으로 그냥 동작 | settings.json 을 지우고 나가야 함 |
 
-**마지막 세 줄이 아프다.** clfl 이 README 에 "알려진 대가" 로 적은 제약이
+**마지막 세 줄이 아프다.** clf 이 README 에 "알려진 대가" 로 적은 제약이
 CCSwitcher 에는 아예 없다. 프록시를 안 쓰기 때문이다.
 
 ---
@@ -112,12 +112,12 @@ if accounts.contains(where: { $0.email == email }) {
 `Account` 에 `orgName` 필드가 있고 표시에도 쓰지만(`displayName: status.orgName ?? email`),
 **중복 판정은 이메일로만 한다.** 조직이 식별 축이 아니라 장식이다.
 
-### 이것이 clfl 의 존재 이유를 바꾼다
+### 이것이 clf 의 존재 이유를 바꾼다
 
 앞 절에서 프록시 비용을 정당화하는 근거로 모델별 한도와 진행 중 요청 구제를 꼽았다.
 여기에 더 앞서는 것이 하나 있다.
 
-**clfl 은 애초에 신원으로 계정을 구분하지 않는다.** 사용자가 이름을 붙이고 우리는
+**clf 은 애초에 신원으로 계정을 구분하지 않는다.** 사용자가 이름을 붙이고 우리는
 토큰을 그 이름에 묶을 뿐이다. [05 문서](05-account-registration.md) 6절에서 "토큰이
 어느 조직 것인지 알 수 없다" 를 한계로 적었는데, **한 이메일에 조직이 여럿인 환경에서는
 오히려 그게 맞는 모델이다.** 신원으로 묶으려 들면 세 조직이 한 계정으로 붕괴한다.
@@ -129,9 +129,9 @@ CCSwitcher 가 이걸 고치려면 식별 축을 `(email, orgId)` 로 바꿔야 
 
 ## 4. 토큰이 다르다 - 가장 중요한 발견
 
-두 앱이 쓰는 토큰의 **종류가 다르다.** 이건 clfl 설계를 다시 보게 만든다.
+두 앱이 쓰는 토큰의 **종류가 다르다.** 이건 clf 설계를 다시 보게 만든다.
 
-| | CCSwitcher | clfl (현재 설계) |
+| | CCSwitcher | clf (현재 설계) |
 |---|---|---|
 | 획득 | `claude auth login` | `claude setup-token` |
 | 접근 토큰 | `sk-ant-oat01-` | `sk-ant-oat01-` (같음) |
@@ -170,7 +170,7 @@ Authorization: Bearer <accessToken>
 anthropic-beta: oauth-2025-04-20
 ```
 
-`anthropic-beta` 플래그가 clfl 이 [포팅 01](../porting/01-headers-and-auth.md) 에서
+`anthropic-beta` 플래그가 clf 이 [포팅 01](../porting/01-headers-and-auth.md) 에서
 다루는 것과 같은 값이다. 403 은 "활성 Pro/Max 구독 없음" 을 뜻한다.
 
 ---
@@ -180,7 +180,7 @@ anthropic-beta: oauth-2025-04-20
 ### CCSwitcher: 선제적, 폴링 기반, threshold + hysteresis
 
 `AutoSwitchEngine.swift` 113줄이 순수 결정 로직이고 상태가 필요한 가드는 전부
-`AppState` 에 있다. **우리가 ClflCore 를 순수하게 두려는 것과 같은 분리다.**
+`AppState` 에 있다. **우리가 ClfCore 를 순수하게 두려는 것과 같은 분리다.**
 
 ```
 5분마다 refresh
@@ -224,9 +224,9 @@ anthropic-beta: oauth-2025-04-20
 > "한가함" 이 아니다. 이걸 폴백으로 취급했더니 **자동 전환이 이미 소진된 계정에
 > 착지했다.** 이 기능이 막으려던 바로 그 실패다.
 
-### clfl: 반응형 + 대화 시작 시 선제 강등
+### clf: 반응형 + 대화 시작 시 선제 강등
 
-| | CCSwitcher | clfl |
+| | CCSwitcher | clf |
 |---|---|---|
 | 주 트리거 | 사용률 임계값 | **429 수신** |
 | 데이터 취득 | Usage API 능동 폴링 | 응답 헤더 편승 |
@@ -239,7 +239,7 @@ anthropic-beta: oauth-2025-04-20
 
 ---
 
-## 6. clfl 에 반영할 것
+## 6. clf 에 반영할 것
 
 읽으면서 우리 설계의 구멍이 다섯 개 드러났다.
 
@@ -300,10 +300,10 @@ Usage API 가 열리면 선제 전환의 정확도가 크게 올라가므로 언
 
 ## 7. 다시 생각할 것: 우리 트레이드오프가 옳은가
 
-CCSwitcher 를 보고 나면 clfl 의 근본 선택을 다시 물어야 한다.
+CCSwitcher 를 보고 나면 clf 의 근본 선택을 다시 물어야 한다.
 
 ```
-clfl        : 같은 턴 스왑을 얻고, MCP tool search 와 Remote Control 을 잃는다
+clf        : 같은 턴 스왑을 얻고, MCP tool search 와 Remote Control 을 잃는다
 CCSwitcher  : 그 둘을 지키고, 같은 턴 스왑을 포기한다
 ```
 
@@ -317,7 +317,7 @@ CCSwitcher  : 그 둘을 지키고, 같은 턴 스왑을 포기한다
 - **모델별 한도** (fable 주간 등). Usage API 의 5h/7d 로는 안 보인다
 - 계정 전체가 아니라 특정 모델만 막혔을 때 다른 모델은 계속 쓰기
 
-마지막 두 개가 clfl 의 진짜 차별점이다. CCSwitcher 는 계정 단위로만 전환하므로
+마지막 두 개가 clf 의 진짜 차별점이다. CCSwitcher 는 계정 단위로만 전환하므로
 `fable` 주간 한도가 소진돼도 `opus` 가 멀쩡한 상황을 표현하지 못한다.
 claulay 가 `model-cooldowns.json` 을 도입하며 배운 바로 그 문제다.
 
@@ -326,11 +326,11 @@ claulay 가 `model-cooldowns.json` 을 도입하며 배운 바로 그 문제다.
 | 이런 사용자라면 | 어느 쪽 |
 |---|---|
 | 조직 2~3개, 하루 몇 시간, MCP 를 많이 씀 | **CCSwitcher.** 이미 있고 성숙하다 |
-| 조직 6개, 종일 사용, 모델별 한도에 자주 걸림 | clfl |
-| Agent teams 나 백그라운드 세션을 씀 | clfl (프록시가 자식까지 커버) |
+| 조직 6개, 종일 사용, 모델별 한도에 자주 걸림 | clf |
+| Agent teams 나 백그라운드 세션을 씀 | clf (프록시가 자식까지 커버) |
 | Remote Control 이 필요 | CCSwitcher |
 
-**clfl 을 계속 만들 이유는 있다.** 다만 "다중 계정 전환기" 가 아니라
+**clf 을 계속 만들 이유는 있다.** 다만 "다중 계정 전환기" 가 아니라
 **"모델별 한도까지 보는, 같은 턴 안에서 끊김 없는 라우터"** 로 좁혀 말해야 정직하다.
 그게 프록시 비용을 지불할 유일한 근거다.
 
@@ -342,7 +342,7 @@ claulay 가 `model-cooldowns.json` 을 도입하며 배운 바로 그 문제다.
 
 | 항목 | 배울 점 |
 |---|---|
-| `AutoSwitchEngine` 분리 | 순수 결정 로직 113줄, 상태 가드는 AppState. 우리 ClflCore 원칙과 같다 |
+| `AutoSwitchEngine` 분리 | 순수 결정 로직 113줄, 상태 가드는 AppState. 우리 ClfCore 원칙과 같다 |
 | `security` CLI | 개발 빌드마다 코드서명이 바뀌어 Security framework 는 프롬프트가 반복된다 |
 | XcodeGen `project.yml` | 앱+위젯 타겟을 선언적으로. `.xcodeproj` 충돌이 사라진다 |
 | Sparkle + EdDSA 서명 | 사내 배포에도 그대로 쓸 수 있는 자동 업데이트 |
@@ -372,7 +372,7 @@ claulay 가 `model-cooldowns.json` 을 도입하며 배운 바로 그 문제다.
 ### 우리가 CCSwitcher 와 다르게 간 지점
 
 **읽기 없는 후보를 제외하지 않고 tier 1 로 내린다.** 그쪽은 부적격 처리하는데, 선제
-전환만 하므로 후보를 빼도 제자리에 있으면 그만이기 때문이다. clfl 은 반응형 경로가
+전환만 하므로 후보를 빼도 제자리에 있으면 그만이기 때문이다. clf 은 반응형 경로가
 함께 있어 후보를 풀에서 빼면 429 때 넘어갈 곳이 사라진다.
 
 **반응형 스왑에는 쿨다운을 걸지 않는다.** 429 는 판단이 아니라 서버의 사실 통보다.

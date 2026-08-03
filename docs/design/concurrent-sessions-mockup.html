@@ -138,13 +138,13 @@
   <code>git status</code> 를 돌려봤기 때문이고, 이건 그것을 운에서 기본값으로
   바꾼다. Vim 이 <code>.swp</code> 로 하는 것과 같다. 막지 않고
   <b>누가 잡고 있는지</b> 말한다. 설치 자리는
-  <code>clflctl settings install</code> 이 이미 쓰는
+  <code>clfctl settings install</code> 이 이미 쓰는
   <code>~/.claude/settings.json</code> 이다.
 </p>
 
 <h3>방식 A. 한 줄</h3>
 <div class="unit">
-<div class="term"><span class="tag">clfl</span> 이 폴더에 다른 세션 2개가 열려 있다</div>
+<div class="term"><span class="tag">clf</span> 이 폴더에 다른 세션 2개가 열려 있다</div>
 <p class="cap">
   가장 싸고 안 거슬린다. 다만 <b>무엇을 하라는 말이 없다.</b> 이 한 줄로는
   모델이 그냥 지나칠 수 있다.
@@ -153,7 +153,7 @@
 
 <h3>방식 B. 누구인지 말한다<span class="rec">권장</span></h3>
 <div class="unit">
-<div class="term"><span class="tag">clfl</span> <span class="warn">이 작업 폴더를 쓰는 세션이 2개 더 있다</span>
+<div class="term"><span class="tag">clf</span> <span class="warn">이 작업 폴더를 쓰는 세션이 2개 더 있다</span>
 
   Clauly 도구를 GUI 기반으로 변환하기    <span class="dim">3분 전에 씀</span>   <span class="dim">TEAM_40</span>
   게이지 잉크와 깊이                     <span class="dim">방금 씀</span>       <span class="dim">TEAM_52</span>
@@ -174,10 +174,10 @@
 
 <h3>방식 C. 파일까지 짚는다<span class="no">나중</span></h3>
 <div class="unit">
-<div class="term"><span class="tag">clfl</span> <span class="warn">겹치는 파일이 있다</span>
+<div class="term"><span class="tag">clf</span> <span class="warn">겹치는 파일이 있다</span>
 
-  Sources/ClflApp/BarLabel.swift     <span class="dim">다른 세션이 4분 전에 고쳤다</span>
-  Sources/ClflApp/UsageModel.swift   <span class="dim">다른 세션이 방금 고쳤다</span></div>
+  Sources/ClfApp/BarLabel.swift     <span class="dim">다른 세션이 4분 전에 고쳤다</span>
+  Sources/ClfApp/UsageModel.swift   <span class="dim">다른 세션이 방금 고쳤다</span></div>
 <p class="cap">
   가장 정확하다. 그런데 어느 세션이 어느 파일을 고쳤는지 알려면 트랜스크립트를
   뒤져야 하고 <b>실측 88MB 짜리가 있다.</b> 세션을 열 때마다 하기엔 무겁다.
@@ -187,7 +187,7 @@
 
 <h2>2. 팝오버에서 알린다</h2>
 <p class="sub">
-  Google Docs 가 접속자를 보여주는 것과 같은 갈래다. clfl 은 이미
+  Google Docs 가 접속자를 보여주는 것과 같은 갈래다. clf 은 이미
   <code>SessionSummary</code> 에 <code>folder</code> 를 갖고 있어 데이터가 다 있다.
 </p>
 
@@ -235,7 +235,7 @@
   <div class="sep"></div>
   <p class="glabel">겹치는 작업 폴더</p>
   <div class="frow">
-    <span>clfl</span>
+    <span>clf</span>
     <span class="rect hot">세션 3</span>
     <span class="grow"></span>
     <span class="why">커밋 안 된 변경 12개</span>
@@ -257,7 +257,7 @@
   <div class="pad">
     <div class="strip">
       <span class="mark">!</span>
-      <span><b>clfl 폴더에 세션이 3개 있다.</b> 이 대화를 넘겨도 나머지 둘은
+      <span><b>clf 폴더에 세션이 3개 있다.</b> 이 대화를 넘겨도 나머지 둘은
       같은 파일을 계속 고친다. 넘기기 전에 커밋해 두면 섞이지 않는다.
       <br><br>
       <b>기본 창은 재시작 전까지 이 대화가 목록에 남아 있고, 그 줄을 누르면
@@ -269,14 +269,14 @@
         <span class="box"></span>
         <span class="meta">
           <span class="name">Clauly 도구를 GUI 기반으로 변환하기</span>
-          <span class="sub2">clfl &#183; 3분 전</span>
+          <span class="sub2">clf &#183; 3분 전</span>
         </span>
       </div>
       <div class="row">
         <span class="box"></span>
         <span class="meta">
           <span class="name">게이지 잉크와 깊이</span>
-          <span class="sub2">clfl &#183; 방금</span>
+          <span class="sub2">clf &#183; 방금</span>
         </span>
       </div>
     </div>
@@ -308,14 +308,14 @@
 
 <h3>방식 A. doctor 에 한 줄 더한다<span class="rec">권장</span></h3>
 <div class="unit">
-<div class="term"><span class="dim">$ clflctl doctor</span>
+<div class="term"><span class="dim">$ clfctl doctor</span>
 
       항목                     상세
-  <span class="good">ok</span>  데이터 디렉토리           /Users/cpm4/.clfl
+  <span class="good">ok</span>  데이터 디렉토리           /Users/cpm4/.clf
   <span class="good">ok</span>  Claude 설정 디렉토리      /Users/cpm4/.claude
   <span class="good">ok</span>  등록된 조직               3개, 자동 전환 2개
   <span class="bad">no</span>  대화-계정 짝              3개가 두 계정에 겹쳐 있다.
-                                clflctl desktop dedupe
+                                clfctl desktop dedupe
 
   <span class="bad">1개 항목이 준비되지 않았다</span></div>
 <p class="cap">
@@ -362,14 +362,14 @@
         <span class="meta">
           <span class="name">Clauly 도구를 GUI 기반으로 변환하기</span>
           <span class="sub2" style="color:#ffd60a">두 계정에 겹쳐 있어 못 옮긴다.
-            clflctl doctor 로 본다</span>
+            clfctl doctor 로 본다</span>
         </span>
       </div>
       <div class="row on">
         <span class="box"></span>
         <span class="meta">
           <span class="name">게이지 잉크와 깊이</span>
-          <span class="sub2">clfl &#183; 방금</span>
+          <span class="sub2">clf &#183; 방금</span>
         </span>
       </div>
     </div>

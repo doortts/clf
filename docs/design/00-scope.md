@@ -81,7 +81,7 @@
 | [05 계정 등록](05-account-registration.md) | 터미널 | `setup-token` 경로 |
 | [06 CCSwitcher 비교](06-ccswitcher-comparison.md) | 참고 | 남의 구현 분석 |
 | [07 OAuth 자격증명](07-oauth-credentials.md) | 터미널 | 토큰 캡처와 갱신 |
-| [08 검증](08-verification.md) | 공통 | `clflctl`, 실측 기록. **막힌 근거가 여기 있다** |
+| [08 검증](08-verification.md) | 공통 | `clfctl`, 실측 기록. **막힌 근거가 여기 있다** |
 | [09 계정 전환](09-desktop-org-switch.md) | 데스크톱 | 전환 조사와 안 하기로 한 결론 |
 | [10 사용량 읽기](10-desktop-usage.md) | 데스크톱 | 토큰 캐시, 스코프, 설정, 갱신 주기 |
 | [11 메뉴바 앱](11-menubar-app.md) | 데스크톱 | 번들, 화면, 로그인 항목, 429 |

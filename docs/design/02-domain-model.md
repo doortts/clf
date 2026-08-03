@@ -5,7 +5,7 @@
 >
 > 전체 범위는 [00 범위](00-scope.md) 를 본다.
 
-ClflCore 가 다루는 타입, 계정 상태의 정의, 선택 알고리즘, 영속화 분할.
+ClfCore 가 다루는 타입, 계정 상태의 정의, 선택 알고리즘, 영속화 분할.
 
 ---
 
@@ -295,7 +295,7 @@ CCSwitcher 는 읽기 없는 후보를 **부적격**으로 뺀다. 라운드로�
 **우리는 제외하지 않고 tier 1 로 내린다.** 이유가 다르다.
 
 - CCSwitcher 는 선제 전환만 한다. 후보를 빼도 그냥 제자리에 있으면 그만이다
-- clfl 은 반응형 경로가 함께 있다. 후보를 풀에서 빼버리면 429 를 맞았을 때 넘어갈 곳이
+- clf 은 반응형 경로가 함께 있다. 후보를 풀에서 빼버리면 429 를 맞았을 때 넘어갈 곳이
   사라진다. **가용성을 줄이는 대가가 그쪽보다 크다**
 
 그리고 우리는 등록할 때 검증 요청으로 첫 스냅샷을 채우므로
@@ -483,10 +483,10 @@ struct RoutingEvent: Codable, Sendable {
 ## 6. 영속화 분할
 
 ```
-Keychain (service: "clfl")
+Keychain (service: "clf")
   account = <AccountID>, secret = OAuth 토큰
 
-~/Library/Application Support/clfl/
+~/Library/Application Support/clf/
 +-- accounts.json      Account 목록 + priority 배열
 +-- runtime.json       AccountID -> AccountRuntime 전체
 +-- usage.jsonl        요청별 토큰 사용량 (append)
@@ -496,7 +496,7 @@ Keychain (service: "clfl")
 
 ### runtime.json 을 영속화하는 이유
 
-clfl 은 상시 실행 앱이지만 로그인, 업데이트, 크래시로 재시작한다. 재시작할 때마다
+clf 은 상시 실행 앱이지만 로그인, 업데이트, 크래시로 재시작한다. 재시작할 때마다
 런타임 상태를 잃으면:
 
 - 소진된 (계정, 모델) 쌍을 다시 프로브해서 429 캐스케이드를 반복한다

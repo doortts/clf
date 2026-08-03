@@ -28,7 +28,7 @@ Weekly, Fable                                 0%      <- 여기
 `setup-token` 은 `scope=user:inference` 만 준다([05](05-account-registration.md) 2절
 실측). 그래서 그 경로로는 세 번째 줄을 영영 볼 수 없다.
 
-**모델별 한도가 clfl 의 핵심 차별점인데 그걸 보지 못하는 것은 모순이다.** 429 를 맞고
+**모델별 한도가 clf 의 핵심 차별점인데 그걸 보지 못하는 것은 모순이다.** 429 를 맞고
 나서야 아는 것과 미리 보고 옮기는 것은 다른 도구다.
 
 ---
@@ -85,7 +85,7 @@ Weekly, Fable                                 0%      <- 여기
 ### 우리는 읽기만 한다
 
 CCSwitcher 는 이 슬롯을 **덮어써서** 전환한다([06](06-ccswitcher-comparison.md) 2절).
-clfl 은 캡처 시점에 **한 번 읽을 뿐 절대 쓰지 않는다.** 라우팅은 프록시가 헤더로
+clf 은 캡처 시점에 **한 번 읽을 뿐 절대 쓰지 않는다.** 라우팅은 프록시가 헤더로
 하므로 남의 자격증명 자리를 바꿀 이유가 없다.
 
 그 결과 세 조직을 캡처하고 나면 Claude 의 슬롯에는 **마지막에 로그인한 조직**이 남는다.
@@ -327,7 +327,7 @@ enum CredentialKind: String, Codable, Sendable {
 
 | 문서 | 변경 |
 |---|---|
-| [01 아키텍처](01-architecture.md) | `ClflStore` 가 Claude 의 keychain 슬롯을 **읽는다**(쓰지 않는다). `TokenProvider` 가 `ClflProxy` 에 추가 |
+| [01 아키텍처](01-architecture.md) | `ClfStore` 가 Claude 의 keychain 슬롯을 **읽는다**(쓰지 않는다). `TokenProvider` 가 `ClfProxy` 에 추가 |
 | [02 도메인 모델](02-domain-model.md) | `Account.credentialKind`. `RateLimitSnapshot.source` 가 실제로 두 값을 갖게 됨 |
 | [03 요청 흐름](03-request-flow.md) | 401 분기가 갱신 시도를 포함. 실패 모드 표에 갱신 항목 |
 | [05 계정 등록](05-account-registration.md) | `setup-token` 경로가 기본에서 **폴백**으로. 마법사가 두 경로를 제시 |

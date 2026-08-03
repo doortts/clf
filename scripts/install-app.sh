@@ -12,12 +12,12 @@ DEST=${1:-$HOME/Applications}
 
 mkdir -p "$DEST"
 # 돌고 있으면 먼저 내린다. 실행 중인 번들을 덮어쓰면 다음 실행이 깨진다
-pkill -f "clfl.app/Contents/MacOS/clfl" 2>/dev/null || true
+pkill -f "clf.app/Contents/MacOS/clf" 2>/dev/null || true
 sleep 1
-rm -rf "$DEST/clfl.app"
-cp -R .build/clfl.app "$DEST/clfl.app"
-codesign --force --sign - "$DEST/clfl.app" 2>/dev/null
+rm -rf "$DEST/clf.app"
+cp -R .build/clf.app "$DEST/clf.app"
+codesign --force --sign - "$DEST/clf.app" 2>/dev/null
 
-echo "  $DEST/clfl.app"
-echo "  open '$DEST/clfl.app'"
+echo "  $DEST/clf.app"
+echo "  open '$DEST/clf.app'"
 echo "  설정에서 '로그인할 때 실행' 을 켤 수 있다"

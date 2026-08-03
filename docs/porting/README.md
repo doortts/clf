@@ -56,7 +56,7 @@ claulay는 cross-plan 경고를 `(from, to)` 쌍당 **1시간에 1회**로 억�
 그래서 반복 문제가 생겼고, 그래서 dedupe가 필요했다. **dedupe는 표현력 부족을 메우는
 우회로였지 설계가 아니다.**
 
-| kind | claulay | clfl |
+| kind | claulay | clf |
 |---|---|---|
 | `cross_plan` | 30분 표시 / 1시간 dedupe | 조건 지속 중 상시 배너 + 타임라인. **dedupe 없음** |
 | `auth_401` | 30분 표시 | 계정 카드에 `!` 뱃지 (사용자가 해소할 때까지) |

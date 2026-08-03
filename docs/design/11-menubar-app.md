@@ -9,9 +9,9 @@
 앱 번들은 세 가지만 있으면 된다.
 
 ```
-clfl.app/Contents/MacOS/clfl          SPM 이 만든 실행 파일
-clfl.app/Contents/Info.plist          LSUIElement 로 Dock 아이콘을 없앤다
-clfl.app/Contents/Resources/clfl.icns 아이콘
+clf.app/Contents/MacOS/clf          SPM 이 만든 실행 파일
+clf.app/Contents/Info.plist          LSUIElement 로 Dock 아이콘을 없앤다
+clf.app/Contents/Resources/clf.icns 아이콘
                                       임시 서명. 없으면 실행이 막힌다
 ```
 
@@ -34,10 +34,10 @@ Xcode 프로젝트를 두면 타겟 정의가 `Package.swift` 와 두 곳으로 
 ```
 ./scripts/make-app.sh          릴리스로 빌드하고 번들을 만든다
 ./scripts/make-app.sh debug    디버그로
-open .build/clfl.app
+open .build/clf.app
 ```
 
-`ClflApp` 은 평범한 SPM 실행 타겟이다. `swift build` 로 컴파일 오류를 바로 본다.
+`ClfApp` 은 평범한 SPM 실행 타겟이다. `swift build` 로 컴파일 오류를 바로 본다.
 
 ---
 
@@ -45,12 +45,12 @@ open .build/clfl.app
 
 | | |
 |---|---|
-| `ClflDesktop` | 읽기, 설정, 주기, 글자 만들기. 전부 테스트 가능 |
-| `ClflApp` | SwiftUI 뷰와 상태 하나 |
+| `ClfDesktop` | 읽기, 설정, 주기, 글자 만들기. 전부 테스트 가능 |
+| `ClfApp` | SwiftUI 뷰와 상태 하나 |
 
 뷰에서 테스트할 것이 남지 않게 갈랐다. 잔여를 몇 퍼센트로 쓸지, 이름을 어떻게
-줄일지, 리셋까지 몇 시간인지는 전부 순수 함수라 `ClflDesktopTests` 가 잠근다.
-`ClflApp` 에는 판단이 없다.
+줄일지, 리셋까지 몇 시간인지는 전부 순수 함수라 `ClfDesktopTests` 가 잠근다.
+`ClfApp` 에는 판단이 없다.
 
 `UsageModel` 하나가 읽기와 설정과 주기를 쥔다. 뷰는 읽기만 한다.
 
@@ -197,7 +197,7 @@ Claude 창이 하나도 앞에 없으면 지운다. 밑줄은 "지금 이 창" �
 너비 340pt, 안쪽 여백 14pt.
 
 ```
-  clfl                                       [갱신] [종료]
+  clf                                       [갱신] [종료]
 
   * NAVER_TEAM_40  [team] [여유]              사용 중
       5시간      ::::::::::::::::::::::::  91%
@@ -320,7 +320,7 @@ ko_KR 이 요일을 괄호로 감싼 형식을 돌려줘 `((금요일) 오전 5:
   잔여 기준 그대로다. gauge-direction-mockup.html
 - 계정마다 체크박스와 위아래 화살표
 
-바뀌는 즉시 `~/Library/Application Support/clfl/desktop.json` 에 쓰고 화면에
+바뀌는 즉시 `~/Library/Application Support/clf/desktop.json` 에 쓰고 화면에
 반영한다. 확인 단추가 없다.
 
 순서를 아직 안 정한 상태에서 화살표를 누르면, 지금 보이는 차례를 그대로 받아
@@ -334,12 +334,12 @@ ko_KR 이 요일을 괄호로 감싼 형식을 돌려줘 `((금요일) 오전 5:
 숨김 영역으로 들어간다. 접근성 API 로 확인했다.
 
 ```
-osascript -e 'tell application "System Events" to tell process "clfl" \
+osascript -e 'tell application "System Events" to tell process "clf" \
   to return value of attribute "AXTitle" of menu bar item 1 of menu bar 2'
 -> 84%
 ```
 
-`clflctl desktop usage --active` 가 같은 숫자를 낸다. 두 경로가 일치한다.
+`clfctl desktop usage --active` 가 같은 숫자를 낸다. 두 경로가 일치한다.
 
 팝오버 자체는 화면 밖에 떠서 캡처가 안 됐다. 접근성 API 로 창을 화면 안으로
 옮긴 뒤 찍었다.
@@ -361,7 +361,7 @@ AppleScript 의 `title of button` 은 `missing value` 를 준다. SwiftUI 가 �
 ```
 AXButton  ->  설정 열기
 AXButton  ->  지금 새로고침
-AXButton  ->  clfl 종료
+AXButton  ->  clf 종료
 ```
 
 없는 것과 못 읽는 것은 다르다. 도구가 안 보여준다고 없다고 적으면 안 된다.
@@ -377,7 +377,7 @@ AXButton  ->  clfl 종료
 **한 번도 등록한 적이 없으면 `.notRegistered`(0) 가 아니라 `.notFound`(3) 가 온다.**
 
 ```
-PROBE status=3 path=/Users/cpm4/Applications/clfl.app
+PROBE status=3 path=/Users/cpm4/Applications/clf.app
 PROBE register ok -> 1
 ```
 

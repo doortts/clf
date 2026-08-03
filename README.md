@@ -1,11 +1,11 @@
-# clfl
+# clf
 
 Claude Code 데스크톱 앱의 **계정별 남은 한도**를 macOS 메뉴바에 띄운다.
 
 ![메뉴바](docs/images/menubar.png)
 
 앱은 지금 쓰는 계정 하나만 보여준다. 나머지가 얼마나 남았는지는 일일이
-전환해 봐야 안다. clfl 은 셋을 한 번에 읽는다.
+전환해 봐야 안다. clf 은 셋을 한 번에 읽는다.
 
 ---
 
@@ -36,7 +36,7 @@ Enterprise 처럼 시간 창이 없는 플랜은 **월 예산**을 대신 보여
 
 ```
 ./scripts/install-app.sh
-open ~/Applications/clfl.app
+open ~/Applications/clf.app
 ```
 
 Swift 6 툴체인과 macOS 13 이상이 필요하다. Xcode 프로젝트는 없다.
@@ -62,7 +62,7 @@ Swift 6 툴체인과 macOS 13 이상이 필요하다. Xcode 프로젝트는 없�
 - **퍼센트**: 남은 용량 / 사용률. 색은 어느 쪽이든 잔여 기준이다
 - 로그인할 때 실행
 
-설정은 `~/Library/Application Support/clfl/desktop.json` 에 저장된다.
+설정은 `~/Library/Application Support/clf/desktop.json` 에 저장된다.
 보여줄 목록이 아니라 **숨길 목록**을 담으므로 계정이 새로 생기면 자동으로 보인다.
 
 ---
@@ -106,21 +106,21 @@ Swift 6 툴체인과 macOS 13 이상이 필요하다. Xcode 프로젝트는 없�
 
 ---
 
-## clflctl
+## clfctl
 
 앱 없이 같은 데이터를 보는 도구다. 개발과 점검에 쓴다.
 
 ```
-./scripts/install-clflctl.sh
+./scripts/install-clfctl.sh
 
-clflctl desktop usage              계정별 잔여
-clflctl desktop usage --json       기계가 읽을 형태로
-clflctl desktop orgs               아는 계정과 표시 여부
-clflctl desktop hide <이름|uuid>    목록에서 뺀다
-clflctl desktop bar <window|chosen> 막대에 그릴 범위
+clfctl desktop usage              계정별 잔여
+clfctl desktop usage --json       기계가 읽을 형태로
+clfctl desktop orgs               아는 계정과 표시 여부
+clfctl desktop hide <이름|uuid>    목록에서 뺀다
+clfctl desktop bar <window|chosen> 막대에 그릴 범위
 ```
 
-메뉴바 숫자와 `clflctl desktop usage` 는 항상 같은 값을 낸다.
+메뉴바 숫자와 `clfctl desktop usage` 는 항상 같은 값을 낸다.
 
 ---
 
@@ -155,12 +155,12 @@ clflctl desktop bar <window|chosen> 막대에 그릴 범위
 
 ```
 swift test                  전체 테스트
-swift build -c release      clflctl 릴리스
+swift build -c release      clfctl 릴리스
 ./scripts/make-app.sh       .app 번들만 만든다
 ```
 
-판단은 전부 `ClflDesktop` 에 있고 `ClflApp` 에는 뷰와 상태 하나뿐이다.
+판단은 전부 `ClfDesktop` 에 있고 `ClfApp` 에는 뷰와 상태 하나뿐이다.
 잔여 계산, 이름 줄이기, 남은 시간 표기가 모두 순수 함수라 테스트가 잠근다.
 뷰에 판단을 두지 않는 이유는 뷰를 테스트할 수 없기 때문이다.
 
-`clflctl` 은 소스보다 낡았으면 실행할 때 알려준다.
+`clfctl` 은 소스보다 낡았으면 실행할 때 알려준다.

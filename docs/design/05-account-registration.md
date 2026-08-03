@@ -26,7 +26,7 @@ claude setup-token
 출력한다. claulay 도 이 값을 프롬프트로 받아 저장할 뿐, 자체 인증 흐름을 갖고 있지
 않다.
 
-**clfl 도 OAuth 를 직접 구현하지 않는다.**
+**clf 도 OAuth 를 직접 구현하지 않는다.**
 
 - authorize 엔드포인트, client_id, redirect URI, PKCE 파라미터가 전부 Claude Code
   내부 값이다. 문서화되어 있지 않다
@@ -146,7 +146,7 @@ https://claude.com/cai/oauth/authorize?...&state=zR6uvVKmg5rR9USOORdXFXtBbmXxeVP
 | 토큰 유효기간 1년 | 만료 추적이 필요하다. 6절 |
 | `scope=user:inference` | Usage API 도 신원 조회도 불가능. 5절의 한계가 확정됐다 |
 | 다시 볼 수 없다 | 수동 복사 실패 시 처음부터. 자동 캡처의 근거가 하나 더 |
-| `CLAUDE_CODE_OAUTH_TOKEN` 환경변수 존재 | 단일 조직만 쓸 거면 clfl 없이도 된다. 11절 |
+| `CLAUDE_CODE_OAUTH_TOKEN` 환경변수 존재 | 단일 조직만 쓸 거면 clf 없이도 된다. 11절 |
 | 파이프로도 토큰이 나온다 | PTY 불필요 |
 | 출력이 재출력 스팸이고 긴 줄이 접힌다 | 파싱을 방어적으로. 3-1 절 |
 
@@ -408,7 +408,7 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 
 - **읽기 전용.** vault 형식으로 쓰지 않는다. 두 번째 진실 공급원이 되지 않는다
 - **일회성.** 한 번 가져오면 다시 쓸 일이 없다
-- **삭제 가능.** `Sources/ClflStore/Legacy/ClaulayImport.swift` 한 파일에 가두고,
+- **삭제 가능.** `Sources/ClfStore/Legacy/ClaulayImport.swift` 한 파일에 가두고,
   claulay 사용자가 남지 않으면 통째로 지운다
 
 파일에 그 의도를 주석으로 박아둔다. 나중에 이 코드를 보는 사람이 "여기가 vault 를
@@ -479,9 +479,9 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 
 ---
 
-## 11. clfl 없이 쓰는 경우
+## 11. clf 없이 쓰는 경우
 
-`setup-token` 출력이 알려주는 대로, 조직 하나만 쓸 거라면 clfl 이 필요없다.
+`setup-token` 출력이 알려주는 대로, 조직 하나만 쓸 거라면 clf 이 필요없다.
 
 ```json
 // ~/.claude/settings.json
@@ -490,12 +490,12 @@ Swift 에서는 CryptoKit 의 `AES.GCM` 과 CommonCrypto 의 `CCKeyDerivationPBK
 
 이것으로 데스크톱 앱이 그 조직으로 붙는다. 프록시도 메뉴바 앱도 없이 동작한다.
 
-**clfl 이 필요한 지점은 정확히 하나다. 조직을 실행 중에 바꾸는 것.** 환경변수는
+**clf 이 필요한 지점은 정확히 하나다. 조직을 실행 중에 바꾸는 것.** 환경변수는
 프로세스 시작 시점에 고정되므로 한도에 걸려도 그 자리에서 다른 조직으로 넘어갈 수 없다.
 같은 턴 안에서 조용히 넘기려면 HTTP 경계에 개입하는 수밖에 없고, 그것이 이 프로젝트
 전체의 존재 이유다.
 
-이 사실을 README 에 적어두면 사용자가 자기에게 clfl 이 필요한지 스스로 판단할 수 있다.
+이 사실을 README 에 적어두면 사용자가 자기에게 clf 이 필요한지 스스로 판단할 수 있다.
 
 ---
 

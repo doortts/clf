@@ -23,7 +23,7 @@
 ## 2. 세 층
 
 ```
-clflctl              터미널에서 단계를 실행한다. 앱 없이 돈다
+clfctl              터미널에서 단계를 실행한다. 앱 없이 돈다
   |
   +-- 컨트롤 플레인   프록시가 도는 동안 내부 상태를 읽는다. 읽기 전용 HTTP
   |
@@ -31,7 +31,7 @@ clflctl              터미널에서 단계를 실행한다. 앱 없이 돈다
 ```
 
 셋이 겹치는 부분이 있는데 의도한 것이다. 같은 사실을 서로 다른 시간대에 본다.
-`clflctl` 은 요청 **전**, 컨트롤 플레인은 요청 **중**, jsonl 은 요청 **후**다.
+`clfctl` 은 요청 **전**, 컨트롤 플레인은 요청 **중**, jsonl 은 요청 **후**다.
 
 ---
 
@@ -49,7 +49,7 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 ```
 
 `SelectionExplanation` 은 결과와 후보별 `CandidateVerdict` 를 함께 담는다.
-`clflctl select` 가 그리는 표, 컨트롤 플레인의 `GET /select`, 요청 트레일의
+`clfctl select` 가 그리는 표, 컨트롤 플레인의 `GET /select`, 요청 트레일의
 `candidates` 필드가 전부 이 하나의 레코드다.
 
 두 경로로 갈라 두면 설명이 언제든 거짓말을 시작한다. 테스트가 그것을 잠근다
@@ -67,18 +67,18 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 
 | 단계 | 무엇 | 실행 | 통과 기준 | 상태 |
 |---|---|---|---|---|
-| 1-5 | ClflCore | `swift test --filter ClflCoreTests` | 전부 통과 | 됨 |
-| 6 | ClflStore | `swift test --filter ClflStoreTests` | 전부 통과 | 됨 |
-| 6a | 환경 점검 | `clflctl doctor` | 실패 항목 0 | 됨 |
-| 6b | 조직 등록 | `clflctl accounts add` | `list` 에 뜨고 Keychain 있음 | 됨 |
-| 6c | 설정 주입 | `clflctl settings install` | `show` 가 주입됨을 말한다 | 됨 |
-| 6d | 선택 판정 | `clflctl runtime simulate` + `select` | 표가 예상과 같다 | 됨 |
-| 6e | 응답 분류 | `clflctl classify` | 네 경로가 갈린다 | 됨 |
-| 6f | SSE 경계 | `clflctl sse-peek` | 주석 프레임을 건너뛴다 | 됨 |
-| 7 | 업스트림 | `clflctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 통과 |
-| 8 | 프록시 단일 조직 | `clflctl serve --single <id>` | **터미널 `claude` 로 대화 성공** | 통과 |
-| 9 | 스왑 | `clflctl serve` + `runtime simulate` | 스왑 발생, 트레일에 기록 | 아직 |
-| 10 | 컨트롤 플레인 | `clflctl watch` | 스왑이 실시간으로 흐른다 | 아직 |
+| 1-5 | ClfCore | `swift test --filter ClfCoreTests` | 전부 통과 | 됨 |
+| 6 | ClfStore | `swift test --filter ClfStoreTests` | 전부 통과 | 됨 |
+| 6a | 환경 점검 | `clfctl doctor` | 실패 항목 0 | 됨 |
+| 6b | 조직 등록 | `clfctl accounts add` | `list` 에 뜨고 Keychain 있음 | 됨 |
+| 6c | 설정 주입 | `clfctl settings install` | `show` 가 주입됨을 말한다 | 됨 |
+| 6d | 선택 판정 | `clfctl runtime simulate` + `select` | 표가 예상과 같다 | 됨 |
+| 6e | 응답 분류 | `clfctl classify` | 네 경로가 갈린다 | 됨 |
+| 6f | SSE 경계 | `clfctl sse-peek` | 주석 프레임을 건너뛴다 | 됨 |
+| 7 | 업스트림 | `clfctl upstream probe <id>` | 실제 200 과 사용량 헤더 | 통과 |
+| 8 | 프록시 단일 조직 | `clfctl serve --single <id>` | **터미널 `claude` 로 대화 성공** | 통과 |
+| 9 | 스왑 | `clfctl serve` + `runtime simulate` | 스왑 발생, 트레일에 기록 | 아직 |
+| 10 | 컨트롤 플레인 | `clfctl watch` | 스왑이 실시간으로 흐른다 | 아직 |
 | 11 | 앱 | Xcode | 메뉴바에 같은 값이 뜬다 | 아직 |
 
 8번이 첫 관문이라는 판단은 그대로다. 다만 이제 그 앞에 손으로 밟을 수 있는
@@ -89,10 +89,10 @@ public func explain(_ input: SelectionInput) -> SelectionExplanation
 실험이 실제 설정을 건드리면 안 된다. 세 가지를 전부 밖에서 갈아끼운다.
 
 ```bash
-clflctl select \
-  --data-dir /tmp/clfl-demo/data \
-  --claude-dir /tmp/clfl-demo/claude \
-  --keychain-service me.clfl.demo
+clfctl select \
+  --data-dir /tmp/clf-demo/data \
+  --claude-dir /tmp/clf-demo/claude \
+  --keychain-service me.clf.demo
 ```
 
 디렉토리만 바꾸면 격리가 반쪽이다. 자격증명은 여전히 진짜 Keychain 으로 간다.
@@ -103,11 +103,11 @@ clflctl select \
 한도에 실제로 걸릴 때까지 기다릴 수 없으므로 런타임 상태를 심는다.
 
 ```bash
-clflctl runtime simulate team1 --rate-limit 600      # 이 모델만 10분 막는다
-clflctl runtime simulate team1 --session-limit 1800  # 계정 전체를 30분 막는다
-clflctl runtime simulate team1 --invalid             # 자격증명 무효로 표시
-clflctl runtime simulate team1 --headroom 0.03       # 5시간 창 잔여를 3% 로
-clflctl runtime clear                                # 되돌린다
+clfctl runtime simulate team1 --rate-limit 600      # 이 모델만 10분 막는다
+clfctl runtime simulate team1 --session-limit 1800  # 계정 전체를 30분 막는다
+clfctl runtime simulate team1 --invalid             # 자격증명 무효로 표시
+clfctl runtime simulate team1 --headroom 0.03       # 5시간 창 잔여를 3% 로
+clfctl runtime clear                                # 되돌린다
 ```
 
 `select` 가 그 상태로 판정을 다시 돌린다.
@@ -128,7 +128,7 @@ clflctl runtime clear                                # 되돌린다
 
 ### 별도 포트를 쓴다
 
-프록시 포트에 `/_clfl/...` 같은 경로를 얹지 않는다. 이유가 셋이다.
+프록시 포트에 `/_clf/...` 같은 경로를 얹지 않는다. 이유가 셋이다.
 
 - **표면이 겹친다.** Anthropic API 밖의 경로를 우리가 가로채기 시작하면
   클라이언트가 새 엔드포인트를 쓸 때 조용히 충돌한다. 요청마다 우리 경로인지
@@ -180,49 +180,49 @@ clflctl runtime clear                                # 되돌린다
 
 ---
 
-## 6. clflctl 명령 요약
+## 6. clfctl 명령 요약
 
 ### 설치
 
-`.build/debug/clflctl` 은 상대 경로라 저장소 밖에서 부를 수 없고, 빌드를 다시
+`.build/debug/clfctl` 은 상대 경로라 저장소 밖에서 부를 수 없고, 빌드를 다시
 돌리면 자리가 바뀔 수 있다. 릴리스로 빌드해 PATH 에 링크한다.
 
 ```bash
-./scripts/install-clflctl.sh
+./scripts/install-clfctl.sh
 ```
 
-기본 대상은 `~/.local/bin` 이고 `CLFL_BIN_DIR` 로 바꾼다. 심볼릭 링크라
+기본 대상은 `~/.local/bin` 이고 `CLF_BIN_DIR` 로 바꾼다. 심볼릭 링크라
 다시 빌드하면 링크가 새 바이너리를 가리킨다.
 
 ```
-clflctl doctor                          환경 점검. 실패마다 고치는 법을 함께 말한다
+clfctl doctor                          환경 점검. 실패마다 고치는 법을 함께 말한다
 
-clflctl settings show                   ~/.claude/settings.json 의 env 블록
-clflctl settings install --port 51710
-clflctl settings uninstall
+clfctl settings show                   ~/.claude/settings.json 의 env 블록
+clfctl settings install --port 51710
+clfctl settings uninstall
 
-clflctl accounts list                   우선순위 순으로
-clflctl accounts add <id> --plan team   토큰은 stdin 으로만 받는다
-clflctl accounts remove <id>
-clflctl accounts enable|disable <id>
-clflctl accounts priority <id>...
+clfctl accounts list                   우선순위 순으로
+clfctl accounts add <id> --plan team   토큰은 stdin 으로만 받는다
+clfctl accounts remove <id>
+clfctl accounts enable|disable <id>
+clfctl accounts priority <id>...
 
-clflctl runtime show                    조직별 세 창과 구속 여유
-clflctl runtime simulate <id> ...       상태를 손으로 심는다
-clflctl runtime clear [<id>]
+clfctl runtime show                    조직별 세 창과 구속 여유
+clfctl runtime simulate <id> ...       상태를 손으로 심는다
+clfctl runtime clear [<id>]
 
-clflctl select [--model] [--start]      선택 판정과 후보별 이유
-clflctl classify --status 429 ...       응답 하나를 분류기에 먹인다
-clflctl sse-peek <file>                 첫 이벤트 프레임 경계
+clfctl select [--model] [--start]      선택 판정과 후보별 이유
+clfctl classify --status 429 ...       응답 하나를 분류기에 먹인다
+clfctl sse-peek <file>                 첫 이벤트 프레임 경계
 
-clflctl upstream probe <id> [--stream]  실제 왕복 한 번
-clflctl serve --single <id> [--install] 프록시를 띄운다
+clfctl upstream probe <id> [--stream]  실제 왕복 한 번
+clfctl serve --single <id> [--install] 프록시를 띄운다
 ```
 
 토큰을 인자로 받지 않는다. argv 는 셸 히스토리에 남는다.
 
 ```bash
-pbpaste | clflctl accounts add team1 --plan team
+pbpaste | clfctl accounts add team1 --plan team
 ```
 
 ---
@@ -317,8 +317,8 @@ Claude Code 도 잘 읽지만 사용자가 열어보고 손으로 고치는 파�
 직접 밟아야 한다.
 
 ```
-clflctl accounts add <id> --plan team    # 토큰은 stdin
-clflctl serve --single <id> --install
+clfctl accounts add <id> --plan team    # 토큰은 stdin
+clfctl serve --single <id> --install
 ```
 
 ---
@@ -331,15 +331,15 @@ clflctl serve --single <id> --install
 ### 준비
 
 ```bash
-./scripts/install-clflctl.sh      # 릴리스로 빌드해 ~/.local/bin 에 링크
-clflctl doctor                    # 무엇이 빠졌는지
+./scripts/install-clfctl.sh      # 릴리스로 빌드해 ~/.local/bin 에 링크
+clfctl doctor                    # 무엇이 빠졌는지
 ```
 
 `doctor` 가 조직 없음이라고 하면 등록한다. 토큰은 stdin 으로만 받는다.
 ANSI 제어 문자와 프롬프트 장식은 도구가 걷어낸다.
 
 ```bash
-claude setup-token | clflctl accounts add naver_team_40 --plan team
+claude setup-token | clfctl accounts add naver_team_40 --plan team
 ```
 
 ### 7칸 먼저
@@ -348,7 +348,7 @@ claude setup-token | clflctl accounts add naver_team_40 --plan team
 막히면 프록시 문제가 아니다.
 
 ```bash
-clflctl upstream probe naver_team_40 --stream --save
+clfctl upstream probe naver_team_40 --stream --save
 ```
 
 - `평문 예` 라야 압축 자동 해제가 살아 있는 것이다
@@ -358,7 +358,7 @@ clflctl upstream probe naver_team_40 --stream --save
 ### 8칸
 
 ```bash
-clflctl serve --single naver_team_40 --install
+clfctl serve --single naver_team_40 --install
 ```
 
 `--install` 은 **바인딩에 성공한 뒤에** `settings.json` 을 고친다. 순서를
@@ -396,11 +396,11 @@ MCP 도구 검색은 로그가 아니라 앱에서 본다. 도구 목록이 평�
 Ctrl-C 가 정상 경로다. 강제 종료로 죽였거나 설정이 남았으면 직접 되돌린다.
 
 ```bash
-clflctl settings uninstall
+clfctl settings uninstall
 ```
 
 `settings.json` 을 열어 `env` 에 `ANTHROPIC_BASE_URL` 이 없으면 복구된 것이다.
-설치 전 원본은 `settings.json.clfl.bak` 에도 있다.
+설치 전 원본은 `settings.json.clf.bak` 에도 있다.
 
 ---
 
@@ -598,7 +598,7 @@ CLI 는 붙기 전에 `HEAD /api/hello` 로 연결을 확인한다. 프록시가
 
 | 항목 | 언제 |
 |---|---|
-| `clflctl watch` | 10단계. 컨트롤 플레인 구독 |
+| `clfctl watch` | 10단계. 컨트롤 플레인 구독 |
 | 컨트롤 플레인 본체 | 프록시가 생긴 뒤. 붙일 상태가 있어야 한다 |
 | 시나리오 재생 | 가짜 업스트림으로 스왑 루프 전체를 오프라인 재생 |
 
@@ -606,7 +606,7 @@ CLI 는 붙기 전에 `HEAD /api/hello` 로 연결을 확인한다. 프록시가
 
 ## 8. 낡은 바이너리를 알려준다
 
-`~/.local/bin/clflctl` 은 `.build/release/clflctl` 를 가리키는 심볼릭 링크다.
+`~/.local/bin/clfctl` 은 `.build/release/clfctl` 를 가리키는 심볼릭 링크다.
 디버그 빌드로 검증해놓고 릴리스를 안 올리면 다음 실행에서 옛 동작을 본다.
 실제로 겪었다. `desktop` 명령을 다 만들고 테스트까지 통과시켰는데 설치된
 바이너리는 그 명령을 몰랐다.
@@ -614,7 +614,7 @@ CLI 는 붙기 전에 `HEAD /api/hello` 로 연결을 확인한다. 프록시가
 그래서 명령을 돌리기 전에 소스와 바이너리의 수정 시각을 비교한다.
 
 ```
-주의: clflctl 이 낡았다. 소스가 3시간 더 새롭다
+주의: clfctl 이 낡았다. 소스가 3시간 더 새롭다
       swift build -c release
 ```
 

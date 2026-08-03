@@ -136,7 +136,7 @@ Claude Code 가 죽은 포트를 향해 요청을 보낸다.
 ```
 
 **[2] 가 계약이다.** 사용자가 앱을 끄면 Claude Code 가 고장 나는 것이 아니라 그냥
-원래대로 직접 호출로 돌아가야 한다. 이걸 빠뜨리면 "clfl 을 껐더니 Claude Code 가
+원래대로 직접 호출로 돌아가야 한다. 이걸 빠뜨리면 "clf 을 껐더니 Claude Code 가
 안 된다"는 최악의 실패 모드가 된다.
 
 크래시로 [2] 를 못 하는 경우는 다음 실행의 시작 [4] 가 복구한다. 그 사이 사용자는
@@ -207,7 +207,7 @@ Claude Code 가 죽은 포트를 향해 요청을 보낸다.
 | 포트 | 우리가 바인딩하고 있는가 | 재시작 |
 | settings.json | 우리 값이 현재 포트를 가리키는가 | 재주입 버튼 |
 | 도구 검색 | `ENABLE_TOOL_SEARCH` 가 켜져 있는가 | 켜기 버튼. 기본값은 켬 |
-| 백업 | `settings.json.clfl.bak` 존재 | 정보성 |
+| 백업 | `settings.json.clf.bak` 존재 | 정보성 |
 | Keychain | 계정 수만큼 토큰이 있는가 | 누락 계정에 재등록 버튼 |
 | 계정 | 우선순위 체인이 비어있지 않은가 | 설정 열기 |
 | 유효 계정 | invalid 가 아닌 계정이 1개 이상 | 재로그인 안내 |
@@ -245,15 +245,15 @@ claulay 의 `doctor` 와 목적은 같지만 항목이 다르다. vault, daemon,
 
 | 단계 | 산출물 | 검증 |
 |---|---|---|
-| 1 | ClflCore: 헤더 변환 + 분류 + reset epoch | claulay 테스트 케이스 이식본 통과 |
-| 2 | ClflCore: SSE 경계 스캐너 + 파서 | 같음 |
-| 3 | ClflCore: 선택 알고리즘 + 쿨다운 산술 | 가짜 시계로 결정적 테스트 |
-| 4 | ClflStore: Keychain + accounts.json + runtime.json | 단위 테스트 |
-| 5 | ClflProxy: 단일 계정 통과 프록시 (스왑 없음) | 실제 Claude Code 로 대화 성공 |
-| 6 | ClflProxy: 스왑 루프 + 릴레이 펌프 | 가짜 executor 로 429 시퀀스 |
-| 7 | ClflStore: settings.json 관리 + 시작/종료 시퀀스 | 켜고 끄고 크래시 복구 |
-| 8 | ClflApp: 메뉴바 + 계정 목록 + 게이지 | 손으로 확인 |
-| 9 | ClflApp: 계정 CRUD + 우선순위 드래그 | 손으로 확인 |
+| 1 | ClfCore: 헤더 변환 + 분류 + reset epoch | claulay 테스트 케이스 이식본 통과 |
+| 2 | ClfCore: SSE 경계 스캐너 + 파서 | 같음 |
+| 3 | ClfCore: 선택 알고리즘 + 쿨다운 산술 | 가짜 시계로 결정적 테스트 |
+| 4 | ClfStore: Keychain + accounts.json + runtime.json | 단위 테스트 |
+| 5 | ClfProxy: 단일 계정 통과 프록시 (스왑 없음) | 실제 Claude Code 로 대화 성공 |
+| 6 | ClfProxy: 스왑 루프 + 릴레이 펌프 | 가짜 executor 로 429 시퀀스 |
+| 7 | ClfStore: settings.json 관리 + 시작/종료 시퀀스 | 켜고 끄고 크래시 복구 |
+| 8 | ClfApp: 메뉴바 + 계정 목록 + 게이지 | 손으로 확인 |
+| 9 | ClfApp: 계정 CRUD + 우선순위 드래그 | 손으로 확인 |
 | 10 | 조건/사건 표시, 알림, doctor | 손으로 확인 |
 | 11 | 선제 전환 임계값 | usage/audit 조인으로 임계값 실측 |
 
