@@ -18,6 +18,10 @@ struct BarOrgView: View {
     var body: some View {
         HStack(spacing: 3) {
             Text(code).font(.system(size: 12, weight: .semibold))
+                // 흰색으로 박는다. 메뉴바는 벽지 위에 반투명으로 얹히므로
+                // 시스템 외양이 라이트여도 실제 바탕은 어두울 수 있다.
+                // 그때 기본색(검정)으로 구우면 코드가 안 보인다
+                .foregroundStyle(.white)
                 .overlay(alignment: .bottom) {
                     if focused {
                         // 코드 폭만. 등급색과 안 겹치는 파랑이라 상태가
@@ -68,7 +72,9 @@ struct BarOrgView: View {
         HStack(spacing: 2.5) {
             Text(tag)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(.tertiary)
+                // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
+                // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
+                .foregroundStyle(Color(white: 0.78))
             Text(text)
                 .font(.system(size: 9, weight: .medium).monospacedDigit())
                 .foregroundStyle(band?.fillColor ?? .secondary)

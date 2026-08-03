@@ -321,8 +321,6 @@ struct SettingsPane: View {
         VStack(alignment: .leading, spacing: 8) {
             barAccountsGroup
 
-            Divider()
-
             // 세그먼트만 쌓아 두면 무엇을 고르는지 기억에 의존한다.
             // 왼쪽에 좁은 라벨 열을 붙인다. popover-hig-mockup.html
             settingRow("메뉴바 구성") {
@@ -383,6 +381,7 @@ struct SettingsPane: View {
 
 struct PopoverView: View {
     @ObservedObject var model: UsageModel
+    @Environment(\.colorScheme) private var scheme
     @State private var showingSettings = false
     @StateObject private var sharedSessions = SharedSessionModel()
 
@@ -481,6 +480,10 @@ struct PopoverView: View {
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
+        // 라이트에서는 흰 바탕을 깐다. MenuBarExtra 가 기본으로 주는 반투명
+        // 바탕은 벽지가 그대로 배어 나와 글씨와 게이지가 안 읽힌다.
+        // 다크는 그 반투명이 이미 충분히 어두워 그대로 둔다
+        .background(scheme == .dark ? Color.clear : Color.white)
         .task {
             // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
             model.clearNotice()
