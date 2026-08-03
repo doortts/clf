@@ -75,6 +75,33 @@ public enum GaugeDirection: String, Codable, Sendable, CaseIterable {
     }
 }
 
+/// 막대의 숫자 옆 작은 라벨에 무엇을 적을지.
+///
+/// 그 자리에는 원래 창 종류(`5h`, `1w`)가 있었다. 창 종류는 순서로도 알 수
+/// 있고 (위가 5시간, 아래가 주간), 정작 모르는 것은 그 창이 언제 리셋되는지다.
+/// 같은 자리에 남은 시간을 적으면 폭은 그대로다.
+/// docs/design/bar-reset-remaining-mockup.html
+public enum ResetLabel: String, Codable, Sendable, CaseIterable {
+    /// `5h`, `1w`. 어느 창인지를 말한다
+    case period = "period"
+    /// `3h`, `6d`. 그 창이 언제 리셋되는지를 말한다
+    case remaining = "remaining"
+    /// 라벨 열을 뺀다. 계정마다 그만큼 좁아진다
+    case none = "none"
+
+    /// 세그먼트 칸에 들어갈 말. 320px 팝오버에 세 칸이라 짧아야 한다.
+    /// 왼쪽 라벨 열이 이미 "리셋 표기" 라고 말한다.
+    public var label: String {
+        switch self {
+        case .period:    return "주기"
+        case .remaining: return "남은 시간"
+        case .none:      return "없음"
+        }
+    }
+
+    public var showsTag: Bool { self != .none }
+}
+
 /// 메뉴바 막대에 무엇을 그릴지.
 /// 막대에 어느 계정을 올릴지 정하는 두 갈래.
 ///
@@ -136,16 +163,20 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var barDetail: BarDetail
     /// 게이지 퍼센트의 방향. 팝오버와 막대가 같이 따른다.
     public var gaugeDirection: GaugeDirection
+    /// 막대의 숫자 옆 라벨. 팝오버는 창 이름을 그대로 쓰므로 여기만 따른다.
+    public var resetLabel: ResetLabel
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
                 barContent: BarContent = .windowed, barDetail: BarDetail = .full,
-                gaugeDirection: GaugeDirection = .remaining) {
+                gaugeDirection: GaugeDirection = .remaining,
+                resetLabel: ResetLabel = .remaining) {
         self.version = version
         self.hidden = hidden
         self.order = order
         self.barContent = barContent
         self.barDetail = barDetail
         self.gaugeDirection = gaugeDirection
+        self.resetLabel = resetLabel
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -157,6 +188,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .windowed
         barDetail = try c.decodeIfPresent(BarDetail.self, forKey: .barDetail) ?? .full
         gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .remaining
+        resetLabel = try c.decodeIfPresent(ResetLabel.self, forKey: .resetLabel) ?? .remaining
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }

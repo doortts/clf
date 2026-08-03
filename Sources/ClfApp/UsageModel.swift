@@ -42,6 +42,8 @@ final class UsageModel: ObservableObject {
     private var cachedNames: [String: String] = [:]
     private var loop: Task<Void, Never>?
     private var orgWatch: Task<Void, Never>?
+    /// 남은 시간 표기를 흐르게 하는 1분 시계.
+    private var clock: Task<Void, Never>?
     private let launcher = AltLauncher()
     private var appearanceWatch: (any NSObjectProtocol)?
     private var activeUUID: String?
@@ -64,6 +66,7 @@ final class UsageModel: ObservableObject {
         watchAppearance()
         watchFrontApp()
         watchActiveOrg()
+        watchClock()
         guard loop == nil else { return }
         loop = Task { [weak self] in
             while !Task.isCancelled {
@@ -79,6 +82,8 @@ final class UsageModel: ObservableObject {
         loop = nil
         orgWatch?.cancel()
         orgWatch = nil
+        clock?.cancel()
+        clock = nil
     }
 
     /// 앱에서 계정을 바꾸면 곧바로 따라간다.
@@ -332,7 +337,25 @@ final class UsageModel: ObservableObject {
     private func redrawBar() {
         barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
                                    direction: prefs.gaugeDirection,
+                                   resetLabel: prefs.resetLabel,
                                    focusedUUID: focusedUUID)
+    }
+
+    /// 남은 시간은 사용량을 다시 안 읽어도 흐른다.
+    ///
+    /// 막대는 읽기 주기(몇 분)에만 다시 굽는다. 그대로 두면 `9m` 이 한참
+    /// 그대로 있다가 갑자기 `4m` 으로 뛴다. 그 모드에서만 1분마다 다시 굽는다.
+    private func watchClock() {
+        guard clock == nil else { return }
+        clock = Task { [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                await MainActor.run {
+                    guard self?.prefs.resetLabel == .remaining else { return }
+                    self?.redrawBar()
+                }
+            }
+        }
     }
 
     /// 팝오버를 열 때, 새로고침을 누를 때, 그리고 주기 루프가 부를 때.
@@ -412,6 +435,11 @@ final class UsageModel: ObservableObject {
 
     func setGaugeDirection(_ direction: GaugeDirection) {
         prefs.gaugeDirection = direction
+        persist()
+    }
+
+    func setResetLabel(_ label: ResetLabel) {
+        prefs.resetLabel = label
         persist()
     }
 

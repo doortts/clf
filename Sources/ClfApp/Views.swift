@@ -345,6 +345,23 @@ struct SettingsPane: View {
                 .labelsHidden()
             }
 
+            // 숫자 옆 라벨 자리. 도트만/코드만 모드에는 그 줄이 없어서 고를
+            // 것도 없다. 줄을 없애면 모드를 바꿀 때마다 설정 높이가 튀므로
+            // 흐리게 두고 못 누르게 한다.
+            // docs/design/bar-reset-remaining-mockup.html
+            settingRow("리셋 표기") {
+                Picker("리셋 표기", selection: Binding(
+                    get: { model.prefs.resetLabel },
+                    set: { model.setResetLabel($0) }
+                )) {
+                    ForEach(ResetLabel.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .disabled(!model.prefs.barDetail.showsNumbers)
+            }
+            .opacity(model.prefs.barDetail.showsNumbers ? 1 : 0.4)
+
             Divider()
 
             VStack(alignment: .leading, spacing: 2) {

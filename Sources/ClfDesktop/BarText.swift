@@ -98,6 +98,32 @@ public enum BarText {
         return minutes > 0 ? "\(minutes)분 뒤" : "곧"
     }
 
+    /// 막대 라벨 자리에 들어가는 남은 시간. 숫자 하나와 단위 한 글자다.
+    ///
+    /// **내림한다.** `3h` 는 "아직 3시간은 남았다" 는 뜻이고 올림하면 없는
+    /// 시간을 약속한다. 단위도 하나만 쓴다. `3h44m` 은 폭이 두 배인데 막대에서
+    /// 그 정확도는 쓸모가 없다.
+    ///
+    /// ```
+    /// 6일 23시간 -> 6d      23시간 40분 -> 23h
+    /// 4시간 6분  -> 4h      9분 50초    -> 9m
+    /// 30초       -> 0m      리셋 시각 없음 -> -
+    /// ```
+    /// docs/design/bar-reset-remaining-mockup.html
+    public static func shortUntil(_ date: Date?, from now: Date = Date()) -> String {
+        // 창을 아직 안 썼으면 리셋 시각이 없다. 0 으로 채우면 곧 리셋이라는 거짓이다
+        guard let date else { return "-" }
+        let left = date.timeIntervalSince(now)
+        // 시계가 어긋나 지난 시각이 와도 음수를 그리지 않는다
+        guard left > 0 else { return "0m" }
+
+        let days = Int(left / 86400)
+        if days > 0 { return "\(days)d" }
+        let hours = Int(left / 3600)
+        if hours > 0 { return "\(hours)h" }
+        return "\(Int(left / 60))m"
+    }
+
     /// 마지막으로 쓴 때를 사람이 읽는 말로. `until` 의 반대 방향이다.
     ///
     /// 단위 하나면 된다. 목록에서 순서를 가늠하는 값이라 "2시간 13분 전" 처럼

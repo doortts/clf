@@ -11,6 +11,10 @@ struct BarOrgView: View {
     let org: OrgUsage
     let detail: BarDetail
     let direction: GaugeDirection
+    /// 숫자 옆 라벨을 창 종류로 적을지 남은 시간으로 적을지.
+    var resetLabel: ResetLabel = .remaining
+    /// 남은 시간을 재는 기준 시각. 구울 때 박히므로 밖에서 준다.
+    var now = Date()
     /// 이 계정의 창이 지금 앞에 있는가. 코드 아래에 파란 밑줄이 붙는다.
     var focused = false
     var dark = true
@@ -40,8 +44,10 @@ struct BarOrgView: View {
                 // 셋째 줄은 자리가 없어 게이지만 남는다
                 VStack(alignment: .leading, spacing: -1) {
                     if let spend = org.spend, org.limits.isEmpty {
-                        // Enterprise 는 창이 없다. 예산 한 줄이 전부다
-                        value("예산", "\(direction.displayPercent(used: spend.percentUsed))%",
+                        // Enterprise 는 창이 없다. 예산 한 줄이 전부다.
+                        // 리셋도 없으므로 남은 시간을 골라도 라벨은 `예산` 이다
+                        value(resetLabel.showsTag ? "예산" : nil,
+                              "\(direction.displayPercent(used: spend.percentUsed))%",
                               spend.band)
                     } else {
                         number(.session, "5h")
@@ -57,24 +63,38 @@ struct BarOrgView: View {
     }
 
     /// 걸린 창의 숫자만 색이 바뀐다. 라벨은 그대로 둔다.
-    private func number(_ kind: LimitKind, _ tag: String) -> some View {
+    private func number(_ kind: LimitKind, _ period: String) -> some View {
         let limit = org.limits[kind]
-        return value(tag, limit.map { "\(direction.displayPercent(used: $0.percentUsed))%" }
+        return value(tag(kind, period),
+                     limit.map { "\(direction.displayPercent(used: $0.percentUsed))%" }
                         ?? BarText.unknown,
                      limit?.band)
     }
 
-    private func value(_ tag: String, _ text: String, _ band: UsageBand?) -> some View {
+    /// 라벨 한 칸. 창 종류이거나 남은 시간이거나 아예 없다.
+    private func tag(_ kind: LimitKind, _ period: String) -> String? {
+        switch resetLabel {
+        case .none:      return nil
+        case .period:    return period
+        case .remaining: return BarText.shortUntil(org.limits[kind]?.resetsAt, from: now)
+        }
+    }
+
+    private func value(_ tag: String?, _ text: String, _ band: UsageBand?) -> some View {
         // 라벨과 숫자 사이는 2.5pt = 5px 다. 숫자를 오른쪽 정렬 상자에 넣으면
         // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
         // 상자를 걷어내고 간격만 남긴다. 오른쪽 끝이 들쭉날쭉해지지만
         // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
         HStack(spacing: 2.5) {
-            Text(tag)
-                .font(.system(size: 9, weight: .medium))
-                // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
-                // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
-                .foregroundStyle(Color(white: 0.78))
+            // 라벨을 끄면 칸이 아니라 열이 사라진다. 빈 Text 를 두면 간격만 남아
+            // 폭이 안 줄어든다
+            if let tag {
+                Text(tag)
+                    .font(.system(size: 9, weight: .medium))
+                    // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
+                    // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
+                    .foregroundStyle(Color(white: 0.78))
+            }
             Text(text)
                 .font(.system(size: 9, weight: .medium).monospacedDigit())
                 .foregroundStyle(band?.fillColor ?? .secondary)
@@ -89,6 +109,8 @@ struct BarLabelView: View {
     let orgs: [OrgUsage]
     let detail: BarDetail
     let direction: GaugeDirection
+    var resetLabel: ResetLabel = .remaining
+    var now = Date()
     /// 앞 창의 계정. 막대에 없는 계정이면 아무 데도 안 그려진다.
     var focusedUUID: String? = nil
     var dark = true
@@ -102,6 +124,7 @@ struct BarLabelView: View {
                 ForEach(orgs) { org in
                     BarOrgView(code: codes[org.name] ?? BarText.unknown, org: org,
                                detail: detail, direction: direction,
+                               resetLabel: resetLabel, now: now,
                                focused: org.uuid == focusedUUID, dark: dark)
                 }
             }
@@ -128,10 +151,12 @@ enum BarImage {
     }
 
     static func render(orgs: [OrgUsage], detail: BarDetail, direction: GaugeDirection,
+                       resetLabel: ResetLabel = .remaining, now: Date = Date(),
                        focusedUUID: String? = nil, scale: CGFloat = 2) -> NSImage? {
         let dark = menuBarIsDark
         let renderer = ImageRenderer(
             content: BarLabelView(orgs: orgs, detail: detail, direction: direction,
+                                  resetLabel: resetLabel, now: now,
                                   focusedUUID: focusedUUID, dark: dark))
         renderer.scale = scale
         guard let image = renderer.nsImage else { return nil }
