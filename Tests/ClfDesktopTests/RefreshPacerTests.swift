@@ -113,16 +113,20 @@ final class BarContentTests: XCTestCase {
         OrgUsage(uuid: "ent", name: "Naver", isActive: false, plan: "enterprise", limits: some(30)),
     ]
 
-    /// 기본은 창이 열려 있는 계정만. 셋을 다 그리면 막대가 길어진다.
-    func test_defaultIsWindowedOnly() {
+    /// 기본은 설정에서 지정한 계정이고, 숨긴 것이 없으니 처음 켜면 다 뜬다.
+    ///
+    /// 창을 보고 정하는 쪽은 막대가 저절로 바뀌어서 계정이 왜 사라졌는지
+    /// 설정을 열어도 알 수 없었다.
+    func test_defaultIsEveryChosenAccount() {
         let prefs = DesktopPreferences()
-        XCTAssertEqual(prefs.barContent, .windowed)
-        XCTAssertEqual(prefs.barOrgs(from: orgs).map(\.uuid), ["t40"])
+        XCTAssertEqual(prefs.barContent, .chosen)
+        XCTAssertEqual(prefs.barOrgs(from: orgs).map(\.uuid), ["t40", "ent", "t52"])
     }
 
     /// 별도 창을 띄운 계정도 창이 열린 것이다. 기본 창 계정과 함께 나온다.
     func test_windowedIncludesSeparateWindows() {
-        let prefs = DesktopPreferences()
+        var prefs = DesktopPreferences()
+        prefs.barContent = .windowed
         XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid),
                        ["t40", "t52"])
     }
@@ -131,6 +135,7 @@ final class BarContentTests: XCTestCase {
     /// 아니라 창을 보는 것이다.
     func test_windowedIgnoresTheHiddenList() {
         var prefs = DesktopPreferences()
+        prefs.barContent = .windowed
         prefs.hidden = ["t52"]
         XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid),
                        ["t40", "t52"])
@@ -157,7 +162,9 @@ final class BarContentTests: XCTestCase {
             OrgUsage(uuid: $0.uuid, name: $0.name, isActive: false, plan: $0.plan,
                      limits: $0.limits)
         }
-        XCTAssertEqual(DesktopPreferences().barOrgs(from: idle).count, 1)
+        var prefs = DesktopPreferences()
+        prefs.barContent = .windowed
+        XCTAssertEqual(prefs.barOrgs(from: idle).count, 1)
     }
 
     /// 사용량을 모르는 조직은 막대에 안 올린다. `?` 와 빈 게이지는 자리만
@@ -233,7 +240,7 @@ final class BarContentTests: XCTestCase {
     func test_missingBarContentDefaults() throws {
         let sparse = Data(#"{"version":1}"#.utf8)
         XCTAssertEqual(try JSONDecoder().decode(DesktopPreferences.self, from: sparse).barContent,
-                       .windowed)
+                       .chosen)
     }
 }
 

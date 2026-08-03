@@ -50,24 +50,28 @@ final class GaugeDirectionTests: XCTestCase {
 
     // MARK: 설정
 
-    /// 지금까지의 방식이 기본값이다. 설정을 안 만진 사람의 화면이 바뀌면 안 된다.
-    func test_defaultsToRemaining() {
-        XCTAssertEqual(DesktopPreferences().gaugeDirection, .remaining)
+    /// 사용률이 기본값이다. 게이지가 차오르는 방향과 숫자가 같이 커진다.
+    func test_defaultsToUsed() {
+        XCTAssertEqual(DesktopPreferences().gaugeDirection, .used)
     }
 
-    /// 필드가 없는 옛 파일도 잔여 방식으로 읽힌다.
-    func test_sparseFileDecodesToRemaining() throws {
+    /// 필드가 없는 파일도 기본값으로 읽힌다.
+    func test_sparseFileDecodesToUsed() throws {
         let sparse = Data(#"{"version":1}"#.utf8)
         let prefs = try JSONDecoder().decode(DesktopPreferences.self, from: sparse)
-        XCTAssertEqual(prefs.gaugeDirection, .remaining)
+        XCTAssertEqual(prefs.gaugeDirection, .used)
     }
 
-    func test_usedStyleSurvivesRoundTrip() throws {
-        var prefs = DesktopPreferences()
-        prefs.gaugeDirection = .used
-        let data = try JSONEncoder().encode(prefs)
-        XCTAssertEqual(try JSONDecoder().decode(DesktopPreferences.self, from: data).gaugeDirection,
-                       .used)
+    /// 골라 둔 값은 기본값이 바뀌어도 그대로 남는다.
+    func test_choiceSurvivesRoundTrip() throws {
+        for choice in GaugeDirection.allCases {
+            var prefs = DesktopPreferences()
+            prefs.gaugeDirection = choice
+            let data = try JSONEncoder().encode(prefs)
+            XCTAssertEqual(
+                try JSONDecoder().decode(DesktopPreferences.self, from: data).gaugeDirection,
+                choice)
+        }
     }
 
     // MARK: 글자 예비 표기

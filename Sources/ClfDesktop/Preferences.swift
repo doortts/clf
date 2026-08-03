@@ -43,9 +43,10 @@ public enum BarDetail: String, Codable, Sendable, CaseIterable {
 /// 100 으로 는다. 숫자와 채움이 함께 뒤집히고, 색 등급은 두 방식 모두
 /// 잔여 기준 그대로다. docs/design/gauge-direction-mockup.html
 public enum GaugeDirection: String, Codable, Sendable, CaseIterable {
-    /// 남은 용량. 지금까지의 방식이라 기본값이다
+    /// 남은 용량. 100 에서 0 으로 줄어든다
     case remaining = "remaining"
-    /// 사용률. 쓴 만큼 차오른다
+    /// 사용률. 쓴 만큼 차오른다. **기본값이다.** 게이지가 차오르는 방향과
+    /// 숫자가 같이 커지는 쪽이 처음 보는 사람에게 덜 헷갈린다
     case used = "used"
 
     public var label: String {
@@ -111,7 +112,11 @@ public enum ResetLabel: String, Codable, Sendable, CaseIterable {
 public enum BarContent: String, Codable, Sendable, CaseIterable {
     /// 지금 창이 떠 있는 계정. 기본 창이 쓰는 계정과 우리가 띄운 별도 창들.
     case windowed
-    /// 설정 목록에서 켜 둔 계정 전부.
+    /// 설정 목록에서 켜 둔 계정 전부. **기본값이다.**
+    ///
+    /// 숨긴 계정이 없는 채로 시작하므로 처음 켜면 셋이 다 막대에 뜬다. 창을
+    /// 보고 정하는 쪽은 막대가 저절로 바뀌어서, 왜 계정이 사라졌는지 설정을
+    /// 열어봐도 알 수 없었다.
     case chosen
 
     public var label: String {
@@ -143,10 +148,12 @@ public enum BarContent: String, Codable, Sendable, CaseIterable {
 
     /// 옛 파일에는 `active_only` / `all_visible` 로 적혀 있다. 이름을 바꿨다고
     /// 설정이 초기화되면 안 된다.
+    ///
+    /// 알 수 없는 값은 기본값으로 떨어진다. 옛 이름의 뜻은 그대로 지킨다.
     public init(from decoder: Decoder) throws {
         switch try decoder.singleValueContainer().decode(String.self) {
-        case "chosen", "all_visible": self = .chosen
-        default:                      self = .windowed
+        case "windowed", "active_only": self = .windowed
+        default:                        self = .chosen
         }
     }
 }
@@ -167,8 +174,8 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var resetLabel: ResetLabel
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
-                barContent: BarContent = .windowed, barDetail: BarDetail = .full,
-                gaugeDirection: GaugeDirection = .remaining,
+                barContent: BarContent = .chosen, barDetail: BarDetail = .full,
+                gaugeDirection: GaugeDirection = .used,
                 resetLabel: ResetLabel = .remaining) {
         self.version = version
         self.hidden = hidden
@@ -185,9 +192,9 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
         hidden = try c.decodeIfPresent(Set<String>.self, forKey: .hidden) ?? []
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
-        barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .windowed
+        barContent = try c.decodeIfPresent(BarContent.self, forKey: .barContent) ?? .chosen
         barDetail = try c.decodeIfPresent(BarDetail.self, forKey: .barDetail) ?? .full
-        gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .remaining
+        gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .used
         resetLabel = try c.decodeIfPresent(ResetLabel.self, forKey: .resetLabel) ?? .remaining
     }
 
