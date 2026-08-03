@@ -96,14 +96,25 @@ public protocol CredentialStoring: Sendable {
 public struct KeychainCredentialStore: CredentialStoring {
     public static let service = "me.clf.credentials"
 
-    private let service: String
+    /// 이름을 clfl 에서 clf 로 바꾸기 전에 넣은 항목이 쓰던 서비스 이름.
+    ///
+    /// **읽을 때만 본다.** Keychain 항목은 우리가 옮길 수 없다. 값을 꺼내
+    /// 다시 넣어야 하는데 그러려면 비밀값이 한 번 더 argv 를 타고, 사용자는
+    /// 아무것도 안 했는데 자격증명이 옮겨 다니게 된다. 대신 옛 이름으로도
+    /// 찾아보고, 다음에 그 계정을 다시 넣을 때 새 이름으로 자리 잡게 둔다.
+    public static let legacyService = "me.clfl.credentials"
 
-    public init(service: String = KeychainCredentialStore.service) {
+    private let service: String
+    private let legacy: String?
+
+    public init(service: String = KeychainCredentialStore.service,
+                legacy: String? = KeychainCredentialStore.legacyService) {
         self.service = service
+        self.legacy = legacy
     }
 
     public func credential(for id: AccountID) throws -> StoredCredential {
-        guard let raw = try SecurityCLI.findPassword(service: service, account: id) else {
+        guard let raw = try find(id) else {
             throw StoreError.credentialMissing(id)
         }
         guard let credential = StoredCredential(wireFormat: raw) else {
@@ -135,17 +146,32 @@ public struct KeychainCredentialStore: CredentialStoring {
     }
 
     /// 없는 항목을 지우는 것은 성공이다. 호출부가 존재를 먼저 확인하지 않아도 된다.
+    ///
+    /// 옛 이름 항목도 같이 지운다. 지운 줄 알았는데 남아 있으면 다음 읽기가
+    /// 그것을 찾아내 되살아난 것처럼 보인다.
     public func remove(_ id: AccountID) throws {
-        let result = try SecurityCLI.run(["delete-generic-password", "-s", service, "-a", id])
-        guard result.status == 0 || result.status == SecurityCLI.itemNotFound else {
-            throw StoreError.keychainFailed(reason: result.stderr)
+        for name in [service] + (legacy.map { [$0] } ?? []) {
+            let result = try SecurityCLI.run(["delete-generic-password", "-s", name, "-a", id])
+            guard result.status == 0 || result.status == SecurityCLI.itemNotFound else {
+                throw StoreError.keychainFailed(reason: result.stderr)
+            }
         }
     }
 
     /// -w 를 빼면 속성만 읽는다. 비밀값 접근이 아니라 잠금 해제 프롬프트가 뜨지 않는다.
     public func hasCredential(for id: AccountID) -> Bool {
-        let result = try? SecurityCLI.run(["find-generic-password", "-s", service, "-a", id])
-        return result?.status == 0
+        for name in [service] + (legacy.map { [$0] } ?? []) {
+            let result = try? SecurityCLI.run(["find-generic-password", "-s", name, "-a", id])
+            if result?.status == 0 { return true }
+        }
+        return false
+    }
+
+    /// 새 이름으로 먼저 찾고 없으면 옛 이름으로 찾는다.
+    private func find(_ id: AccountID) throws -> String? {
+        if let raw = try SecurityCLI.findPassword(service: service, account: id) { return raw }
+        guard let legacy else { return nil }
+        return try SecurityCLI.findPassword(service: legacy, account: id)
     }
 }
 

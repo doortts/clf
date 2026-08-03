@@ -99,7 +99,10 @@ final class InMemoryCredentialStoreTests: XCTestCase {
 /// 서비스 이름을 테스트 전용으로 갈라 두어 사용자의 진짜 항목과 섞이지 않는다.
 final class KeychainCredentialStoreTests: XCTestCase {
     let service = "me.clf.test.\(UUID().uuidString)"
-    lazy var store = KeychainCredentialStore(service: service)
+    /// 진짜 옛 이름을 쓰면 사용자의 항목을 건드린다. 테스트끼리도 갈라 둔다.
+    let legacyService = "me.clf.test.legacy.\(UUID().uuidString)"
+    lazy var store = KeychainCredentialStore(service: service, legacy: legacyService)
+    lazy var legacyStore = KeychainCredentialStore(service: legacyService, legacy: nil)
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -107,7 +110,10 @@ final class KeychainCredentialStoreTests: XCTestCase {
             throw XCTSkip("CLF_KEYCHAIN_TESTS=1 일 때만 돈다. 잠금 해제 프롬프트를 띄운다")
         }
     }
-    override func tearDown() { try? store.remove("a") }
+    override func tearDown() {
+        try? store.remove("a")
+        try? legacyStore.remove("a")
+    }
 
     func test_roundTrip() throws {
         try store.store(.oauth(json: Data(#"{"x":1}"#.utf8)), for: "a")
@@ -129,5 +135,28 @@ final class KeychainCredentialStoreTests: XCTestCase {
         XCTAssertFalse(store.hasCredential(for: "a"))
         try store.store(.longLived(token: "t"), for: "a")
         XCTAssertTrue(store.hasCredential(for: "a"))
+    }
+
+    /// 이름을 clfl 에서 clf 로 바꾸기 전에 넣은 항목이 계속 읽혀야 한다.
+    /// Keychain 항목은 옮기지 않으므로 옛 이름으로도 찾아본다.
+    func test_readsItemLeftUnderTheOldServiceName() throws {
+        try legacyStore.store(.longLived(token: "old"), for: "a")
+        XCTAssertEqual(try store.credential(for: "a"), .longLived(token: "old"))
+        XCTAssertTrue(store.hasCredential(for: "a"))
+    }
+
+    /// 새 이름에 값이 있으면 그것이 먼저다. 다시 넣은 값이 옛것에 가리면 안 된다.
+    func test_newNameWinsOverTheOldOne() throws {
+        try legacyStore.store(.longLived(token: "old"), for: "a")
+        try store.store(.longLived(token: "new"), for: "a")
+        XCTAssertEqual(try store.credential(for: "a"), .longLived(token: "new"))
+    }
+
+    /// 지웠는데 옛 이름 항목이 남으면 다음 읽기에 되살아난 것처럼 보인다.
+    func test_removeClearsBothNames() throws {
+        try legacyStore.store(.longLived(token: "old"), for: "a")
+        try store.store(.longLived(token: "new"), for: "a")
+        try store.remove("a")
+        XCTAssertFalse(store.hasCredential(for: "a"))
     }
 }
