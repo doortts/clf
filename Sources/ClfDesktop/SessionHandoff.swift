@@ -248,7 +248,7 @@ public struct HandoffPlan: Sendable, Equatable {
 
     public static func before(source: (name: String, slot: InstanceSlot),
                               target: (name: String, slot: InstanceSlot)) -> HandoffPlan {
-        HandoffPlan(moves: "이 대화는 \(target.name) 것이 됩니다.",
+        HandoffPlan(moves: "이 세션 작업을 \(target.name) 으로 이전합니다.",
                     sourceNote: leaving(source),
                     targetNote: arriving(target))
     }
@@ -257,8 +257,8 @@ public struct HandoffPlan: Sendable, Equatable {
     private static func leaving(_ a: (name: String, slot: InstanceSlot)) -> String? {
         switch a.slot {
         case .primary:
-            return "옮긴 뒤 \(a.name) 기본 창을 재시작해 주세요. 그때까지 이 대화가 목록에"
-                + " 남습니다. 그 줄을 누르면 두 창이 같은 대화를 함께 씁니다."
+            return "옮긴 뒤 \(a.name) 기본 창을 재시작해 주세요. \n재시작 전까지 해당 세션 대화가 목록에"
+                + " 남습니다. \n동시에 서로 다른 창에서 같은 세션 대화를 진행하는 건 추천하지 않습니다."
         case .running:
             return "\(a.name) 창은 옮긴 뒤 다시 띄워 드립니다. 그러면 목록에서 빠집니다."
         case .opening, .none, .unavailable:

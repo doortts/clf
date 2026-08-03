@@ -10,10 +10,6 @@ struct HandoffView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("고른 세션이 어느 계정 것인지만 바뀝니다. 대화 내용은 그대로 있습니다.")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
             route
             list
             note

@@ -237,7 +237,7 @@ final class HandoffPlanTextTests: XCTestCase {
 
     /// 왜 재시작해야 하는지도 말한다. 이유 없는 권고는 안 지켜진다.
     func test_saysWhyTheRestartMatters() {
-        XCTAssertTrue(plan(.primary, .none).sourceNote!.contains("누르면"))
+        XCTAssertTrue(plan(.primary, .none).sourceNote!.contains("추천하지 않습니다"))
     }
 
     /// 별도 창은 우리가 다시 띄운다. 사용자가 할 일이 없다.
