@@ -1,0 +1,281 @@
+<meta charset="utf-8">
+<title>라이트 외양에서 정상 등급이 안 보인다</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:28px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 6px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:6px 0 0; max-width:250px; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+  .grid { display:grid; grid-template-columns:auto repeat(3, 1fr); gap:10px 12px;
+          align-items:center; max-width:1000px; }
+  .grid .hd { font-size:11px; color:var(--dim); }
+  .rowlbl { font-size:12px; padding-right:6px; }
+
+  /* 메뉴바 조각. 1pt = 2px 로 키워 그린다 */
+  .bar { display:inline-flex; align-items:center; padding:4px 8px; border-radius:5px; }
+  .wp-dark { background:#141416; }
+  .wp-mid  { background:#6f7480; }
+  .wp-lite { background:#e8e6e1; }
+  .code { font-size:24px; font-weight:600; }
+  .nums { display:flex; flex-direction:column; margin-left:4px; }
+  .line { display:flex; align-items:center; height:22px; }
+  .tag { font-size:20px; font-weight:500; width:28px; text-align:right; }
+  .val { font-size:20px; font-weight:500; width:48px; text-align:right; margin-left:6px;
+         font-variant-numeric:tabular-nums; }
+  .gauge { display:flex; flex-direction:column; gap:4px; margin-left:5px; }
+  .seg { width:42px; height:8px; box-sizing:border-box; border:1px solid; position:relative; }
+  .seg i { display:block; height:100%; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:1000px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:3px;
+        vertical-align:-1px; margin-right:5px; }
+  .note { margin-top:22px; color:var(--dim); max-width:920px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>라이트 외양에서 정상 등급이 안 보인다</h1>
+<p class="lede">
+  정상 등급(잔여 15~50%)의 색이 <code>.primary</code> 다. 시스템 외양이 라이트면
+  그 값이 <b>검정</b>이 된다. 그런데 <b>메뉴바 바탕은 외양을 안 따르고 벽지를
+  따른다.</b> 어두운 벽지를 쓰면 라이트 외양에서도 메뉴바가 어둡고, 거기에 검은
+  숫자와 검은 눈금이 얹혀 사라진다.
+</p>
+<p class="lede">
+  같은 문제를 코드 글자에서 이미 만났다. 그래서 계정 코드는 흰색으로, 라벨은
+  <code>Color(white: 0.78)</code> 로 <b>값을 박아</b> 뒀다. 정상 등급의 숫자와
+  눈금만 아직 <code>.primary</code> 에 매달려 있다.
+</p>
+
+<h2>지금 (라이트 외양). 벽지 밝기에 따라</h2>
+<div class="grid">
+  <span></span>
+  <span class="hd">어두운 벽지 (사용자 화면)</span>
+  <span class="hd">중간 벽지</span>
+  <span class="hd">밝은 벽지</span>
+
+  <span class="rowlbl">숫자 검정, 눈금 검정</span>
+  <span><span class="bar wp-dark"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#000">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#000"><i style="width:51%;background:#000"></i></span>
+      <span class="seg" style="border-color:#17993f"><i style="width:42%;background:#17993f"></i></span>
+      <span class="seg" style="border-color:#0a7a76"><i style="width:38%;background:#0a7a76"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-mid"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#000">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#000"><i style="width:51%;background:#000"></i></span>
+      <span class="seg" style="border-color:#17993f"><i style="width:42%;background:#17993f"></i></span>
+      <span class="seg" style="border-color:#0a7a76"><i style="width:38%;background:#0a7a76"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-lite"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#000">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#000"><i style="width:51%;background:#000"></i></span>
+      <span class="seg" style="border-color:#17993f"><i style="width:42%;background:#17993f"></i></span>
+      <span class="seg" style="border-color:#0a7a76"><i style="width:38%;background:#0a7a76"></i></span>
+    </span></span></span>
+</div>
+<p class="cap bad" style="max-width:920px">
+  어두운 벽지에서 정상 줄이 사라진다. 밝은 벽지에서는 반대로 코드와 라벨이
+  사라진다. 지금 색 조합은 어느 벽지에서도 온전하지 않다.
+</p>
+
+<h2>A안. 정상 등급도 값을 박는다. 밝은 회색</h2>
+<div class="grid">
+  <span></span>
+  <span class="hd">어두운 벽지</span><span class="hd">중간 벽지</span><span class="hd">밝은 벽지</span>
+  <span class="rowlbl"><span class="sw" style="background:#c7c7cc"></span>숫자 <code>#c7c7cc</code>,
+    눈금 <code>#aeaeb2</code>, 빈 칸 흰색 22%</span>
+  <span><span class="bar wp-dark"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#c7c7cc">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#aeaeb2"><i style="width:51%;background:#aeaeb2"></i></span>
+      <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-mid"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#c7c7cc">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#aeaeb2"><i style="width:51%;background:#aeaeb2"></i></span>
+      <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-lite"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#c7c7cc">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#aeaeb2"><i style="width:51%;background:#aeaeb2"></i></span>
+      <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+</div>
+<p class="cap" style="max-width:920px">
+  <span class="good">어두운 벽지에서 온전하다.</span> 라이트 외양에서도 막대를
+  다크용 색으로 굽는다는 뜻이고, 코드와 라벨이 이미 그렇게 하고 있다.
+  <span class="warn">밝은 벽지에서는 막대 전체가 흐려진다</span> - 지금 코드와
+  라벨이 겪는 것과 같은 조건이 정상 등급에도 적용되는 것이다.
+</p>
+
+<h2>B안. 고정색 + 어두운 그림자. 두 벽지 모두에서 읽힌다</h2>
+<div class="grid">
+  <span></span>
+  <span class="hd">어두운 벽지</span><span class="hd">중간 벽지</span><span class="hd">밝은 벽지</span>
+  <span class="rowlbl">A안 + 글자에 <code>0 0 2px rgba(0,0,0,.55)</code>,
+    눈금에 0.5pt 검정 테</span>
+  <span><span class="bar wp-dark"><span class="code" style="color:#fff;text-shadow:0 0 4px rgba(0,0,0,.55)">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7;text-shadow:0 0 4px rgba(0,0,0,.55)">52m</span>
+        <span class="val" style="color:#c7c7cc;text-shadow:0 0 4px rgba(0,0,0,.55)">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7;text-shadow:0 0 4px rgba(0,0,0,.55)">1d</span>
+        <span class="val" style="color:#30d158;text-shadow:0 0 4px rgba(0,0,0,.55)">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#aeaeb2;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:51%;background:#aeaeb2"></i></span>
+      <span class="seg" style="border-color:#3ce16b;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-mid"><span class="code" style="color:#fff;text-shadow:0 0 4px rgba(0,0,0,.55)">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7;text-shadow:0 0 4px rgba(0,0,0,.55)">52m</span>
+        <span class="val" style="color:#c7c7cc;text-shadow:0 0 4px rgba(0,0,0,.55)">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7;text-shadow:0 0 4px rgba(0,0,0,.55)">1d</span>
+        <span class="val" style="color:#30d158;text-shadow:0 0 4px rgba(0,0,0,.55)">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#aeaeb2;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:51%;background:#aeaeb2"></i></span>
+      <span class="seg" style="border-color:#3ce16b;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-lite"><span class="code" style="color:#fff;text-shadow:0 0 4px rgba(0,0,0,.55)">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7;text-shadow:0 0 4px rgba(0,0,0,.55)">52m</span>
+        <span class="val" style="color:#c7c7cc;text-shadow:0 0 4px rgba(0,0,0,.55)">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7;text-shadow:0 0 4px rgba(0,0,0,.55)">1d</span>
+        <span class="val" style="color:#30d158;text-shadow:0 0 4px rgba(0,0,0,.55)">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#aeaeb2;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:51%;background:#aeaeb2"></i></span>
+      <span class="seg" style="border-color:#3ce16b;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf;box-shadow:0 0 0 1px rgba(0,0,0,.5)"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+</div>
+<p class="cap" style="max-width:920px">
+  <span class="good">벽지가 밝든 어둡든 읽힌다.</span> 대신 막대가 조금 지저분해
+  진다. 메뉴바에서 그림자를 쓰는 앱은 드물고, 1pt 눈금에 0.5pt 테를 더하면
+  눈금이 굵어 보인다.
+</p>
+
+<h2>C안. 정상 등급을 회색에서 빼고 한 단 밝은 청록으로</h2>
+<div class="grid">
+  <span></span>
+  <span class="hd">어두운 벽지</span><span class="hd">중간 벽지</span><span class="hd">밝은 벽지</span>
+  <span class="rowlbl"><span class="sw" style="background:#5ac8fa"></span>정상 =
+    <code>#5ac8fa</code></span>
+  <span><span class="bar wp-dark"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#5ac8fa">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#5ac8fa"><i style="width:51%;background:#5ac8fa"></i></span>
+      <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-mid"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#5ac8fa">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#5ac8fa"><i style="width:51%;background:#5ac8fa"></i></span>
+      <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+  <span><span class="bar wp-lite"><span class="code" style="color:#fff">T52</span>
+    <span class="nums">
+      <span class="line"><span class="tag" style="color:#c7c7c7">52m</span>
+        <span class="val" style="color:#5ac8fa">51%</span></span>
+      <span class="line"><span class="tag" style="color:#c7c7c7">1d</span>
+        <span class="val" style="color:#30d158">42%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="seg" style="border-color:#5ac8fa"><i style="width:51%;background:#5ac8fa"></i></span>
+      <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+      <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+    </span></span></span>
+</div>
+<p class="cap bad" style="max-width:920px">
+  정상 등급이 눈에 띄기 시작한다. 회색을 쓴 이유가 "정상은 눈길을 끌지 않는다"
+  였는데 그것을 잃는다. Fable 민트와도 계열이 겹친다.
+</p>
+
+<h2>비교</h2>
+<table>
+  <tr><th>안</th><th>어두운 벽지</th><th>밝은 벽지</th><th>정상이 조용한가</th><th>손대는 곳</th></tr>
+  <tr><td>지금</td><td class="bad">정상 줄이 사라진다</td>
+      <td class="warn">코드와 라벨이 사라진다</td><td class="good">O</td><td>-</td></tr>
+  <tr><td><b>A. 값을 박는다</b></td><td class="good">온전하다</td>
+      <td class="warn">전체가 흐려진다 (지금 코드와 같은 조건)</td>
+      <td class="good">O</td><td>두 줄</td></tr>
+  <tr><td>B. A + 그림자</td><td class="good">온전하다</td><td class="good">읽힌다</td>
+      <td class="good">O</td><td>막대 전체에 그림자</td></tr>
+  <tr><td>C. 정상을 하늘색으로</td><td class="good">온전하다</td><td class="warn">흐려진다</td>
+      <td class="bad">X</td><td>등급색 정의</td></tr>
+</table>
+
+<p class="note">
+  <b>A안을 권한다.</b> 막대는 이미 "메뉴바가 어두울 수 있다" 를 전제로 코드와
+  라벨 색을 박아 뒀다. 정상 등급만 <code>.primary</code> 에 남아 있는 것은
+  빠뜨린 자리다. 고칠 곳은 정상 등급의 눈금색과 숫자색, 그리고 눈금 빈 칸 셋이다.
+</p>
+<p class="note">
+  <b>B안은 A안 위에 언제든 얹을 수 있다.</b> 밝은 벽지를 쓰는 사람이 실제로
+  불편하다고 하면 그때 그림자를 더하면 된다. 지금은 어두운 벽지에서 값이 사라지는
+  것이 확인된 문제이고, 밝은 벽지 쪽은 아직 관측되지 않았다.
+</p>
+<p class="note">
+  <b>팝오버는 손대지 않는다.</b> 거기는 창 바탕이 외양을 따라가므로
+  <code>.primary</code> 가 맞다. 이 문제는 <b>구운 이미지</b>에서만 생긴다.
+</p>

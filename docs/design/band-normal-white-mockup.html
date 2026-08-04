@@ -1,0 +1,230 @@
+<meta charset="utf-8">
+<title>정상 등급을 연한 흰색으로</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:28px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 6px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:6px 0 0; max-width:290px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  .scale { display:flex; height:26px; border-radius:6px; overflow:hidden; width:420px;
+           font-size:11px; }
+  .scale span { display:grid; place-items:center; color:#000; font-weight:600; }
+
+  .pop { width:290px; border-radius:12px; padding:10px 12px; box-sizing:border-box;
+         background:#252527; }
+  .pop.lt { background:#ececed; color:#000; }
+  .row { display:flex; align-items:center; gap:7px; height:26px; }
+  .rl { font-size:11px; width:58px; flex:none; opacity:.62; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; overflow:hidden; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  /* 알약은 tint 위에 검정 25% 가 덮인다. 그 결과색을 그대로 적었다 */
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:rgba(0,0,0,.28); }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px; }
+  .g   { background:#249d42; } .g   .fill { background:#30d158; } .g   .num { color:#000; }
+  .gy  { background:#86868c; } .gy  .fill { background:#aeaeb2; } .gy  .num { color:#fff; }
+  .wh  { background:#acacb0; } .wh  .fill { background:#e5e5ea; } .wh  .num { color:#000; }
+  .whs { background:#acacb0; } .whs .fill { background:#e5e5ea; } .whs .num { color:#000; }
+  .whs { box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+  .y   { background:#bf7f00; } .y   .fill { background:#ffcc00; } .y   .num { color:#000; }
+  .r   { background:#c9241b; } .r   .fill { background:#ff453a; } .r   .num { color:#fff; }
+  .mint{ background:#66d4cf; } .mint.fill { }
+  .mint .fill { background:#00605c; } .mint .num { color:#000; }
+
+  .bar { display:inline-flex; align-items:center; padding:4px 8px; border-radius:5px; }
+  .wp-dark { background:#141416; } .wp-lite { background:#e8e6e1; }
+  .code { font-size:24px; font-weight:600; color:#fff; }
+  .nums { display:flex; flex-direction:column; margin-left:4px; }
+  .line { display:flex; align-items:center; height:22px; }
+  .tag { font-size:20px; font-weight:500; width:28px; text-align:right; color:#c7c7c7; }
+  .val { font-size:20px; font-weight:500; width:48px; text-align:right; margin-left:6px;
+         font-variant-numeric:tabular-nums; }
+  .gauge { display:flex; flex-direction:column; gap:4px; margin-left:5px; }
+  .seg { width:42px; height:8px; box-sizing:border-box; border:1px solid; }
+  .seg i { display:block; height:100%; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:1000px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:3px;
+        vertical-align:-1px; margin-right:5px; border:1px solid rgba(0,0,0,.2); }
+  .note { margin-top:22px; color:var(--dim); max-width:920px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>정상 등급을 연한 흰색으로</h1>
+<p class="lede">
+  네 단계는 그대로 두고 정상 구간의 색만 회색에서 <b>연한 흰색</b>으로 바꾼다.
+  후보는 <code>#e5e5ea</code> 다. 50% 경계는 살아남고, 라이트 외양에서 검게
+  구워지던 문제는 사라진다.
+</p>
+
+<h2>등급 띠</h2>
+<div class="scale">
+  <span style="flex:5;background:#ff453a">소진 0~5</span>
+  <span style="flex:10;background:#ffcc00">주의 5~15</span>
+  <span style="flex:35;background:#e5e5ea">정상 15~50</span>
+  <span style="flex:50;background:#30d158">여유 50~100</span>
+</div>
+
+<h2>메뉴바. 문제가 생긴 자리</h2>
+<div class="cols">
+  <div>
+    <h3>지금. 어두운 벽지</h3>
+    <div class="bar wp-dark"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#000">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#17993f">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#000"><i style="width:51%;background:#000"></i></span>
+        <span class="seg" style="border-color:#17993f"><i style="width:42%;background:#17993f"></i></span>
+        <span class="seg" style="border-color:#0a7a76"><i style="width:38%;background:#0a7a76"></i></span>
+      </span></div>
+    <p class="cap bad">정상 줄이 검정이라 사라진다.</p>
+  </div>
+  <div>
+    <h3>연한 흰색. 어두운 벽지</h3>
+    <div class="bar wp-dark"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#e5e5ea">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+        <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+      </span></div>
+    <p class="cap good">
+      대비 15 다. 코드 글자(흰색)와 같은 계열이라 막대가 한 덩어리로 읽히고,
+      초록/민트/노랑/빨강만 색으로 튄다.
+    </p>
+  </div>
+  <div>
+    <h3>연한 흰색. 밝은 벽지</h3>
+    <div class="bar wp-lite"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#e5e5ea">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+        <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+      </span></div>
+    <p class="cap warn">
+      대비 1.03 이라 사라진다. 다만 코드 글자와 라벨이 이미 같은 조건이라
+      이 화면에서 새로 생기는 문제는 아니다.
+    </p>
+  </div>
+</div>
+
+<h2>팝오버. 여기가 갈린다</h2>
+<div class="cols">
+  <div>
+    <h3>다크. 지금(회색)</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill gy"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">62%</span><span class="track"></span><span class="fill" style="width:59%"></span></span></div>
+    </div>
+  </div>
+  <div>
+    <h3>다크. 연한 흰색</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill wh"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">62%</span><span class="track"></span><span class="fill" style="width:59%"></span></span></div>
+    </div>
+    <p class="cap good">
+      막대가 밝아지고 숫자는 검정으로 뒤집힌다. 회색보다 또렷하고, 초록과도
+      갈린다.
+    </p>
+  </div>
+  <div>
+    <h3>라이트. 연한 흰색 그대로</h3>
+    <div class="pop lt">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill wh"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">62%</span><span class="track"></span><span class="fill" style="width:59%"></span></span></div>
+    </div>
+    <p class="cap bad">
+      흰 바탕에 흰 막대다. 알약 자체는 검정 25% 가 덮여 보이지만 <b>안쪽 막대가
+      어디까지 찼는지</b>가 안 읽힌다. 대비 1.5 다.
+    </p>
+  </div>
+  <div>
+    <h3>라이트. 테두리를 한 줄 두르면</h3>
+    <div class="pop lt">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill whs"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">62%</span><span class="track"></span><span class="fill" style="width:59%"></span></span></div>
+    </div>
+    <p class="cap warn">
+      알약 경계는 살지만 안쪽 막대는 여전히 흐리다. 테두리는 다른 등급에는
+      없는 장식이라 이 줄만 달라 보인다.
+    </p>
+  </div>
+</div>
+
+<h2>대비 수치</h2>
+<table>
+  <tr><th>자리</th><th>바탕</th><th><span class="sw" style="background:#e5e5ea"></span>연한 흰색</th>
+      <th><span class="sw" style="background:#86868c"></span>지금 회색</th></tr>
+  <tr><td>메뉴바 숫자, 눈금</td><td>어두운 벽지 <code>#141416</code></td>
+      <td class="good">15.0</td><td>4.3</td></tr>
+  <tr><td>메뉴바 숫자, 눈금</td><td>밝은 벽지 <code>#e8e6e1</code></td>
+      <td class="bad">1.03</td><td class="warn">2.9</td></tr>
+  <tr><td>팝오버 알약 안 막대</td><td>다크 <code>#252527</code></td>
+      <td class="good">11.9</td><td>6.0</td></tr>
+  <tr><td>팝오버 알약 안 막대</td><td>라이트 <code>#ececed</code></td>
+      <td class="bad">1.5</td><td class="warn">2.9</td></tr>
+</table>
+<p class="lede">
+  연한 흰색은 어두운 바탕에서 회색보다 <b>세 배 또렷</b>하고, 밝은 바탕에서는
+  <b>회색보다 못하다.</b> 표면마다 바탕이 다르므로 값을 하나로 못박을 수 없다.
+</p>
+
+<h2>그래서 세 갈래</h2>
+<table>
+  <tr><th>안</th><th>막대</th><th>팝오버 다크</th><th>팝오버 라이트</th><th>대가</th></tr>
+  <tr><td><b>A. 표면마다 값을 다르게</b></td>
+      <td><code>#e5e5ea</code></td><td><code>#e5e5ea</code></td>
+      <td>지금 회색 <code>#86868c</code> 유지</td>
+      <td class="good">세 자리 다 또렷하다. 대신 정상 등급의 색이 화면마다 다르다</td></tr>
+  <tr><td>B. 어디서나 연한 흰색</td>
+      <td><code>#e5e5ea</code></td><td><code>#e5e5ea</code></td>
+      <td class="bad">그대로 <code>#e5e5ea</code></td>
+      <td class="bad">라이트 팝오버에서 채움이 안 읽힌다</td></tr>
+  <tr><td>C. 정상을 초록에 합친다 (앞 시안)</td>
+      <td>초록</td><td>초록</td><td>초록</td>
+      <td class="warn">50% 경계를 잃지만 규칙이 셋으로 줄어든다</td></tr>
+</table>
+
+<p class="note">
+  <b>A안을 권한다.</b> 정상 등급의 뜻은 "눈길을 끌지 않는다" 이고, 그 뜻을
+  지키는 색은 바탕에 따라 다르다. 어두운 바탕에서는 연한 흰색이 그 자리고
+  밝은 바탕에서는 회색이 그 자리다. 이미 같은 이유로 초록이 두 벌
+  (<code>#3ce16b</code> / <code>#17993f</code>), 민트가 두 벌
+  (<code>#66d4cf</code> / <code>#00605c</code>)이다. 정상 등급만 한 벌로 버티다가
+  라이트에서 검정이 된 것이다.
+</p>
+<p class="note">
+  <b>같이 고칠 것.</b> 눈금 빈 칸이 아직 <code>Color.primary.opacity</code> 라
+  라이트 외양에서 트랙이 안 보인다. 연한 흰색을 넣어도 이건 남으므로 같은
+  손질에 넣는다.
+</p>

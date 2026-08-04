@@ -38,7 +38,9 @@ final class SpendParsingTests: XCTestCase {
     /// 등급 경계는 시간 창과 같다. 돈이라고 다르게 볼 이유가 없다.
     func test_bandFollowsTheSameThresholds() {
         XCTAssertEqual(spend(percent: 16).band, .ample)
-        XCTAssertEqual(spend(percent: 60).band, .normal)
+        // 잔여 30% 부터 초록이라 60% 쓴 것은 아직 여유다
+        XCTAssertEqual(spend(percent: 60).band, .ample)
+        XCTAssertEqual(spend(percent: 75).band, .normal)
         XCTAssertEqual(spend(percent: 90).band, .low)
         XCTAssertEqual(spend(percent: 99).band, .empty)
     }

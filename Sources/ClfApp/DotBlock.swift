@@ -108,19 +108,34 @@ extension UsageBand {
     /// 면으로 칠할 때 멀쩡하던 값이 점으로는 흐려 보인다. 라이트 모드 경고색이
     /// 노랑이 아니라 앰버인 것도 그래서다. systemYellow 는 흰 바탕에서 대비가
     /// 2.1 이라 점으로 그리면 거의 안 보인다.
+    /// 정상 등급만 `dark` 를 안 본다. **막대는 외양이 아니라 벽지 위에 얹힌다.**
+    /// `.primary` 로 두면 라이트 외양에서 검정이 되어 어두운 메뉴바에서 사라졌다.
+    /// 코드 글자와 라벨이 이미 밝은 값으로 박혀 있으므로 여기도 박는다.
+    /// docs/design/band-normal-white-mockup.html A안
     func dotColor(dark: Bool) -> Color {
         switch self {
         case .ample:  return dark ? Color(hex: 0x3ce16b) : Color(hex: 0x17993f)
         case .low:    return dark ? Color(hex: 0xffe500) : Color(hex: 0xbf7f00)
         case .empty:  return dark ? Color(hex: 0xff4a3d) : Color(hex: 0xe02017)
-        case .normal: return .primary
+        case .normal: return Color(hex: 0xe5e5ea)
         }
     }
 
     /// 게이지 알약을 칠할 색. 정상 구간은 눈길을 끌지 않아야 하므로
-    /// 등급색 대신 회색이다.
+    /// 등급색 대신 무채색이다.
     var gaugeTint: Color {
         self == .normal ? .secondary : fillColor
+    }
+
+    /// 팝오버 알약. **정상 등급만 바탕에 따라 갈린다.**
+    ///
+    /// 어두운 팝오버에서는 연한 흰색이 회색보다 두 배 또렷하고(대비 11.9 대
+    /// 6.0), 밝은 팝오버에서는 반대로 흰 바탕에 묻힌다(1.5 대 2.9). 초록과
+    /// 민트가 이미 같은 이유로 두 벌인데 정상 등급만 한 벌로 버티고 있었다.
+    /// docs/design/band-normal-white-mockup.html A안
+    func gaugePill(dark: Bool) -> Color {
+        guard self == .normal else { return gaugeTint }
+        return dark ? Color(hex: 0xe5e5ea) : Color(hex: 0x86868c)
     }
 
     /// 트랙을 채우는 막대 색. 라이트에서만 알약과 따로 간다.
@@ -135,7 +150,9 @@ extension UsageBand {
     /// 뒤쪽과 섞여 밝아진다. 실측으로 시안의 목표색(#12803a, #9a9aa0)이
     /// 화면에 나오는 지점까지 내렸다.
     func gaugeFill(dark: Bool) -> Color {
-        guard !dark else { return gaugeTint }
+        // 정상 등급은 어두운 쪽에서도 값을 박는다. .secondary 는 재질 위에서
+        // 흐려서 어디까지 찼는지 안 보였다
+        guard !dark else { return self == .normal ? Color(hex: 0xe5e5ea) : gaugeTint }
         switch self {
         case .ample:  return Color(hex: 0x005c1f)
         case .normal: return Color(hex: 0x86868c)
@@ -144,12 +161,15 @@ extension UsageBand {
     }
 
     /// 면으로 칠할 때는 시스템 색을 그대로 쓴다.
+    ///
+    /// 정상 등급만 값을 박는다. 막대의 숫자가 이 색을 쓰는데, `.primary` 는
+    /// 라이트 외양에서 검정이 되어 어두운 메뉴바에서 사라졌다.
     var fillColor: Color {
         switch self {
         case .ample:  return .green
         case .low:    return .yellow
         case .empty:  return .red
-        case .normal: return .primary
+        case .normal: return Color(hex: 0xe5e5ea)
         }
     }
 }
@@ -238,7 +258,9 @@ struct SegmentGauge: View {
         let tint = mint && band == .ample
             ? FableTint.dot(dark: dark)
             : band?.dotColor(dark: dark) ?? Color.secondary
-        let off = Color.primary.opacity(dark ? 0.22 : 0.16)
+        // 빈 칸도 벽지 위다. .primary 로 두면 라이트 외양에서 검정 16% 가 되어
+        // 어두운 메뉴바에서 트랙이 사라지고 막대만 공중에 뜬 것처럼 보인다
+        let off = Color.white.opacity(0.22)
         let lit = used.map { direction.litSteps(used: $0, total: Self.totalSteps) } ?? 0
         Canvas { ctx, size in
             let b = Metrics.segBorder
@@ -374,8 +396,13 @@ struct UsageGauge: View {
     }
 
     /// 숫자 색. 등급이 정한다. 모르는 값은 바탕도 흐릿해서 기본색이 낫다.
+    ///
+    /// 정상 등급은 알약이 바탕에 따라 갈리므로 글자도 같이 뒤집는다. 어두운
+    /// 팝오버에서는 연한 흰색 알약이라 검은 글자, 밝은 팝오버에서는 회색
+    /// 알약이라 흰 글자다.
     private var ink: Color {
         guard let band else { return .primary }
+        if band == .normal { return scheme == .dark ? .black : .white }
         return band.prefersLightInk ? .white : .black
     }
 
@@ -383,7 +410,9 @@ struct UsageGauge: View {
 
     var body: some View {
         let fable = mint && band == .ample
-        let tint = fable ? FableTint.pill : band?.gaugeTint ?? Color.secondary.opacity(0.5)
+        let tint = fable
+            ? FableTint.pill
+            : band?.gaugePill(dark: scheme == .dark) ?? Color.secondary.opacity(0.5)
         // 알약은 tint 로 그대로 그리고 막대만 따로 칠한다
         let fillTint = fable
             ? FableTint.fill(dark: scheme == .dark)

@@ -90,7 +90,9 @@ final class UsageParsingTests: XCTestCase {
         XCTAssertEqual(UsageLimit(percentUsed: 95, resetsAt: nil, severity: "").band, .low)
         XCTAssertEqual(UsageLimit(percentUsed: 86, resetsAt: nil, severity: "").band, .low)
         XCTAssertEqual(UsageLimit(percentUsed: 85, resetsAt: nil, severity: "").band, .normal)
-        XCTAssertEqual(UsageLimit(percentUsed: 51, resetsAt: nil, severity: "").band, .normal)
-        XCTAssertEqual(UsageLimit(percentUsed: 50, resetsAt: nil, severity: "").band, .ample)
+        XCTAssertEqual(UsageLimit(percentUsed: 71, resetsAt: nil, severity: "").band, .normal)
+        // 잔여 30% 부터 초록이다. 예전 경계는 50% 였다
+        XCTAssertEqual(UsageLimit(percentUsed: 70, resetsAt: nil, severity: "").band, .ample)
+        XCTAssertEqual(UsageLimit(percentUsed: 51, resetsAt: nil, severity: "").band, .ample)
     }
 }

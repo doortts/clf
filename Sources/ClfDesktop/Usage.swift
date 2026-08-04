@@ -58,7 +58,7 @@ public struct UsageLimit: Sendable, Equatable {
         switch percentRemaining {
         case ..<5:   return .empty
         case ..<15:  return .low
-        case ..<50:  return .normal
+        case ..<30:  return .normal
         default:     return .ample
         }
     }
@@ -69,14 +69,23 @@ public struct UsageLimit: Sendable, Equatable {
 ///
 /// 경계값은 임의가 아니다. 노랑이 시작되는 15% 는 선제 전환 임계값과 같아서
 /// 노랑은 곧 "새 대화 후보에서 이미 밀려났다" 는 뜻이다.
+///
+/// 무채색이 시작되는 곳은 30% 다. 예전에는 50% 였는데, 그러면 화면의 3분의 1이
+/// 무채색이라 절반쯤 쓴 창이 벌써 물러나 보였다. 30% 로 내리면 무채색 구간이
+/// 15%p 로 좁아지고 초록이 잔여 30% 까지 내려온다. 무채색은 "노랑이 곧 온다"
+/// 는 예고 자리가 된다. 사용률로 보면 70~85% 다.
+/// docs/design/band-normal-white-mockup.html
+///
+/// 계정을 고르는 쪽(`ClfCore` 의 `HeadroomBand`)은 여전히 50% 를 쓴다. 그쪽은
+/// "어느 계정으로 넘길까" 를 정하는 값이고 이쪽은 화면 색이다.
 public enum UsageBand: Sendable, Equatable, CaseIterable {
     /// 5% 미만. 사실상 소진
     case empty
     /// 5% 이상 15% 미만. 임계값 아래
     case low
-    /// 15% 이상 50% 미만. 눈길을 끌지 않는다
+    /// 15% 이상 30% 미만. 눈길을 끌지 않는다
     case normal
-    /// 50% 이상. 넘어올 곳으로도 좋다
+    /// 30% 이상. 넘어올 곳으로도 좋다
     case ample
 
     public var label: String {
@@ -140,7 +149,7 @@ public struct SpendUsage: Sendable, Equatable {
         switch percentRemaining {
         case ..<5:   return .empty
         case ..<15:  return .low
-        case ..<50:  return .normal
+        case ..<30:  return .normal
         default:     return .ample
         }
     }

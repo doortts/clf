@@ -1,0 +1,234 @@
+<meta charset="utf-8">
+<title>정상 등급의 회색을 없애고 초록에 합친다</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:28px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 6px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:6px 0 0; max-width:300px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  /* 등급 띠 */
+  .scale { display:flex; height:26px; border-radius:6px; overflow:hidden; width:420px;
+           font-size:11px; }
+  .scale span { display:grid; place-items:center; color:#000; font-weight:600; }
+
+  /* 팝오버 조각 */
+  .pop { width:290px; border-radius:12px; padding:10px 12px; box-sizing:border-box;
+         background:#252527; }
+  .pop.lt { background:#ececed; color:#000; }
+  .row { display:flex; align-items:center; gap:7px; height:26px; }
+  .rl { font-size:11px; width:58px; flex:none; opacity:.62; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; overflow:hidden; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:rgba(0,0,0,.28); }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px; }
+  .g  { background:#249d42; } .g  .fill { background:#30d158; } .g  .num { color:#000; }
+  .gy { background:#86868c; } .gy .fill { background:#aeaeb2; } .gy .num { color:#fff; }
+  .y  { background:#bf7f00; } .y  .fill { background:#ffcc00; } .y  .num { color:#000; }
+  .r  { background:#c9241b; } .r  .fill { background:#ff453a; } .r  .num { color:#fff; }
+  .mint { background:#66d4cf; } .mint .fill { background:#00605c; } .mint .num { color:#000; }
+
+  /* 메뉴바 조각. 1pt = 2px */
+  .bar { display:inline-flex; align-items:center; padding:4px 8px; border-radius:5px; }
+  .wp-dark { background:#141416; } .wp-lite { background:#e8e6e1; }
+  .code { font-size:24px; font-weight:600; color:#fff; }
+  .nums { display:flex; flex-direction:column; margin-left:4px; }
+  .line { display:flex; align-items:center; height:22px; }
+  .tag { font-size:20px; font-weight:500; width:28px; text-align:right; color:#c7c7c7; }
+  .val { font-size:20px; font-weight:500; width:48px; text-align:right; margin-left:6px;
+         font-variant-numeric:tabular-nums; }
+  .gauge { display:flex; flex-direction:column; gap:4px; margin-left:5px; }
+  .seg { width:42px; height:8px; box-sizing:border-box; border:1px solid; }
+  .seg i { display:block; height:100%; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:1000px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  .note { margin-top:22px; color:var(--dim); max-width:920px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>정상 등급의 회색을 없애고 초록에 합친다</h1>
+
+<h2>등급 띠</h2>
+<h3>지금. 네 단계</h3>
+<div class="scale">
+  <span style="flex:5;background:#ff453a">소진 0~5</span>
+  <span style="flex:10;background:#ffcc00">주의 5~15</span>
+  <span style="flex:35;background:#aeaeb2">정상 15~50</span>
+  <span style="flex:50;background:#30d158">여유 50~100</span>
+</div>
+<h3 style="margin-top:14px">합친 뒤. 세 단계</h3>
+<div class="scale">
+  <span style="flex:5;background:#ff453a">소진 0~5</span>
+  <span style="flex:10;background:#ffcc00">주의 5~15</span>
+  <span style="flex:85;background:#30d158">괜찮다 15~100</span>
+</div>
+<p class="lede" style="margin-top:10px">
+  경계가 하나 줄어든다. 남는 두 경계(15, 5)는 <b>행동이 달라지는 지점</b>이다.
+  15% 는 선제 전환 임계값이고 5% 아래는 사실상 소진이다. 없애는 50% 경계는
+  행동이 달라지지 않는다. 여유든 정상이든 그냥 쓰면 된다.
+</p>
+
+<h2>메뉴바. 이 문제가 실제로 생기는 자리</h2>
+<div class="cols">
+  <div>
+    <h3>지금 (라이트 외양 + 어두운 벽지)</h3>
+    <div class="bar wp-dark"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#000">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#17993f">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#000"><i style="width:51%;background:#000"></i></span>
+        <span class="seg" style="border-color:#17993f"><i style="width:42%;background:#17993f"></i></span>
+        <span class="seg" style="border-color:#0a7a76"><i style="width:38%;background:#0a7a76"></i></span>
+      </span></div>
+    <p class="cap bad">
+      정상 등급이 <code>.primary</code> 라 라이트 외양에서 검정이 된다. 어두운
+      메뉴바에 검은 숫자와 검은 눈금이 얹혀 사라진다.
+    </p>
+  </div>
+  <div>
+    <h3>합친 뒤 (같은 조건)</h3>
+    <div class="bar wp-dark"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#17993f">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#17993f">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#17993f"><i style="width:51%;background:#17993f"></i></span>
+        <span class="seg" style="border-color:#17993f"><i style="width:42%;background:#17993f"></i></span>
+        <span class="seg" style="border-color:#0a7a76"><i style="width:38%;background:#0a7a76"></i></span>
+      </span></div>
+    <p class="cap warn">
+      검정이 사라져서 <b>읽힌다.</b> 다만 라이트 외양의 초록은
+      <code>#17993f</code> 로 어두운 쪽이라 어두운 메뉴바에서 대비가 3.5 남짓이다.
+      보이기는 하지만 흐리다.
+    </p>
+  </div>
+  <div>
+    <h3>합치고 초록도 밝은 쪽으로</h3>
+    <div class="bar wp-dark"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#3ce16b">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#3ce16b"><i style="width:51%;background:#3ce16b"></i></span>
+        <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+        <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+      </span></div>
+    <p class="cap good">
+      막대는 외양이 아니라 벽지 위에 얹힌다. 코드와 라벨이 이미 밝은 값으로
+      박혀 있으니 등급색도 같이 박으면 온전해진다.
+    </p>
+  </div>
+  <div>
+    <h3>밝은 벽지에서 (밝은 값의 대가)</h3>
+    <div class="bar wp-lite"><span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">52m</span><span class="val" style="color:#3ce16b">51%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">42%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg" style="border-color:#3ce16b"><i style="width:51%;background:#3ce16b"></i></span>
+        <span class="seg" style="border-color:#3ce16b"><i style="width:42%;background:#3ce16b"></i></span>
+        <span class="seg" style="border-color:#66d4cf"><i style="width:38%;background:#66d4cf"></i></span>
+      </span></div>
+    <p class="cap warn">
+      밝은 벽지에서는 흐려진다. 지금 코드 글자와 라벨이 이미 겪는 조건이고,
+      이 화면에서 새로 생기는 문제는 아니다.
+    </p>
+  </div>
+</div>
+
+<h2>팝오버. 같이 바뀐다</h2>
+<div class="cols">
+  <div>
+    <h3>지금 (다크)</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill gy"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill gy"><span class="num">42%</span><span class="track"></span><span class="fill" style="width:40%"></span></span></div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill mint"><span class="num">62%</span><span class="track"></span><span class="fill" style="width:59%"></span></span></div>
+    </div>
+    <p class="cap">
+      회색 두 줄. 정상 등급은 눈길을 끌지 않는다는 규칙이 여기서 나왔다.
+    </p>
+  </div>
+  <div>
+    <h3>합친 뒤 (다크)</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">42%</span><span class="track"></span><span class="fill" style="width:40%"></span></span></div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill mint"><span class="num">62%</span><span class="track"></span><span class="fill" style="width:59%"></span></span></div>
+    </div>
+    <p class="cap warn">
+      초록 세 줄이 된다. 잃는 것은 "이 창은 절반 아래로 내려왔다" 는 신호다.
+      얻는 것은 색이 셋으로 줄어 규칙이 단순해지는 것이다.
+    </p>
+  </div>
+  <div>
+    <h3>경고는 그대로</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">51%</span><span class="track"></span><span class="fill" style="width:48%"></span></span></div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill y"><span class="num">12%</span><span class="track"></span><span class="fill" style="width:11%"></span></span></div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill r"><span class="num">3%</span><span class="track"></span><span class="fill" style="width:4%"></span></span></div>
+    </div>
+    <p class="cap good">
+      노랑과 빨강은 손대지 않는다. 오히려 초록 바다에서 더 눈에 띈다. 회색이
+      끼어 있을 때보다 대비가 크다.
+    </p>
+  </div>
+</div>
+
+<h2>같이 정리되는 것과 남는 것</h2>
+<table>
+  <tr><th>항목</th><th>합치면</th></tr>
+  <tr><td><code>.normal</code> 의 <code>.primary</code> 세 자리</td>
+      <td class="good">사라진다. 라이트 외양에서 검게 구워지던 원인이 없어진다</td></tr>
+  <tr><td>흰 글자 규칙 <code>prefersLightInk</code></td>
+      <td class="good">한 줄 줄어든다. 초록과 노랑은 검은 글자, 빨강만 흰 글자다</td></tr>
+  <tr><td>라이트용 막대색 <code>gaugeFill</code> 의 회색 <code>#86868c</code></td>
+      <td class="good">쓸 자리가 없어진다</td></tr>
+  <tr><td>눈금 빈 칸 <code>Color.primary.opacity</code></td>
+      <td class="bad">남는다. 이건 등급색이 아니라 트랙이라 따로 박아야 한다</td></tr>
+  <tr><td>라이트 외양의 초록 <code>#17993f</code></td>
+      <td class="warn">남는다. 어두운 메뉴바에서 대비 3.5 다. 밝은 쪽으로 박을지는
+          따로 결정할 일이다</td></tr>
+  <tr><td>50% 경계</td>
+      <td class="warn">사라진다. 숫자와 게이지 길이로만 남는다</td></tr>
+</table>
+
+<p class="note">
+  <b>합치는 것에 찬성한다.</b> 회색은 색으로 등급을 말한다면서 정작
+  <b>아무것도 말하지 않는</b> 색이었다. 15% 와 5% 만 행동이 달라지는 경계이고,
+  50% 는 그렇지 않다. 색을 셋으로 줄이면 규칙이 "괜찮다, 주의, 소진" 으로
+  한 줄에 들어간다.
+</p>
+<p class="note">
+  <b>다만 이 한 가지는 짚고 간다.</b> 회색을 없애는 것은 라이트 외양 문제의
+  <b>원인 하나</b>를 없애는 것이지 문제 전체를 없애지 않는다. 눈금 빈 칸이
+  아직 <code>.primary</code> 이고, 라이트용 초록 자체가 어두운 메뉴바에서 흐리다.
+  그래서 같이 하기를 권하는 것은 세 줄이다. 회색 합치기, 빈 칸 값 박기,
+  막대의 초록을 밝은 쪽으로 박기.
+</p>
