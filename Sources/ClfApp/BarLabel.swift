@@ -1,5 +1,25 @@
+import AppKit
 import SwiftUI
 import ClfDesktop
+
+/// 막대 글자의 실제 폭. 열 폭을 계정마다 그 계정의 가장 긴 글자에 맞춘다.
+///
+/// 폭을 못박지 않으면 두 줄의 퍼센트가 세로로 어긋나고, 가장 긴 글자
+/// (`23h`, `100%`) 기준으로 못박으면 짧은 줄에 빈자리가 7pt 씩 남는다. 계정마다
+/// 재서 정하면 정렬은 지키면서 빈자리가 사라진다.
+/// docs/design/bar-compact-mockup.html C안
+enum BarGlyph {
+    /// 막대 글자는 10pt medium 이고 숫자만 고정폭이다. `BarOrgView` 가 쓰는
+    /// 글꼴과 같아야 재는 값이 맞는다.
+    static func width(_ text: String, mono: Bool) -> CGFloat {
+        let size = Metrics.captionSize
+        let font = mono
+            ? NSFont.monospacedDigitSystemFont(ofSize: size, weight: .medium)
+            : NSFont.systemFont(ofSize: size, weight: .medium)
+        // 올림한다. 재 온 값보다 SwiftUI 가 반 픽셀 더 쓰면 글자가 눌린다
+        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+}
 
 /// 막대에 그리는 한 계정. 코드, 숫자 두 줄, 도트 블록 세 줄.
 ///
@@ -19,8 +39,62 @@ struct BarOrgView: View {
     var focused = false
     var dark = true
 
+    /// 숫자 칸 한 줄. 라벨은 없을 수 있다.
+    private struct Row {
+        let tag: String?
+        let value: String
+        let band: UsageBand?
+    }
+
+    /// 그릴 줄들. Enterprise 는 창이 없어 예산 한 줄이 전부다.
+    private var rows: [Row] {
+        if let spend = org.spend, org.limits.isEmpty {
+            // 리셋도 없으므로 남은 시간을 골라도 라벨은 `예산` 이다
+            return [Row(tag: resetLabel.showsTag ? "예산" : nil,
+                        value: "\(direction.displayPercent(used: spend.percentUsed))%",
+                        band: spend.band)]
+        }
+        // 세 창인데 숫자는 두 줄이 한계다. 셋째 줄은 자리가 없어 게이지만 남는다
+        return [row(.session, "5h"), row(.weeklyAll, "1w")]
+    }
+
+    private func row(_ kind: LimitKind, _ period: String) -> Row {
+        let limit = org.limits[kind]
+        return Row(tag: tag(kind, period),
+                   value: limit.map { "\(direction.displayPercent(used: $0.percentUsed))%" }
+                            ?? BarText.unknown,
+                   band: limit?.band)
+    }
+
+    /// 라벨 한 칸. 창 종류이거나 남은 시간이거나 아예 없다.
+    private func tag(_ kind: LimitKind, _ period: String) -> String? {
+        switch resetLabel {
+        case .none:   return nil
+        case .period: return period
+        case .remaining:
+            // 사용률 0 인 창은 서버가 리셋 시각을 안 준다. 아직 안 써서 타이머가
+            // 걸리지도 않았다. 없는 시간을 적을 자리가 아니므로 열을 비운다.
+            // 창 길이(5h)를 적어 봤더니 "5시간 뒤 리셋" 으로 읽혔다
+            guard let resetsAt = org.limits[kind]?.resetsAt else { return nil }
+            return BarText.shortUntil(resetsAt, from: now)
+        }
+    }
+
+    /// 라벨 열 폭. 이 계정의 가장 긴 라벨에 맞춘다. 라벨이 하나도 없으면 nil 이고
+    /// 그때는 열 자체가 사라진다.
+    private var tagColumn: CGFloat? {
+        guard resetLabel.showsTag else { return nil }
+        let widest = rows.compactMap(\.tag).map { BarGlyph.width($0, mono: false) }.max() ?? 0
+        return widest > 0 ? widest : nil
+    }
+
+    /// 값 열 폭. 오른쪽 정렬이라 자릿수가 갈려도 오른쪽 끝이 맞는다.
+    private var valueColumn: CGFloat {
+        rows.map { BarGlyph.width($0.value, mono: true) }.max() ?? 0
+    }
+
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: Metrics.barGap) {
             Text(code).font(.system(size: 12, weight: .semibold))
                 // 흰색으로 박는다. 메뉴바는 벽지 위에 반투명으로 얹히므로
                 // 시스템 외양이 라이트여도 실제 바탕은 어두울 수 있다.
@@ -40,18 +114,9 @@ struct BarOrgView: View {
                 }
 
             if detail.showsNumbers {
-                // 세 창인데 숫자는 두 줄이 한계다. 어느 창인지 라벨로 못박는다.
-                // 셋째 줄은 자리가 없어 게이지만 남는다
                 VStack(alignment: .leading, spacing: 0) {
-                    if let spend = org.spend, org.limits.isEmpty {
-                        // Enterprise 는 창이 없다. 예산 한 줄이 전부다.
-                        // 리셋도 없으므로 남은 시간을 골라도 라벨은 `예산` 이다
-                        value(resetLabel.showsTag ? "예산" : nil,
-                              "\(direction.displayPercent(used: spend.percentUsed))%",
-                              spend.band)
-                    } else {
-                        number(.session, "5h")
-                        number(.weeklyAll, "1w")
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                        line(row)
                     }
                 }
             }
@@ -62,39 +127,7 @@ struct BarOrgView: View {
         .fixedSize()
     }
 
-    /// 걸린 창의 숫자만 색이 바뀐다. 라벨은 그대로 둔다.
-    private func number(_ kind: LimitKind, _ period: String) -> some View {
-        let limit = org.limits[kind]
-        return value(tag(kind, period),
-                     limit.map { "\(direction.displayPercent(used: $0.percentUsed))%" }
-                        ?? BarText.unknown,
-                     limit?.band)
-    }
-
-    /// 라벨 한 칸. 창 종류이거나 남은 시간이거나 아예 없다.
-    private func tag(_ kind: LimitKind, _ period: String) -> String? {
-        switch resetLabel {
-        case .none:   return nil
-        case .period: return period
-        case .remaining:
-            // 사용률 0 인 창은 서버가 리셋 시각을 안 준다. 아직 안 써서 타이머가
-            // 걸리지도 않았다. 없는 시간을 적을 자리가 아니므로 열을 비운다.
-            // 창 길이(5h)를 적어 봤더니 "5시간 뒤 리셋" 으로 읽혔다
-            guard let resetsAt = org.limits[kind]?.resetsAt else { return nil }
-            return BarText.shortUntil(resetsAt, from: now)
-        }
-    }
-
-    /// 라벨 열의 폭. 라벨을 안 쓰는 모드에서는 열 자체가 없다.
-    private var tagWidth: CGFloat? {
-        resetLabel.showsTag ? Metrics.barTagWidth : nil
-    }
-
-    private func value(_ tag: String?, _ text: String, _ band: UsageBand?) -> some View {
-        // 라벨과 숫자 사이는 2.5pt = 5px 다. 숫자를 오른쪽 정렬 상자에 넣으면
-        // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
-        // 상자를 걷어내고 간격만 남긴다. 오른쪽 끝이 들쭉날쭉해지지만
-        // 게이지 자리는 VStack 이 잡아 주므로 흔들리지 않는다
+    private func line(_ row: Row) -> some View {
         // 글자 10pt 는 macOS 최소치다. 9pt 는 그 아래였다. 아래 frame 이
         // 줄 상자를 11pt 로 누른다. 10pt 의 자연 줄 상자가 13pt 라 2pt 를 누르는
         // 셈이고, 그게 없으면 두 줄이 26pt 로 메뉴바 24pt 를 넘는다. 실측으로
@@ -103,27 +136,26 @@ struct BarOrgView: View {
         // 색을 값으로 박는 것은 이 화면만의 예외다. 구운 이미지라 재질도
         // vibrancy 도 없어서 시스템 라벨색이 적응할 바탕 자체가 없다.
         // docs/design/popover-hig27-applied-mockup.html
-        HStack(spacing: 2.5) {
+        HStack(spacing: Metrics.barTagGap) {
             // 라벨을 끄면(없음 모드) 칸이 아니라 열이 사라진다. 켜 두면 라벨이
             // 없는 줄도 폭을 지킨다. 그러지 않으면 타이머가 안 걸린 창의 숫자만
             // 앞으로 당겨져 두 줄의 퍼센트가 어긋난다
-            if let tagWidth {
-                Text(tag ?? "")
-                    .font(.system(size: 10, weight: .medium))
+            if let tagColumn {
+                Text(row.tag ?? "")
+                    .font(.system(size: Metrics.captionSize, weight: .medium))
                     // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
                     // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
                     .foregroundStyle(Color(white: 0.78))
-                    .frame(width: tagWidth, alignment: .trailing)
+                    .frame(minWidth: tagColumn, alignment: .trailing)
             }
-            Text(text)
-                .font(.system(size: 10, weight: .medium).monospacedDigit())
-                .foregroundStyle(band?.fillColor ?? .secondary)
+            Text(row.value)
+                .font(.system(size: Metrics.captionSize, weight: .medium).monospacedDigit())
+                .foregroundStyle(row.band?.fillColor ?? .secondary)
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
                 // 오른쪽 정렬이라 두 자리와 세 자리의 오른쪽 끝이 맞는다.
-                // 왼쪽은 그만큼 벌어지지만 라벨 열이 따로 고정돼 있어서
-                // 라벨은 제자리다
-                .frame(width: Metrics.barValueWidth, alignment: .trailing)
+                // 라벨 열이 따로 고정돼 있어서 라벨은 제자리다
+                .frame(minWidth: valueColumn, alignment: .trailing)
         }
         .frame(height: 11)
     }
@@ -141,7 +173,7 @@ struct BarLabelView: View {
 
     var body: some View {
         let codes = BarText.codes(for: orgs.map(\.name))
-        HStack(spacing: 7) {
+        HStack(spacing: Metrics.barOrgGap) {
             if orgs.isEmpty {
                 Text(BarText.placeholder).font(.system(size: 12, weight: .semibold))
             } else {
