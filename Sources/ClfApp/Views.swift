@@ -63,11 +63,17 @@ struct OrgCard: View {
 
     @Environment(\.colorScheme) private var scheme
 
-    /// 포커스 카드 색. 어두운 팝오버에서는 청록이 기본 점의 파랑, 게이지의
-    /// 빨강/주황/초록과 제일 잘 갈린다. 밝은 팝오버에서는 그 청록이 배경에
-    /// 묻혀 카드가 안 읽히므로 보라를 그대로 쓴다.
+    /// 포커스 카드 색.
+    ///
+    /// 어두운 팝오버에서는 청록이 기본 점의 파랑, 게이지의 빨강/주황/초록과
+    /// 제일 잘 갈린다. 밝은 팝오버에서는 그 청록이 배경에 묻힌다.
     /// docs/design/focus-card-theme-mockup.html
-    private var focusTint: Color { scheme == .dark ? .teal : .purple }
+    ///
+    /// 밝은 쪽은 시스템 파랑이다. **카드 안의 파란 점과 플랜 배지가 같은 색이
+    /// 된다.** 배지는 악센트 22% 채움이고 카드는 15% 라 차이가 7% 뿐이어서
+    /// 배지 경계가 흐려진다. 보라와 인디고가 그 겹침이 없는 값이었지만
+    /// 시스템 파랑을 쓰기로 정했다. docs/design/focus-card-blue-mockup.html
+    private var focusTint: Color { scheme == .dark ? .teal : .accentColor }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

@@ -1,0 +1,247 @@
+<meta charset="utf-8">
+<title>라이트에서 포커스 카드를 파랑으로</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:28px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 8px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:8px 0 0; max-width:320px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  /* 라이트 팝오버 조각. 재질 위라 벽지가 조금 배어 나온다 */
+  .pop { width:326px; border-radius:12px; padding:12px 14px; box-sizing:border-box; color:#000;
+         background:linear-gradient(rgba(240,240,242,.94), rgba(240,240,242,.94)),
+                    radial-gradient(120% 90% at 15% 0%, #cdd5e8 0%, #b3bdd6 45%, #dcd0c2 100%); }
+  .card { padding:8px; margin:0 -8px 4px; border-radius:6px; }
+  .head { display:flex; align-items:center; gap:8px; height:20px; }
+  .dot { width:8px; height:8px; border-radius:4px; background:#0a84ff; flex:none; }
+  .name { font-size:13px; font-weight:600; }
+  .badge { font-size:10px; font-weight:500; padding:1px 6px; border-radius:5px;
+           background:rgba(10,132,255,.22); color:#0a6bd1; }
+  .sp { flex:1; }
+  .status { font-size:10px; font-weight:500; padding:0 12px; height:20px; line-height:20px;
+            border-radius:6px; background:rgba(120,120,128,.12); color:#6c6c70; }
+  .row { display:flex; align-items:center; gap:7px; height:26px; }
+  .rl { font-size:11px; width:56px; flex:none; opacity:.62; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; overflow:hidden; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700; z-index:2;
+         font-variant-numeric:tabular-nums; color:#000; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:rgba(0,0,0,.24); }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px; }
+  .g { background:#28cd41; } .g .fill { background:#005c1f; }
+  .mint { background:#66d4cf; } .mint .fill { background:#00605c; }
+  .reset { font-size:10px; opacity:.5; margin-left:64px; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:1000px; }
+  th, td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  td.q { color:var(--dim); }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:3px;
+        vertical-align:-1px; margin-right:5px; }
+  .note { margin-top:22px; color:var(--dim); max-width:920px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>라이트에서 포커스 카드를 파랑으로</h1>
+<p class="lede">
+  포커스 카드는 <b>방금 앞에 있던 창의 계정</b>을 표시한다. 지금 라이트에서는
+  보라, 다크에서는 청록이다. 보라를 고른 이유는 코드 주석에 이렇게 적혀 있다.
+  "점, 배지, 메뉴바 밑줄의 파랑(악센트)과 게이지의 빨강/주황/초록에서 색을 갈라
+  카드만 방금 그 창을 말한다".
+</p>
+<p class="lede">
+  파랑으로 바꾸면 그 갈라둔 것이 겹친다. <b>카드 안에 이미 파란 것이 둘</b> 있다.
+  기본 창을 뜻하는 파란 점과 플랜 배지다.
+</p>
+
+<h2>지금과 후보</h2>
+<div class="cols">
+  <div>
+    <h3>지금. 보라 <code>.purple</code></h3>
+    <div class="pop">
+      <div class="card" style="background:rgba(175,82,222,.15);box-shadow:inset 0 0 0 1px rgba(175,82,222,.60)">
+        <div class="head"><span class="dot"></span><span class="name">NAVER_TEAM_52</span>
+          <span class="badge">team</span><span class="sp"></span>
+          <span class="status">기본</span></div>
+        <div class="row"><span class="rl">5시간</span>
+          <span class="pill g"><span class="num">13%</span><span class="track"></span>
+            <span class="fill" style="width:12%"></span></span></div>
+        <div class="reset">리셋: 38%, 3시간 5분 뒤</div>
+        <div class="row"><span class="rl">주간 Fable</span>
+          <span class="pill mint"><span class="num">64%</span><span class="track"></span>
+            <span class="fill" style="width:61%"></span></span></div>
+      </div>
+    </div>
+    <p class="cap">
+      파란 점과 파란 배지가 카드 색과 갈린다. 대신 화면에 없던 색이 하나 더
+      생기고, 라이트에서 보라가 꽤 세게 튄다.
+    </p>
+  </div>
+
+  <div>
+    <h3>A안. 시스템 파랑 <code>.accentColor</code></h3>
+    <div class="pop">
+      <div class="card" style="background:rgba(10,132,255,.15);box-shadow:inset 0 0 0 1px rgba(10,132,255,.60)">
+        <div class="head"><span class="dot"></span><span class="name">NAVER_TEAM_52</span>
+          <span class="badge">team</span><span class="sp"></span>
+          <span class="status">기본</span></div>
+        <div class="row"><span class="rl">5시간</span>
+          <span class="pill g"><span class="num">13%</span><span class="track"></span>
+            <span class="fill" style="width:12%"></span></span></div>
+        <div class="reset">리셋: 38%, 3시간 5분 뒤</div>
+        <div class="row"><span class="rl">주간 Fable</span>
+          <span class="pill mint"><span class="num">64%</span><span class="track"></span>
+            <span class="fill" style="width:61%"></span></span></div>
+      </div>
+    </div>
+    <p class="cap bad">
+      <b>배지가 사라진다.</b> 배지는 악센트 22% 채움인데 카드가 악센트 15% 라
+      둘의 차이가 7% 뿐이다. 파란 점도 같은 색 계열 위에 앉아 악센트 노릇을 못 한다.
+    </p>
+  </div>
+
+  <div>
+    <h3>B안. 인디고 <code>#5e5ce6</code></h3>
+    <div class="pop">
+      <div class="card" style="background:rgba(94,92,230,.15);box-shadow:inset 0 0 0 1px rgba(94,92,230,.60)">
+        <div class="head"><span class="dot"></span><span class="name">NAVER_TEAM_52</span>
+          <span class="badge">team</span><span class="sp"></span>
+          <span class="status">기본</span></div>
+        <div class="row"><span class="rl">5시간</span>
+          <span class="pill g"><span class="num">13%</span><span class="track"></span>
+            <span class="fill" style="width:12%"></span></span></div>
+        <div class="reset">리셋: 38%, 3시간 5분 뒤</div>
+        <div class="row"><span class="rl">주간 Fable</span>
+          <span class="pill mint"><span class="num">64%</span><span class="track"></span>
+            <span class="fill" style="width:61%"></span></span></div>
+      </div>
+    </div>
+    <p class="cap good">
+      파랑으로 읽히면서 악센트와는 갈린다. 배지와 점이 살아 있다. 보라보다
+      차분하다.
+    </p>
+  </div>
+
+  <div>
+    <h3>C안. 시스템 파랑을 연하게. 채움 8%, 테두리 70%</h3>
+    <div class="pop">
+      <div class="card" style="background:rgba(10,132,255,.08);box-shadow:inset 0 0 0 1px rgba(10,132,255,.70)">
+        <div class="head"><span class="dot"></span><span class="name">NAVER_TEAM_52</span>
+          <span class="badge">team</span><span class="sp"></span>
+          <span class="status">기본</span></div>
+        <div class="row"><span class="rl">5시간</span>
+          <span class="pill g"><span class="num">13%</span><span class="track"></span>
+            <span class="fill" style="width:12%"></span></span></div>
+        <div class="reset">리셋: 38%, 3시간 5분 뒤</div>
+        <div class="row"><span class="rl">주간 Fable</span>
+          <span class="pill mint"><span class="num">64%</span><span class="track"></span>
+            <span class="fill" style="width:61%"></span></span></div>
+      </div>
+    </div>
+    <p class="cap warn">
+      채움을 낮춰 배지를 살리고 경계는 테두리가 말한다. 대신 카드가 약해져서
+      "방금 그 창" 이라는 표시가 흐릿해진다.
+    </p>
+  </div>
+
+  <div>
+    <h3>D안. 청록. 다크와 같은 색 한 벌</h3>
+    <div class="pop">
+      <div class="card" style="background:rgba(48,214,207,.18);box-shadow:inset 0 0 0 1px rgba(15,138,134,.65)">
+        <div class="head"><span class="dot"></span><span class="name">NAVER_TEAM_52</span>
+          <span class="badge">team</span><span class="sp"></span>
+          <span class="status">기본</span></div>
+        <div class="row"><span class="rl">5시간</span>
+          <span class="pill g"><span class="num">13%</span><span class="track"></span>
+            <span class="fill" style="width:12%"></span></span></div>
+        <div class="reset">리셋: 38%, 3시간 5분 뒤</div>
+        <div class="row"><span class="rl">주간 Fable</span>
+          <span class="pill mint"><span class="num">64%</span><span class="track"></span>
+            <span class="fill" style="width:61%"></span></span></div>
+      </div>
+    </div>
+    <p class="cap bad">
+      테마마다 다른 색을 쓰는 것을 없애는 값이지만, <b>Fable 민트와 계열이
+      같다.</b> 카드 색과 게이지 색이 같은 청록이면 카드가 게이지의 연장처럼 보인다.
+    </p>
+  </div>
+
+  <div>
+    <h3>참고. 파란 것이 카드 안에 둘</h3>
+    <div class="pop">
+      <div class="head" style="height:24px"><span class="dot"></span>
+        <span class="name">NAVER_TEAM_52</span><span class="badge">team</span></div>
+      <p class="cap" style="margin-top:10px">
+        점은 <b>기본 창이 쓰는 계정</b>을 뜻하고, 배지는 플랜이다. 둘 다 악센트
+        파랑이다. 카드까지 파랑이면 같은 색이 이 카드 안에서 세 가지를 말한다.
+      </p>
+    </div>
+  </div>
+</div>
+
+<h2>겹침을 수치로</h2>
+<table>
+  <tr><th>안</th><th>카드 채움</th><th>배지와의 차이</th><th>점과의 색상 차이</th><th>Fable 민트와</th></tr>
+  <tr><td>지금 (보라)</td><td>보라 15%</td><td class="good">색상이 다르다</td>
+      <td class="good">다르다</td><td class="good">다르다</td></tr>
+  <tr><td>A. 시스템 파랑</td><td>악센트 15%</td>
+      <td class="bad">같은 색, 채움 7% 차이뿐</td><td class="bad">같은 색</td>
+      <td class="good">다르다</td></tr>
+  <tr><td><b>B. 인디고</b></td><td>인디고 15%</td>
+      <td class="good">색상 25도 차이</td><td class="good">갈린다</td>
+      <td class="good">다르다</td></tr>
+  <tr><td>C. 파랑 연하게</td><td>악센트 8%</td>
+      <td class="warn">채움은 갈리지만 색은 같다</td><td class="warn">같은 색</td>
+      <td class="good">다르다</td></tr>
+  <tr><td>D. 청록</td><td>청록 18%</td>
+      <td class="good">다르다</td><td class="good">다르다</td>
+      <td class="bad">같은 계열</td></tr>
+</table>
+
+<h2>배지를 옮기는 길도 있다</h2>
+<p class="lede">
+  A안을 쓰고 싶으면 카드를 양보하는 대신 <b>배지와 점을 다른 색으로</b> 옮기는
+  방법이 있다. 플랜 배지는 정보가 약해서 무채색으로 내려도 잃는 것이 적다.
+</p>
+<div class="cols">
+  <div>
+    <h3>A안 + 배지를 무채색으로</h3>
+    <div class="pop">
+      <div class="card" style="background:rgba(10,132,255,.15);box-shadow:inset 0 0 0 1px rgba(10,132,255,.60)">
+        <div class="head"><span class="dot" style="background:#1c1c1e"></span>
+          <span class="name">NAVER_TEAM_52</span>
+          <span class="badge" style="background:rgba(60,60,67,.12);color:#3c3c43">team</span>
+          <span class="sp"></span><span class="status">기본</span></div>
+        <div class="row"><span class="rl">5시간</span>
+          <span class="pill g"><span class="num">13%</span><span class="track"></span>
+            <span class="fill" style="width:12%"></span></span></div>
+        <div class="reset">리셋: 38%, 3시간 5분 뒤</div>
+      </div>
+    </div>
+    <p class="cap warn">
+      카드는 시스템 파랑을 쓰고 점과 배지는 무채색이 된다. 대신 "기본 창" 표시가
+      약해진다. 파란 점은 그 계정이 지금 앱에서 쓰는 계정이라는 뜻이라 정보가
+      약하지 않다.
+    </p>
+  </div>
+</div>
+
+<p class="note">
+  <b>B안(인디고)을 권한다.</b> 원하는 것은 "카드가 파랑" 이고, 인디고는 눈에
+  파랑으로 읽힌다. 악센트와 색상이 25도 벌어져 있어 카드 안의 점과 배지가
+  그대로 살고, Fable 민트와도 안 겹친다. 값은 <code>#5e5ce6</code>
+  (<code>Color.indigo</code>) 이고 채움 15%, 테두리 60% 는 지금 그대로 쓴다.
+</p>
+<p class="note">
+  <b>다크는 안 건드린다.</b> 청록이 어두운 팝오버에서 잘 살아 있고, 다크에서
+  인디고는 남색 배경처럼 가라앉는다. 테마마다 다른 색을 쓰는 것은 이 카드가
+  처음부터 그런 구조였다.
+</p>
