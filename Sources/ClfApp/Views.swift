@@ -489,6 +489,7 @@ struct SettingsPane: View {
 
 struct PopoverView: View {
     @ObservedObject var model: UsageModel
+    @Environment(\.colorScheme) private var scheme
     @State private var showingSettings = false
     @StateObject private var sharedSessions = SharedSessionModel()
 
@@ -592,15 +593,20 @@ struct PopoverView: View {
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
-        // 두 테마 모두 재질 하나로 간다. 테마마다 다른 것을 깔던 것이 원래
-        // 문제였다. 라이트만 불투명 흰 판이라 다크와 다른 앱처럼 보였고,
-        // 흰 판을 흰색 70% 세 겹으로 바꾸는 것도 결국 같은 분기다.
+        // 라이트는 흰 판, 다크는 재질이다.
         //
-        // 킷은 재질을 Ultrathick~Ultrathin 다섯 토큰으로 두고 팝오버에는 Thick
-        // 을 쓴다. 그 자리가 SwiftUI 의 .thickMaterial 이다. 기본 반투명보다
-        // 두꺼워서 벽지가 배어 나오지 않는다.
+        // 킷은 팝오버에 Thick 재질을 쓰고 그 자리가 .thickMaterial 이다.
+        // 라이트에서는 그래도 벽지가 배어 나와서 흰 판으로 덮는다. 게이지의
+        // 초록과 민트가 흰 바탕 기준으로 맞춰진 값이라 바탕이 흔들리면 그
+        // 색들이 같이 흔들린다.
         // docs/design/popover-hig27-applied-mockup.html
-        .background(.thickMaterial)
+        .background {
+            if scheme == .dark {
+                Rectangle().fill(.thickMaterial)
+            } else {
+                Color.white
+            }
+        }
         .task {
             // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
             model.clearNotice()
