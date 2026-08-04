@@ -172,11 +172,14 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var gaugeDirection: GaugeDirection
     /// 막대의 숫자 옆 라벨. 팝오버는 창 이름을 그대로 쓰므로 여기만 따른다.
     public var resetLabel: ResetLabel
+    /// 한도가 바닥나면 데스크톱 알림을 보낸다. docs/design/notify-mockup.html
+    public var notify: Bool
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
                 barContent: BarContent = .chosen, barDetail: BarDetail = .full,
                 gaugeDirection: GaugeDirection = .used,
-                resetLabel: ResetLabel = .remaining) {
+                resetLabel: ResetLabel = .remaining,
+                notify: Bool = true) {
         self.version = version
         self.hidden = hidden
         self.order = order
@@ -184,6 +187,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         self.barDetail = barDetail
         self.gaugeDirection = gaugeDirection
         self.resetLabel = resetLabel
+        self.notify = notify
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -196,6 +200,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         barDetail = try c.decodeIfPresent(BarDetail.self, forKey: .barDetail) ?? .full
         gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .used
         resetLabel = try c.decodeIfPresent(ResetLabel.self, forKey: .resetLabel) ?? .remaining
+        notify = try c.decodeIfPresent(Bool.self, forKey: .notify) ?? true
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }

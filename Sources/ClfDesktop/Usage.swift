@@ -21,6 +21,18 @@ public enum LimitKind: String, Sendable, CaseIterable {
         }
     }
 
+    /// 알림 제목에 쓰는 이름.
+    ///
+    /// 팝오버는 세 줄이 나란히 있어서 `주간 전체` 로 갈라야 하지만, 알림은
+    /// 한 줄뿐이라 `주간 한도` 가 자연스럽다.
+    public var alertLabel: String {
+        switch self {
+        case .session:      return "5시간 한도"
+        case .weeklyAll:    return "주간 한도"
+        case .weeklyScoped: return "주간 Fable"
+        }
+    }
+
     /// 창 하나가 몇 시간짜리인가.
     ///
     /// **서버는 창 길이를 안 준다.** 리셋 시각만 온다. 그래서 종류로 정한다.

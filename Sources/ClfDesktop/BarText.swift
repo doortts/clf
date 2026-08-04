@@ -183,6 +183,28 @@ public enum BarText {
             + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
     }
 
+    /// 알림에 쓰는 리셋 한 줄.
+    ///
+    /// 팝오버의 리셋 줄과 같은 규칙이되 진행률은 뺀다. 알림에서 궁금한 것은
+    /// 언제 풀리는지 하나다.
+    ///
+    /// ```
+    /// 리셋: 2시간 14분 뒤
+    /// 리셋: 3일 6시간 뒤 (토요일 오전 6:00)
+    /// 리셋 시각을 아직 모릅니다.
+    /// ```
+    /// docs/design/notify-mockup.html
+    public static func resetLine(_ date: Date?, from now: Date = Date(),
+                                 locale: Locale = BarText.uiLocale,
+                                 timeZone: TimeZone = .current) -> String {
+        // 사용률 0 인 창은 타이머가 안 걸려서 리셋 시각이 없다. 창 길이를 적으면
+        // 없는 예약을 약속하는 것이다
+        guard let date else { return "리셋 시각을 아직 모릅니다." }
+        let relative = prefix + until(date, from: now)
+        guard date.timeIntervalSince(now) > 86400 else { return relative }
+        return relative + " (" + Clocks.shared.stamp(date, locale: locale, timeZone: timeZone) + ")"
+    }
+
     /// 창이 얼마나 지났나. 100% 에 닿으면 리셋이다.
     ///
     /// 시계가 어긋나면 창 길이보다 더 남은 것으로 나올 수 있다. 음수나

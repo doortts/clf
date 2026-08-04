@@ -45,6 +45,11 @@ final class UsageModel: ObservableObject {
     /// 남은 시간 표기를 흐르게 하는 1분 시계.
     private var clock: Task<Void, Never>?
     private let launcher = AltLauncher()
+    private let notifier = Notifier()
+    /// 알림 권한 상태. 설정 화면이 이걸 보고 안내를 붙인다.
+    @Published private(set) var notifyPermission = Notifier.Permission.unknown
+    /// 앱을 켠 뒤 한 번이라도 알림을 판단했나. 첫 읽기는 표시만 하고 안 보낸다.
+    private var notifiedOnce = false
     private var appearanceWatch: (any NSObjectProtocol)?
     private var activeUUID: String?
     /// 앞에 있는 앱. 어느 계정 창인지는 FocusMark 가 답한다.
@@ -63,6 +68,20 @@ final class UsageModel: ObservableObject {
 
     /// 켜자마자 한 번 읽고, 그다음은 사용량이 정하는 주기로.
     func start() {
+        Task { [weak self] in
+            guard let self else { return }
+            await self.notifier.refreshPermission()
+            // 알림이 켜져 있는데 아직 물어본 적이 없으면 지금 물어본다. 기본값이
+            // 켜짐이라 이 자리가 없으면 켜 둔 채로 아무 알림도 안 온다
+            let ask = await MainActor.run {
+                self.syncNotifyPermission()
+                return self.prefs.notify && self.notifyPermission == .unknown
+            }
+            if ask {
+                await self.notifier.request()
+                await MainActor.run { self.syncNotifyPermission() }
+            }
+        }
         watchAppearance()
         watchFrontApp()
         watchActiveOrg()
@@ -386,6 +405,7 @@ final class UsageModel: ObservableObject {
             rebuildBar()
             if !snapshot.throttled { readAt = snapshot.readAt }
             failure = nil
+            await notify(at: now)
         } catch {
             gate.record(at: now, throttled: false)
             failure = "\(error)"
@@ -441,6 +461,56 @@ final class UsageModel: ObservableObject {
     func setResetLabel(_ label: ResetLabel) {
         prefs.resetLabel = label
         persist()
+    }
+
+    /// 알림을 켜고 끈다. 켤 때 권한을 한 번 물어본다.
+    func setNotify(_ on: Bool) {
+        prefs.notify = on
+        persist()
+        Task { [weak self] in
+            guard let self else { return }
+            if on {
+                // 껐다 켠 사이의 조건은 새 소식으로 받는다
+                await MainActor.run { self.notifier.forgetAll() }
+                if await MainActor.run(body: { self.notifyPermission != .granted }) {
+                    await self.notifier.request()
+                }
+            }
+            await self.notifier.refreshPermission()
+            await MainActor.run { self.syncNotifyPermission() }
+        }
+    }
+
+    func openNotificationSettings() { Notifier.openSystemSettings() }
+
+    private func syncNotifyPermission() {
+        notifyPermission = notifier.permission
+    }
+
+    /// 지금 참인 알림 조건을 모아 넘긴다.
+    ///
+    /// **지금 참인 것 전부**를 넘겨야 한다. 사라진 조건의 열쇠를 지우는 일도
+    /// 이 목록으로 하기 때문이다.
+    private func notify(at now: Date) async {
+        let visible = prefs.apply(to: known)
+        let alerts = visible.flatMap { org in
+            UsageAlerts.build(for: org,
+                              others: visible.filter { $0.uuid != org.uuid },
+                              now: now)
+        }
+        guard prefs.notify else {
+            // 꺼 둔 동안의 조건은 쌓아 두지 않는다
+            notifier.markSeen(alerts)
+            notifiedOnce = true
+            return
+        }
+        // 이미 빨강인 상태로 앱을 켠 것은 새 소식이 아니다
+        guard notifiedOnce else {
+            notifier.markSeen(alerts)
+            notifiedOnce = true
+            return
+        }
+        await notifier.deliver(alerts)
     }
 
     private func persist() {

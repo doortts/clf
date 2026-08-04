@@ -445,6 +445,36 @@ struct SettingsPane: View {
 
             Divider()
 
+            // 알림은 한 칸이다. 예고와 소진을 따로 끄고 싶다는 말이 나오면
+            // 그때 가른다. docs/design/notify-mockup.html
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle(isOn: Binding(
+                    get: { model.prefs.notify },
+                    set: { model.setNotify($0) }
+                )) {
+                    Text("한도가 바닥나면 알림").subheadStyle()
+                }
+                .toggleStyle(.checkbox)
+
+                if model.prefs.notify, model.notifyPermission == .denied {
+                    // 체크가 켜져도 시스템이 막으면 안 온다. 그 사실과 길을 같이
+                    HStack(spacing: 4) {
+                        Text("시스템 설정에서 알림을 허용해야 합니다")
+                            .captionStyle().foregroundStyle(.secondary)
+                        Button("열기...") { model.openNotificationSettings() }
+                            .buttonStyle(.borderless).captionStyle()
+                            .accessibilityLabel("알림 설정 열기")
+                    }
+                    .padding(.leading, 20)
+                } else {
+                    Text("빨강(5% 미만)에 들어설 때와 다 썼을 때 보냅니다")
+                        .captionStyle().foregroundStyle(.tertiary)
+                        .padding(.leading, 20)
+                }
+            }
+
+            Divider()
+
             // 새 창을 띄우면 계정마다 300MB 쯤 쌓인다. 지울 자리가 필요하다
             purgeSection
         }

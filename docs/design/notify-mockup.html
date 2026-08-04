@@ -1,0 +1,344 @@
+<meta charset="utf-8">
+<title>소진 알림 시안</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:30px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 8px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:8px 0 0; max-width:330px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  /* macOS 알림 배너 */
+  .banner { width:344px; border-radius:16px; padding:12px 14px; box-sizing:border-box;
+            display:flex; gap:10px; background:rgba(58,58,60,.92);
+            box-shadow:0 1px 2px rgba(0,0,0,.2), 0 10px 30px rgba(0,0,0,.45); }
+  .banner.lt { background:rgba(250,250,250,.94); color:#000;
+               box-shadow:0 1px 2px rgba(0,0,0,.10), 0 10px 30px rgba(0,0,0,.18); }
+  .icon { width:38px; height:38px; border-radius:9px; flex:none; display:grid;
+          place-items:center; background:#2c2c2e; box-shadow:0 0 0 .5px rgba(255,255,255,.14); }
+  .icon .bars { display:flex; flex-direction:column; gap:2px; }
+  .icon .bars i { display:block; width:20px; height:4px; border-radius:1px; }
+  .body { min-width:0; flex:1; }
+  .ttl { font-size:13px; line-height:16px; font-weight:600; display:flex; }
+  .ttl span:last-child { margin-left:auto; font-weight:400; opacity:.55; font-size:11px;
+                         flex:none; padding-left:8px; }
+  .txt { font-size:13px; line-height:16px; opacity:.85; margin-top:1px; }
+  .txt b { font-weight:600; opacity:1; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:1010px; }
+  th, td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  td.q { color:var(--dim); }
+  td.m { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+
+  .pop { width:312px; border-radius:12px; padding:12px 14px; box-sizing:border-box;
+         background:#252527; }
+  .chk { display:flex; align-items:center; gap:8px; height:20px; font-size:11px; }
+  .box { width:13px; height:13px; border-radius:3px; background:#0a84ff; color:#fff;
+         font-size:10px; display:grid; place-items:center; flex:none; }
+  .box.off { background:rgba(255,255,255,.12); }
+  .hint { font-size:10px; line-height:13px; opacity:.5; margin:4px 0 0 21px; }
+  .note { margin-top:22px; color:var(--dim); max-width:920px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>소진 알림 시안</h1>
+<p class="lede">
+  알림은 두 번 온다. <b>빨강에 들어설 때</b>(잔여 5% 미만) 한 번, <b>다 썼을
+  때</b>(잔여 0%) 한 번이다. 본문은 <code>리셋: 2시간 14분 뒤</code> 한 줄이
+  기본이고, 덧붙일 사실이 있을 때만 한 문장을 더한다.
+</p>
+<p class="lede">
+  앞 시안에서 <code>이 속도면 곧 막힌다</code> 같은 문장을 뺐다. 우리가 모르는
+  것을 단정하는 말이고, 알림에서 짐작을 말할 자리는 없다.
+</p>
+
+<h2>1. 빨강 진입. 아직 쓸 수 있다</h2>
+<div class="cols">
+  <div>
+    <h3>5시간 창</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ff4a3d"></i><i style="background:#3ce16b"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 5시간 한도 4% 남음</span><span>지금</span></span>
+        <span class="txt">리셋: <b>2시간 14분 뒤</b></span>
+      </span>
+    </div>
+    <p class="cap">
+      제목에 계정과 창과 잔여를 다 넣는다. 알림 목록에 쌓이면 제목만 보이므로
+      제목 한 줄로 어느 계정의 어느 창인지 갈려야 한다.
+    </p>
+  </div>
+  <div>
+    <h3>주간 창</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#3ce16b"></i><i style="background:#ff4a3d"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 주간 한도 3% 남음</span><span>지금</span></span>
+        <span class="txt">리셋: <b>3일 6시간 뒤</b> (토요일 오전 6:00)</span>
+      </span>
+    </div>
+    <p class="cap">
+      하루를 넘으면 요일과 시각을 괄호로 붙인다. 팝오버의 리셋 줄이 쓰는 규칙과
+      같다.
+    </p>
+  </div>
+  <div>
+    <h3>라이트 외양</h3>
+    <div class="banner lt">
+      <span class="icon" style="background:#f2f2f7;box-shadow:0 0 0 .5px rgba(0,0,0,.10)">
+        <span class="bars"><i style="background:#e02017"></i><i style="background:#17993f"></i>
+        <i style="background:#0a7a76"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 5시간 한도 4% 남음</span><span>지금</span></span>
+        <span class="txt">리셋: <b>2시간 14분 뒤</b></span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<h2>2. 소진</h2>
+<p class="lede">
+  기다리는 시간은 <b>소진된 창 중 가장 늦게 풀리는 것</b>이다. 5시간 창만
+  소진이면 몇 시간, 주간까지 소진이면 며칠이다.
+</p>
+<div class="cols">
+  <div>
+    <h3>5시간 창만 소진</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ff4a3d"></i><i style="background:#3ce16b"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 5시간 한도 소진</span><span>지금</span></span>
+        <span class="txt">리셋: <b>2시간 14분 뒤</b>. 주간은 47% 남았습니다.</span>
+      </span>
+    </div>
+    <p class="cap good">
+      주간이 남았다는 사실만 덧붙인다. 그 뒤로 무엇을 하라는 말은 넣지 않는다.
+    </p>
+  </div>
+  <div>
+    <h3>주간까지 소진</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ff4a3d"></i><i style="background:#ff4a3d"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 주간 한도 소진</span><span>지금</span></span>
+        <span class="txt">리셋: <b>3일 6시간 뒤</b> (토요일 오전 6:00)</span>
+      </span>
+    </div>
+    <p class="cap">
+      둘 다 소진이면 5시간 리셋은 의미가 없으므로 긴 쪽만 적는다. 제목이 주간
+      소진이라고 말하고 있어서 설명을 덧붙일 것이 없다.
+    </p>
+  </div>
+  <div>
+    <h3>Fable 창만 소진</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#3ce16b"></i><i style="background:#3ce16b"></i>
+        <i style="background:#ff4a3d"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 주간 Fable 소진</span><span>지금</span></span>
+        <span class="txt">리셋: <b>1일 17시간 뒤</b> (수요일 오후 9:00).
+          다른 모델은 쓸 수 있습니다.</span>
+      </span>
+    </div>
+    <p class="cap">
+      Fable 창은 모델 하나에만 걸린다. "다 막혔다" 로 읽히지 않게 한 문장을
+      붙인다.
+    </p>
+  </div>
+  <div>
+    <h3>세 창이 다 소진</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ff4a3d"></i><i style="background:#ff4a3d"></i>
+        <i style="background:#ff4a3d"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>NAVER_TEAM_52 한도 전부 소진</span><span>지금</span></span>
+        <span class="txt">리셋: <b>3일 6시간 뒤</b> (토요일 오전 6:00).
+          NAVER_TEAM_40 은 62% 남았습니다.</span>
+      </span>
+    </div>
+    <p class="cap">
+      다른 계정에 여유가 있으면 이름과 잔여를 적는다. 넘기라고 권하지는 않는다.
+      그 판단은 사용자 것이다.
+    </p>
+  </div>
+  <div>
+    <h3>Enterprise 월 예산</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ff4a3d"></i><i style="background:#3a3a3c"></i>
+        <i style="background:#3a3a3c"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>Naver 월 예산 소진</span><span>지금</span></span>
+        <span class="txt">$75.00 를 다 썼습니다. 리셋 시각은 서버가 주지 않습니다.</span>
+      </span>
+    </div>
+    <p class="cap warn">
+      예산형은 리셋 시각이 응답에 없다. 없는 시간을 지어내지 않고 없다고 말한다.
+    </p>
+  </div>
+</div>
+
+<h2>문구 표</h2>
+<table>
+  <tr><th>때</th><th>제목</th><th>본문</th></tr>
+  <tr><td>빨강 진입, 하루 안쪽</td>
+      <td class="m">{계정} 5시간 한도 4% 남음</td>
+      <td class="m">리셋: 2시간 14분 뒤</td></tr>
+  <tr><td>빨강 진입, 하루 넘음</td>
+      <td class="m">{계정} 주간 한도 3% 남음</td>
+      <td class="m">리셋: 3일 6시간 뒤 (토요일 오전 6:00)</td></tr>
+  <tr><td>5시간만 소진</td>
+      <td class="m">{계정} 5시간 한도 소진</td>
+      <td class="m">리셋: 2시간 14분 뒤. 주간은 47% 남았습니다.</td></tr>
+  <tr><td>주간 소진</td>
+      <td class="m">{계정} 주간 한도 소진</td>
+      <td class="m">리셋: 3일 6시간 뒤 (토요일 오전 6:00)</td></tr>
+  <tr><td>Fable 소진</td>
+      <td class="m">{계정} 주간 Fable 소진</td>
+      <td class="m">리셋: 1일 17시간 뒤 (수요일 오후 9:00). 다른 모델은 쓸 수 있습니다.</td></tr>
+  <tr><td>전부 소진, 여유 계정 있음</td>
+      <td class="m">{계정} 한도 전부 소진</td>
+      <td class="m">리셋: 3일 6시간 뒤 (토요일 오전 6:00). {다른 계정} 은 62% 남았습니다.</td></tr>
+  <tr><td>월 예산 소진</td>
+      <td class="m">{계정} 월 예산 소진</td>
+      <td class="m">$75.00 를 다 썼습니다. 리셋 시각은 서버가 주지 않습니다.</td></tr>
+  <tr><td>리셋 시각을 모를 때</td>
+      <td class="m">{계정} 5시간 한도 소진</td>
+      <td class="m">리셋 시각을 아직 모릅니다.</td></tr>
+</table>
+<p class="lede" style="margin-top:10px">
+  본문은 <code>리셋:</code> 으로 시작한다. 알림을 받는 순간 궁금한 것이 그것이고,
+  잔여 퍼센트는 이미 제목과 메뉴바에 있다.
+</p>
+
+<h2>말투</h2>
+<table>
+  <tr><th>안 쓰는 말</th><th>왜</th><th>대신</th></tr>
+  <tr><td class="m">이 속도면 곧 막힌다</td>
+      <td class="q">쓰는 속도를 우리가 모른다. 짐작을 사실처럼 말하는 것이다</td>
+      <td class="m">(뺀다)</td></tr>
+  <tr><td class="m">기다려야 한다</td>
+      <td class="q">사용자에게 시키는 말이다. 우리가 정할 일이 아니다</td>
+      <td class="m">리셋: 3일 6시간 뒤</td></tr>
+  <tr><td class="m">다른 계정으로 넘기면 이어서 쓸 수 있다</td>
+      <td class="q">권유다. 사실만 적고 판단은 사용자에게 남긴다</td>
+      <td class="m">{다른 계정} 은 62% 남았습니다</td></tr>
+  <tr><td class="m">5시간 창이 풀려도 주간이 막고 있다</td>
+      <td class="q">제목이 이미 주간 소진이라고 말한다. 같은 말을 두 번 한다</td>
+      <td class="m">(뺀다)</td></tr>
+  <tr><td class="m">주간 한도는 47% 남았다</td>
+      <td class="q">알림은 남의 화면에 끼어드는 자리다. 반말로 둘 이유가 없다</td>
+      <td class="m">주간은 47% 남았습니다</td></tr>
+</table>
+
+<h2>기다리는 시간을 정하는 규칙</h2>
+<table>
+  <tr><th>소진된 창</th><th>적는 시각</th></tr>
+  <tr><td>5시간</td><td>5시간 창의 리셋 시각</td></tr>
+  <tr><td>주간 전체</td><td>주간 창의 리셋 시각</td></tr>
+  <tr><td>5시간 + 주간</td><td>둘 중 <b>늦은</b> 쪽. 사실상 주간</td></tr>
+  <tr><td>주간 Fable</td><td>Fable 창의 리셋 시각</td></tr>
+  <tr><td>전부</td><td>가장 늦은 쪽</td></tr>
+  <tr><td>리셋 시각을 모를 때</td>
+      <td class="bad">적지 않는다. 창 길이를 적으면 없는 예약을 약속하는 것이다</td></tr>
+</table>
+
+<h2>같은 알림이 반복되지 않게</h2>
+<table>
+  <tr><th>규칙</th><th>왜</th></tr>
+  <tr><td>계정 x 창 x 리셋 시각 조합마다 한 번</td>
+      <td class="q">읽기가 5분마다 도는데 조건만 보고 보내면 한 시간에 12번 온다.
+          리셋 시각이 바뀌면(창이 새로 열리면) 다시 보낸다</td></tr>
+  <tr><td>빨강 진입과 소진은 따로 센다</td>
+      <td class="q">4% 에서 한 번, 0% 에서 또 한 번은 뜻이 다른 두 알림이다</td></tr>
+  <tr><td>내려갈 때만 보낸다</td>
+      <td class="q">리셋으로 값이 올라가는 것은 알릴 일이 아니다. 등급이 좋아지면
+          다음 알림을 위해 표시만 지운다</td></tr>
+  <tr><td>앱을 처음 켠 직후 첫 읽기는 안 보낸다</td>
+      <td class="q">이미 빨강인 상태로 켰다면 새 소식이 아니다. 켜자마자 셋이
+          쏟아지면 그 뒤로 알림을 꺼 버린다</td></tr>
+</table>
+
+<h2>설정</h2>
+<div class="cols">
+  <div>
+    <h3>한 칸으로 (권함)</h3>
+    <div class="pop">
+      <div class="chk"><span class="box">O</span><span>로그인할 때 실행</span></div>
+      <div class="chk" style="margin-top:8px"><span class="box">O</span>
+        <span>한도가 바닥나면 알림</span></div>
+      <div class="hint">빨강(5% 미만)에 들어설 때와 다 썼을 때 보냅니다</div>
+    </div>
+    <p class="cap good">
+      켜고 끄는 것 하나면 된다. 두 종류를 따로 끄고 싶은 사람은 드물고, 노브가
+      늘면 설정이 길어진다.
+    </p>
+  </div>
+  <div>
+    <h3>두 칸으로 (대안)</h3>
+    <div class="pop">
+      <div class="chk"><span class="box">O</span><span>한도가 바닥나면 알림</span></div>
+      <div class="chk" style="margin-top:8px;margin-left:21px"><span class="box off"></span>
+        <span>빨강에 들어설 때도</span></div>
+      <div class="hint" style="margin-left:42px">5% 미만이 되는 순간 미리 알립니다</div>
+    </div>
+    <p class="cap">
+      소진만 받고 예고는 안 받는 사람을 위한 갈래다. 설정이 한 줄 길어진다.
+    </p>
+  </div>
+  <div>
+    <h3>권한이 없을 때</h3>
+    <div class="pop">
+      <div class="chk"><span class="box off"></span><span>한도가 바닥나면 알림</span></div>
+      <div class="hint">
+        시스템 설정에서 알림을 허용해야 합니다 &nbsp;<span style="color:#4da2ff">열기...</span>
+      </div>
+    </div>
+    <p class="cap">
+      권한을 거절했으면 체크가 켜져도 알림이 안 온다. 그때 이 줄과 여는 단추를
+      둔다. 로그인 항목이 이미 같은 방식이다.
+    </p>
+  </div>
+</div>
+
+<h2>구현에서 걸리는 것</h2>
+<table>
+  <tr><th>항목</th><th>내용</th></tr>
+  <tr><td>알림 API</td>
+      <td class="q"><code>UNUserNotificationCenter</code> 를 쓴다. 번들 식별자가
+          있어야 하고 권한을 한 번 요청해야 한다. 우리 앱은 임시 서명이라 첫
+          요청이 막힐 수 있다. 막히면 그 사실을 설정 화면에 적는다</td></tr>
+  <tr><td>소진 판정</td>
+      <td class="q">잔여 0% 다. 서버가 99.6% 를 100 으로 올려 줄 수 있으므로
+          사용률 100 이 아니라 <code>percentRemaining &lt;= 0</code> 으로 본다</td></tr>
+  <tr><td>시간 문구</td>
+      <td class="q">팝오버 리셋 줄이 쓰는 <code>BarText.until</code> 을 그대로 쓴다.
+          하루를 넘으면 요일과 시각을 붙이는 규칙도 이미 있다. 새 규칙을 만들지 않는다</td></tr>
+  <tr><td>알림을 눌렀을 때</td>
+      <td class="q">지금은 아무 일도 안 한다. 팝오버를 코드로 여는 길이 깔끔하지
+          않아서 나중에 본다</td></tr>
+</table>
+
+<p class="note">
+  <b>본문은 한 줄이 기본이다.</b> <code>리셋: 2시간 14분 뒤</code> 로 끝나는 것이
+  가장 흔한 모양이고, 덧붙이는 문장은 그것만으로 오해가 생길 때만 넣는다.
+  Fable 은 다른 모델이 살아 있다는 사실, 전부 소진은 다른 계정의 잔여, 5시간
+  소진은 주간이 남았다는 사실이다.
+</p>
