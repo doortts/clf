@@ -43,6 +43,14 @@ enum Metrics {
     /// 배지 높이. 4의 배수 격자에 앉힌다.
     static let badgeHeight: CGFloat = 16
 
+    /// 막대의 남은 시간 라벨 열.
+    ///
+    /// 두 줄의 퍼센트가 세로로 맞아야 한다. 라벨은 `9m` 두 글자에서 `23h` 세
+    /// 글자까지고, 타이머가 안 걸린 창은 라벨이 아예 없다. 폭을 못박지 않으면
+    /// 줄마다 숫자가 앞뒤로 당겨진다. 세 글자 기준 18pt 이고, 오른쪽으로
+    /// 붙여 숫자와의 간격을 일정하게 둔다.
+    static let barTagWidth: CGFloat = 18
+
     // MARK: 글자. Text styles 의 크기
     //
     // 킷의 짝은 Body 13/16, Callout 12/15, Subheadline 11/14, Caption 10/13 이다.

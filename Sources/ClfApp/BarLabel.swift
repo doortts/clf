@@ -85,6 +85,11 @@ struct BarOrgView: View {
         }
     }
 
+    /// 라벨 열의 폭. 라벨을 안 쓰는 모드에서는 열 자체가 없다.
+    private var tagWidth: CGFloat? {
+        resetLabel.showsTag ? Metrics.barTagWidth : nil
+    }
+
     private func value(_ tag: String?, _ text: String, _ band: UsageBand?) -> some View {
         // 라벨과 숫자 사이는 2.5pt = 5px 다. 숫자를 오른쪽 정렬 상자에 넣으면
         // 값이 짧을 때 상자 안쪽 여백까지 더해져 사이가 두 배로 벌어졌다.
@@ -99,14 +104,17 @@ struct BarOrgView: View {
         // vibrancy 도 없어서 시스템 라벨색이 적응할 바탕 자체가 없다.
         // docs/design/popover-hig27-applied-mockup.html
         HStack(spacing: 2.5) {
-            // 라벨을 끄면 칸이 아니라 열이 사라진다. 빈 Text 를 두면 간격만 남아
-            // 폭이 안 줄어든다
-            if let tag {
-                Text(tag)
+            // 라벨을 끄면(없음 모드) 칸이 아니라 열이 사라진다. 켜 두면 라벨이
+            // 없는 줄도 폭을 지킨다. 그러지 않으면 타이머가 안 걸린 창의 숫자만
+            // 앞으로 당겨져 두 줄의 퍼센트가 어긋난다
+            if let tagWidth {
+                Text(tag ?? "")
                     .font(.system(size: 10, weight: .medium))
                     // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
                     // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
                     .foregroundStyle(Color(white: 0.78))
+                    // 예산처럼 한글 두 글자는 18pt 를 넘는다. 넘치면 늘어난다
+                    .frame(minWidth: tagWidth, alignment: .trailing)
             }
             Text(text)
                 .font(.system(size: 10, weight: .medium).monospacedDigit())
