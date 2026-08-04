@@ -74,9 +74,13 @@ struct BarOrgView: View {
     /// 라벨 한 칸. 창 종류이거나 남은 시간이거나 아예 없다.
     private func tag(_ kind: LimitKind, _ period: String) -> String? {
         switch resetLabel {
-        case .none:      return nil
-        case .period:    return period
-        case .remaining: return BarText.shortUntil(org.limits[kind]?.resetsAt, from: now)
+        case .none:   return nil
+        case .period: return period
+        case .remaining:
+            // 값을 아예 못 읽은 창은 남은 시간도 모른다. 창이 있는데 리셋
+            // 시각만 없는 것(사용률 0)과 갈라야 한다
+            guard let limit = org.limits[kind] else { return "-" }
+            return BarText.shortUntil(limit.resetsAt, window: kind.window, from: now)
         }
     }
 
