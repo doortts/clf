@@ -77,10 +77,11 @@ struct BarOrgView: View {
         case .none:   return nil
         case .period: return period
         case .remaining:
-            // 값을 아예 못 읽은 창은 남은 시간도 모른다. 창이 있는데 리셋
-            // 시각만 없는 것(사용률 0)과 갈라야 한다
-            guard let limit = org.limits[kind] else { return "-" }
-            return BarText.shortUntil(limit.resetsAt, window: kind.window, from: now)
+            // 사용률 0 인 창은 서버가 리셋 시각을 안 준다. 아직 안 써서 타이머가
+            // 걸리지도 않았다. 없는 시간을 적을 자리가 아니므로 열을 비운다.
+            // 창 길이(5h)를 적어 봤더니 "5시간 뒤 리셋" 으로 읽혔다
+            guard let resetsAt = org.limits[kind]?.resetsAt else { return nil }
+            return BarText.shortUntil(resetsAt, from: now)
         }
     }
 

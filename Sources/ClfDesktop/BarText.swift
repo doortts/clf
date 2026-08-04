@@ -109,15 +109,12 @@ public enum BarText {
     /// 4시간 6분  -> 4h      9분 50초    -> 9m
     /// 30초       -> 0m      리셋 시각 없음 -> -
     /// ```
-    /// docs/design/bar-reset-remaining-mockup.html
-    /// `window` 를 주면 리셋 시각이 없을 때 **창 길이**를 대신 적는다.
     ///
-    /// 사용률 0 인 창은 서버가 리셋 시각을 안 준다. 아직 안 열려서 리셋 예약이
-    /// 없기 때문이다. 그때 남은 시간은 창 길이 전체이므로 5시간 창은 `5h`,
-    /// 주간 창은 `7d` 다. `-` 로 비워 두면 옆 숫자만 남아 무슨 창인지도 사라진다.
-    public static func shortUntil(_ date: Date?, window: TimeInterval? = nil,
-                                  from now: Date = Date()) -> String {
-        guard let left = date.map({ $0.timeIntervalSince(now) }) ?? window else { return "-" }
+    /// 사용률 0 인 창은 타이머가 안 걸려서 리셋 시각이 없다. 막대는 그 자리를
+    /// 아예 비우므로 이 함수를 부르지 않는다. `-` 는 다른 부르는 쪽을 위한
+    /// 마지막 방어다. docs/design/bar-reset-remaining-mockup.html
+    public static func shortUntil(_ date: Date?, from now: Date = Date()) -> String {
+        guard let left = date.map({ $0.timeIntervalSince(now) }) else { return "-" }
         // 시계가 어긋나 지난 시각이 와도 음수를 그리지 않는다
         guard left > 0 else { return "0m" }
 
