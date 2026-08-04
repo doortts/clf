@@ -113,15 +113,17 @@ struct BarOrgView: View {
                     // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
                     // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
                     .foregroundStyle(Color(white: 0.78))
-                    // 예산처럼 한글 두 글자는 18pt 를 넘는다. 넘치면 늘어난다
-                    .frame(minWidth: tagWidth, alignment: .trailing)
+                    .frame(width: tagWidth, alignment: .trailing)
             }
             Text(text)
                 .font(.system(size: 10, weight: .medium).monospacedDigit())
                 .foregroundStyle(band?.fillColor ?? .secondary)
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                // 오른쪽 정렬이라 두 자리와 세 자리의 오른쪽 끝이 맞는다.
+                // 왼쪽은 그만큼 벌어지지만 라벨 열이 따로 고정돼 있어서
+                // 라벨은 제자리다
+                .frame(width: Metrics.barValueWidth, alignment: .trailing)
         }
         .frame(height: 11)
     }
