@@ -1,0 +1,221 @@
+<meta charset="utf-8">
+<title>기본창 배지 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:860px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .colhead { font-size:11px; color:#98989d; margin-bottom:6px; width:340px; }
+  .colhead b { color:#f2f2f7; }
+  .fit { font-size:10px; margin-bottom:8px; color:#5cd679; }
+  .fit.tight { color:#ffd60a; }
+  .pop { width:340px; background:#2c2c2e; border-radius:12px; padding:14px;
+         box-shadow:0 8px 30px rgba(0,0,0,0.5); box-sizing:border-box; }
+
+  .card { padding:8px 0; }
+  .cardhead { display:flex; align-items:center; gap:8px; }
+  .name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden;
+          text-overflow:ellipsis; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#0a84ff; flex:none; }
+  .spacer { flex:1 1 8px; min-width:8px; }
+
+  .badge { font-size:10px; font-weight:600; padding:0 6px; height:16px; border-radius:5px;
+           white-space:nowrap; display:inline-flex; align-items:center; gap:4px; flex:none; }
+  .badge.blue { color:#6fa8ff; background:rgba(10,132,255,0.22); }
+  .badge.gray { color:#b0b0b5; background:rgba(152,152,157,0.20); }
+  .ydot { width:6px; height:6px; border-radius:50%; background:#ffd60a; flex:none; }
+
+  .chip { font-size:12px; font-weight:500; height:20px; padding:0 12px; border-radius:6px;
+          display:inline-flex; align-items:center; white-space:nowrap; flex:none;
+          color:#6fa8ff; background:rgba(10,132,255,0.12);
+          border:1px solid rgba(10,132,255,0.45); box-sizing:border-box; }
+
+  .grow { display:flex; align-items:center; gap:7px; margin-top:8px; }
+  .glabel { font-size:11px; color:#98989d; width:58px; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; background:#30d158; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700; color:#000;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:#232325; }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px;
+          min-width:11px; background:#30d158; }
+  .reset { font-size:10px; color:#7c7c80; margin:4px 0 0 65px; }
+  .div { height:1px; background:rgba(255,255,255,0.12); margin:4px 0; }
+
+  table { border-collapse:collapse; margin-top:26px; font-size:12px; }
+  th, td { text-align:left; padding:4px 14px 4px 0; border-bottom:1px solid rgba(255,255,255,0.1); }
+  th { color:#98989d; font-weight:500; }
+  td.n { font-variant-numeric:tabular-nums; text-align:right; }
+  td.bad { color:#ff6961; }
+  td.ok { color:#5cd679; }
+  td.tight { color:#ffd60a; }
+  .note { margin-top:24px; color:#98989d; max-width:860px; }
+  .note b { color:#f2f2f7; }
+  .note li { margin-bottom:8px; }
+</style>
+
+<h1>기본창 표시 - 계정 종류 배지 옆에 회색 `기본`</h1>
+<p class="lede">
+  파란 점을 빼고 그 자리의 뜻을 글자로 적는다. 종류 배지(`team`) 바로 옆에
+  회색 상자로 `기본` 이다. 회색은 상태를 말하되 눈길을 끌지 않는 색이라
+  플랜 배지의 파랑과도, 게이지의 빨강/주황/초록과도 겹치지 않는다.
+  아래 숫자는 SF Pro 실측값이고 간격 8pt 와 `Spacer` 최소 8pt 를 같이 세었다.
+  카드는 실제 폭으로 그린 것이라 넘치면 그 자리에서 잘린다.
+</p>
+
+<div class="cols">
+
+  <div>
+    <div class="colhead"><b>지금</b> 파란 점이 기본창을 뜻한다</div>
+    <div class="fit">여유 25.7pt</div>
+    <div class="pop">
+      <div class="card">
+        <div class="cardhead">
+          <span class="dot"></span>
+          <span class="name">NAVER_TEAM_52</span>
+          <span class="badge blue">team</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">17%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.17)"></span></div></div>
+        <div class="reset">리셋: 50%, 2시간 30분 뒤</div>
+      </div>
+      <div class="div"></div>
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_40</span>
+          <span class="badge blue">team</span>
+          <span class="ydot"></span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">31%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.31)"></span></div></div>
+        <div class="reset">리셋: 65%, 2일 10시간 뒤</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead"><b>1안</b> 회색 `기본` 배지. 단추 라벨은 그대로</div>
+    <div class="fit tight">여유 4.4pt. 13자까지만 안 잘린다</div>
+    <div class="pop">
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_52</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">17%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.17)"></span></div></div>
+        <div class="reset">리셋: 50%, 2시간 30분 뒤</div>
+      </div>
+      <div class="div"></div>
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_40</span>
+          <span class="badge blue">team</span>
+          <span class="ydot"></span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">31%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.31)"></span></div></div>
+        <div class="reset">리셋: 65%, 2일 10시간 뒤</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead"><b>2안</b> 같은 배지에 단추 라벨을 `꺼내기` 로 줄인다</div>
+    <div class="fit">여유 38.9pt. 17자까지 버틴다</div>
+    <div class="pop">
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_52</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">17%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.17)"></span></div></div>
+        <div class="reset">리셋: 50%, 2시간 30분 뒤</div>
+      </div>
+      <div class="div"></div>
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_40</span>
+          <span class="badge blue">team</span>
+          <span class="ydot"></span>
+          <span class="spacer"></span>
+          <span class="chip">꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">31%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.31)"></span></div></div>
+        <div class="reset">리셋: 65%, 2일 10시간 뒤</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead">긴 이름은 어느 쪽도 안 된다. 1안으로 16자를 넣어 본 것이다</div>
+    <div class="fit tight">이름이 잘린다</div>
+    <div class="pop">
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_CLOUD</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">17%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.17)"></span></div></div>
+        <div class="reset">리셋: 50%, 2시간 30분 뒤</div>
+      </div>
+      <div class="div"></div>
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_CLOUD</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill"><span class="num">17%</span><span class="track"></span><span class="fill" style="width:calc((100% - 49px) * 0.17)"></span></div></div>
+        <div class="reset">아래가 2안이다. 같은 이름이 안 잘린다</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<table>
+  <tr><th>구성</th><th>점</th><th>이름</th><th>종류</th><th>기본</th><th>단추</th><th>간격</th><th>합 / 312</th><th>여유</th></tr>
+  <tr><td>지금</td><td class="n">8</td><td class="n">111.6</td><td class="n">37.1</td><td class="n">-</td><td class="n">89.6</td><td class="n">40</td><td class="n">286.3</td><td class="n ok">25.7</td></tr>
+  <tr><td>1안 회색 `기본` + `앞으로 꺼내기`</td><td class="n">-</td><td class="n">111.6</td><td class="n">37.1</td><td class="n">29.3</td><td class="n">89.6</td><td class="n">40</td><td class="n">307.6</td><td class="n tight">4.4</td></tr>
+  <tr><td>2안 회색 `기본` + `꺼내기`</td><td class="n">-</td><td class="n">111.6</td><td class="n">37.1</td><td class="n">29.3</td><td class="n">55.1</td><td class="n">40</td><td class="n">273.1</td><td class="n ok">38.9</td></tr>
+  <tr><td>1안, 16자 이름</td><td class="n">-</td><td class="n">137.1</td><td class="n">37.1</td><td class="n">29.3</td><td class="n">89.6</td><td class="n">40</td><td class="n">333.1</td><td class="n bad">-21.1</td></tr>
+  <tr><td>2안, 16자 이름</td><td class="n">-</td><td class="n">137.1</td><td class="n">37.1</td><td class="n">29.3</td><td class="n">55.1</td><td class="n">40</td><td class="n">298.6</td><td class="n ok">13.4</td></tr>
+</table>
+
+<ol class="note">
+  <li><b>파란 점은 뺀다.</b> 점과 배지가 같은 말을 두 번 하고, 점을 남기면
+  8pt 와 간격 8pt 를 이름에서 빼앗는다. 메뉴바의 파란 밑줄은 그대로라
+  `파랑 = 위치` 언어는 거기서 유지된다.</li>
+  <li><b>회색이라 종류 배지와 안 싸운다.</b> `team` 은 악센트 22% 채움이고
+  `기본` 은 라벨색 20% 채움이다. 둘이 나란히 서도 경계가 보이고, 회색이
+  뒤로 물러나서 이름과 게이지가 먼저 읽힌다. 별도 창의 노란 점과도 갈린다.</li>
+  <li><b>1안은 여유가 4.4pt 뿐이다.</b> `NAVER_TEAM_52` 는 들어가지만 한
+  글자만 길어지면 잘린다. 네 번째 카드가 16자 이름으로 그 자리를 보여준다.</li>
+  <li><b>2안은 단추에서 `앞으로` 를 뺀다.</b> 34.5pt 가 돌아와 배지 값을 덮고
+  17자까지 버틴다. 배지가 창을 말하고 단추가 동작을 말하는 자리라 `꺼내기`
+  만으로 읽힌다. 두 카드가 같은 라벨을 쓴다.</li>
+</ol>

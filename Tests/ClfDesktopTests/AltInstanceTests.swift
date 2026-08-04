@@ -120,12 +120,18 @@ final class InstanceSlotTests: XCTestCase {
         XCTAssertEqual(InstanceSlot.none.actionLabel, "새 창 띄우기")
     }
 
-    /// 기본, 여는 중, 못 띄움은 상태뿐이다. 누를 것이 없다.
+    /// 여는 중과 못 띄움은 상태뿐이다. 누를 것이 없다.
     func test_pureStatesHaveNoAction() {
-        for slot in [InstanceSlot.primary, .opening, .unavailable] {
+        for slot in [InstanceSlot.opening, .unavailable] {
             XCTAssertNil(slot.actionLabel, "\(slot)")
             XCTAssertNil(slot.badgeLabel, "\(slot)")
         }
+    }
+
+    /// 기본 창도 꺼낸다. 상태는 이름 옆 점이 말하므로 배지는 없다.
+    func test_primaryIsFocusableToo() {
+        XCTAssertEqual(InstanceSlot.primary.actionLabel, "앞으로 꺼내기")
+        XCTAssertNil(InstanceSlot.primary.badgeLabel)
     }
 
     /// 창이 실제로 떴으면 여는 중이 아니다.

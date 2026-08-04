@@ -210,7 +210,16 @@ final class UsageModel: ObservableObject {
     }
 
     /// 이미 떠 있는 창을 앞으로 꺼낸다.
+    ///
+    /// 기본 계정은 우리가 띄운 창이 아니라 pid 를 모른다. 우리 pid 를 빼고
+    /// 남는 프로세스로 찾는다.
     func focus(_ org: OrgUsage) {
+        if org.uuid == activeUUID {
+            if !AppFocus.bringPrimaryToFront(excluding: Set(instances.values)) {
+                instanceNotice = "\(org.name) 의 기본 창을 못 찾았다"
+            }
+            return
+        }
         guard let slug = AltInstance.slug(org.name), let pid = instances[slug] else { return }
         AppFocus.bringToFront(pid: pid)
     }

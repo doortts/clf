@@ -35,11 +35,14 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
     public var badgeLabel: String? { self == .running ? "창 열려있음" : nil }
 
     /// 누르면 일어나는 일. 동사다. 상태뿐인 자리는 nil 이다.
+    ///
+    /// 기본 창도 꺼낼 수 있다. 사용자가 원래 쓰던 창이라 오히려 제일 자주
+    /// 찾는데, 여기만 단추가 없으면 팝오버에서 창으로 갈 길이 끊긴다.
     public var actionLabel: String? {
         switch self {
-        case .none:    return "새 창 띄우기"
-        case .running: return "앞으로 꺼내기"
-        default:       return nil
+        case .none:              return "새 창 띄우기"
+        case .running, .primary: return "앞으로 꺼내기"
+        default:                 return nil
         }
     }
 

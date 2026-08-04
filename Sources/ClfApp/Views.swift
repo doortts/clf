@@ -48,6 +48,26 @@ extension View {
     }
 }
 
+/// 손으로 그리는 단추 상자. 팝오버 안의 모든 단추가 이 치수를 쓴다.
+///
+/// 높이 20 은 시스템 단추 실측값이고 좌우 12, 모서리 6, 글자 12 는 킷 값이다.
+/// `Metrics` 의 단추 절을 보라. `filled` 는 주된 동작, 테두리는 부차 동작이다.
+@MainActor func controlBox(_ text: String, color: Color, filled: Bool) -> some View {
+    Text(text)
+        .calloutStyle(.medium)
+        .foregroundStyle(filled ? Color.white : color)
+        .padding(.horizontal, Metrics.controlPadding)
+        .frame(height: Metrics.controlHeight)
+        .background {
+            RoundedRectangle(cornerRadius: Metrics.controlRadius)
+                .fill(filled ? color : color.opacity(0.12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Metrics.controlRadius)
+                        .strokeBorder(filled ? .clear : color.opacity(0.45), lineWidth: 1)
+                }
+        }
+}
+
 /// 계정 하나. 세 줄이 5시간, 주간, 모델별이다.
 ///
 /// docs/design/ui-spec.html 의 팝오버. 리셋 문구는 값 옆이 아니라 아랫줄에
@@ -78,23 +98,25 @@ struct OrgCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                // 기본 인스턴스가 쓰는 계정은 악센트 점을 붙인다. 빨강은 이
-                // 화면에서 소진이라 강조로 쓰면 위험 신호로 읽힌다.
-                // docs/design/popover-hig-mockup.html
-                if slot == .primary {
-                    Circle().fill(Color.accentColor).frame(width: 8, height: 8)
-                }
                 // 배지 둘과 단추가 같은 줄에 서면 폭 312 가 모자란다. 이름을
                 // 줄이고 나머지를 살린다. 접히면 카드 높이가 카드마다 달라진다
                 Text(org.name).bodyStyle(.semibold)
                     .lineLimit(1).truncationMode(.tail)
                 if let plan = org.plan { badge(plan, tint: .accentColor) }
+                // 기본 인스턴스가 쓰는 계정. 예전에는 이름 앞 파란 점이었는데
+                // 점은 범례를 알아야 읽혔다. 종류 배지 옆에 글자로 적는다.
+                //
+                // 회색이다. 파랑은 종류 배지가 쓰고 있고, 빨강/주황/초록은
+                // 등급이 쓴다. 회색이라 뒤로 물러나서 이름과 게이지가 먼저
+                // 읽힌다. 점을 뺀 8pt 와 간격 8pt 가 이름으로 돌아간다.
+                // docs/design/primary-badge-mockup.html 1안
+                if slot == .primary { badge(slot.label, tint: .secondary) }
                 // 정상은 아무 말도 하지 않는다. 배지가 늘 켜져 있으면 안 읽힌다
                 if let band = org.binding?.band, band.isNoteworthy {
                     badge(band.label, tint: band.fillColor)
                 }
                 // 창이 떠 있다는 상태. 동작은 오른쪽 단추가 맡는다
-                if let state = slot.badgeLabel { runningBadge(state) }
+                if let state = slot.badgeLabel { runningDot(state) }
                 Spacer(minLength: 8)
                 slotControl
             }
@@ -138,25 +160,28 @@ struct OrgCard: View {
     }
 
     /// 상태는 배지로 갔다. 단추에는 동사만 남아 설명 없이 읽힌다.
-    /// 시스템 스타일이라 hover 와 눌림, 포커스 링이 공짜로 생긴다.
+    ///
+    /// 시스템 단추 스타일을 쓰지 않는다. 이 자리는 카드마다 단추와 상태 상자로
+    /// 갈리는데 시스템 단추는 높이 20 에 좌우 여백과 베젤 색을 자기가 정해서
+    /// 옆 카드의 상태 상자와 크기도 색도 안 맞았다. 셋 다 `controlBox` 로
+    /// 그려서 높이 20, 좌우 12, 모서리 6 을 공유하고 채움과 테두리로만 갈린다.
     @ViewBuilder private var slotControl: some View {
         switch slot {
-        // 크기는 기본(regular)이다. 재 보면 small 이 17, regular 가 20 이고
-        // 킷이 적은 24 는 어느 크기에도 없다. 우리가 그리는 상자도 20 에
-        // 맞춰 둔다. docs/design/popover-hig27-applied-mockup.html
         case .none:
-            Button(slot.actionLabel ?? "") { onLaunch?() }
-                .glassButton(prominent: true)
-                .calloutStyle(.medium)
-                .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
-        case .running:
-            Button(slot.actionLabel ?? "") { onFocus?() }
-                .glassButton()
-                .calloutStyle(.medium)
-                .accessibilityLabel("\(org.name) 창을 앞으로")
-        case .opening:
-            statusBox(slot.label, tint: .secondary)
-        case .primary, .unavailable:
+            Button { onLaunch?() } label: {
+                controlBox(slot.actionLabel ?? "", color: .accentColor, filled: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(org.name) 계정으로 새 창 띄우기")
+        // 기본 창도 꺼낸다. 이 자리가 상태 상자였을 때는 팝오버에서 원래 쓰던
+        // 창으로 돌아갈 길이 없었다. 상태는 이름 옆 회색 `기본` 배지가 맡는다
+        case .running, .primary:
+            Button { onFocus?() } label: {
+                controlBox(slot.actionLabel ?? "", color: .accentColor, filled: false)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(org.name) 창을 앞으로")
+        case .opening, .unavailable:
             statusBox(slot.label, tint: .secondary)
         }
     }
@@ -177,17 +202,15 @@ struct OrgCard: View {
                         in: RoundedRectangle(cornerRadius: Metrics.controlRadius))
     }
 
-    /// 창이 떠 있다는 상태 배지. 노란 점이 창을 뜻한다.
-    private func runningBadge(_ text: String) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(Color.yellow).frame(width: 5, height: 5)
-            Text(text).captionStyle(.semibold)
-        }
-        .foregroundStyle(Color.yellow)
-        .padding(.horizontal, 6)
-        .frame(height: Metrics.badgeHeight)
-        .background(Color.yellow.opacity(0.18),
-                    in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
+    /// 창이 떠 있다는 상태. 노란 점 하나가 전부다.
+    ///
+    /// 글자까지 넣으면 배지 하나가 90pt 를 먹는다. 폭 312 에 플랜 배지와
+    /// 단추가 같이 서는 줄이라 그만큼이 계정 이름에서 빠지고, 긴 이름이
+    /// `NAVER_TE...` 로 잘렸다. 같은 말은 오른쪽 단추(`앞으로 꺼내기`)가
+    /// 이미 하고 있으니 점만 남긴다. 읽어주는 쪽에는 문구를 넘긴다.
+    private func runningDot(_ label: String) -> some View {
+        Circle().fill(Color.yellow).frame(width: 6, height: 6)
+            .accessibilityLabel(label)
     }
 
     private func badge(_ text: String, tint: Color) -> some View {
@@ -251,12 +274,12 @@ struct SettingsPane: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     Button { model.cancelPurge() } label: {
-                        boxLabel("취소", color: .secondary, filled: false)
+                        controlBox("취소", color: .secondary, filled: false)
                     }
                     .buttonStyle(.plain)
                     Button { model.confirmPurge() } label: {
-                        boxLabel("\(PurgePlan.size(plan.freedBytes)) 지운다",
-                                 color: .red, filled: true)
+                        controlBox("\(PurgePlan.size(plan.freedBytes)) 지운다",
+                                   color: .red, filled: true)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("확인하고 지운다")
@@ -268,7 +291,7 @@ struct SettingsPane: View {
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 Button { model.previewPurge() } label: {
-                    boxLabel("멀티 인스턴스 정보 삭제", color: .red, filled: false)
+                    controlBox("멀티 인스턴스 정보 삭제", color: .red, filled: false)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("새 창용 데이터 디렉토리 삭제")
@@ -295,23 +318,6 @@ struct SettingsPane: View {
                 .frame(width: 58, alignment: .leading)
             content()
         }
-    }
-
-    /// 킷의 푸시 버튼 치수다. 높이 24, 좌우 16, 모서리 6, 글자 12.
-    private func boxLabel(_ text: String, color: Color, filled: Bool) -> some View {
-        Text(text)
-            .calloutStyle(.medium)
-            .foregroundStyle(filled ? .white : color)
-            .padding(.horizontal, Metrics.controlPadding)
-            .frame(height: Metrics.controlHeight)
-            .background {
-                RoundedRectangle(cornerRadius: Metrics.controlRadius)
-                    .fill(filled ? color : color.opacity(0.12))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Metrics.controlRadius)
-                            .strokeBorder(filled ? .clear : color.opacity(0.45), lineWidth: 1)
-                    }
-            }
     }
 
     /// 계정 한 줄. 켜고 끄고 차례를 바꾼다.
@@ -439,7 +445,7 @@ struct SettingsPane: View {
                         Text(hint).captionStyle().foregroundStyle(.secondary)
                         if model.loginItem == .needsApproval {
                             // 경로를 말로 설명하는 것보다 열어주는 편이 낫다
-                            Button("열기...") { model.openLoginItemSettings() }
+                            Button("열기") { model.openLoginItemSettings() }
                                 .buttonStyle(.borderless).captionStyle()
                                 .accessibilityLabel("로그인 항목 설정 열기")
                         }
@@ -467,7 +473,7 @@ struct SettingsPane: View {
                     HStack(spacing: 4) {
                         Text("시스템 설정에서 알림을 허용해야 합니다")
                             .captionStyle().foregroundStyle(.secondary)
-                        Button("열기...") { model.openNotificationSettings() }
+                        Button("열기") { model.openNotificationSettings() }
                             .buttonStyle(.borderless).captionStyle()
                             .accessibilityLabel("알림 설정 열기")
                     }
@@ -569,8 +575,7 @@ struct PopoverView: View {
                     NSApp.keyWindow?.close()
                     HandoffWindow.open()
                 } label: {
-                    // 창을 여는 단추에는 말줄임표를 붙인다
-                    Label("세션 작업 이전...", systemImage: "arrow.left.arrow.right")
+                    Label("세션 작업 이전", systemImage: "arrow.left.arrow.right")
                         .calloutStyle(.medium)
                 }
                 .glassButton()
