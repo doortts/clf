@@ -81,19 +81,12 @@ struct OrgCard: View {
     /// 방금 앞에 있던 창의 계정. 팝오버를 여는 순간 찾을 카드라 배경을 깐다.
     var focused = false
 
-    @Environment(\.colorScheme) private var scheme
-
-    /// 포커스 카드 색.
+    /// 포커스 카드 색. 밝은 쪽 어두운 쪽 모두 시스템 파랑이다.
     ///
-    /// 어두운 팝오버에서는 청록이 기본 점의 파랑, 게이지의 빨강/주황/초록과
-    /// 제일 잘 갈린다. 밝은 팝오버에서는 그 청록이 배경에 묻힌다.
-    /// docs/design/focus-card-theme-mockup.html
-    ///
-    /// 밝은 쪽은 시스템 파랑이다. **카드 안의 파란 점과 플랜 배지가 같은 색이
-    /// 된다.** 배지는 악센트 22% 채움이고 카드는 15% 라 차이가 7% 뿐이어서
-    /// 배지 경계가 흐려진다. 보라와 인디고가 그 겹침이 없는 값이었지만
-    /// 시스템 파랑을 쓰기로 정했다. docs/design/focus-card-blue-mockup.html
-    private var focusTint: Color { scheme == .dark ? .teal : .accentColor }
+    /// 어두운 쪽은 청록이었다. 테마마다 색이 갈리면 같은 카드가 두 색으로
+    /// 보여서 파랑 하나로 맞춘다. 채움을 5% 로 낮췄으니 22% 채움인 플랜
+    /// 배지와 겹치지 않는다. docs/design/focus-card-blue-mockup.html
+    private var focusTint: Color { .accentColor }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -147,7 +140,7 @@ struct OrgCard: View {
         .background {
             if focused {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(focusTint.opacity(0.15))
+                    .fill(focusTint.opacity(0.05))
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(focusTint.opacity(0.60), lineWidth: 1)
