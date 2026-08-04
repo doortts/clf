@@ -99,15 +99,17 @@ let package = Package(
         ]),
         .testTarget(name: "ClfCoreTests",  dependencies: ["ClfCore"]),
         .testTarget(name: "ClfStoreTests", dependencies: ["ClfStore"]),
+        .testTarget(name: "ClfDesktopTests", dependencies: ["ClfDesktop"]),
         .testTarget(name: "ClfProxyTests", dependencies: ["ClfProxy"]),
     ],
     swiftLanguageModes: [.v6]
 )
 ```
 
-`ClfApp` 은 패키지 타겟이 아니라 **Xcode 앱 타겟**이다. 앱 번들, Info.plist,
-서명, 리소스가 필요해 SPM 실행 타겟으로는 만들 수 없다. Xcode 프로젝트가 이 패키지를
-로컬 의존성으로 참조한다.
+`ClfApp` 은 **평범한 SPM 실행 타겟**이다. 이 절을 처음 쓸 때는 앱 번들과
+Info.plist 와 서명이 필요해 Xcode 앱 타겟이어야 한다고 적었는데 틀렸다.
+아래 "Xcode 프로젝트를 두지 않는다" 를 보라. `scripts/make-app.sh` 가
+번들을 조립한다.
 
 **`ClfCore` 의 의존성이 0인 것이 이 구성의 핵심이다.** 여기에 NIO 가 한 번 들어오면
 테스트가 이벤트 루프를 필요로 하기 시작하고, claulay 에서 옮겨올 오프라인 테스트
@@ -140,14 +142,19 @@ Sources/ClfCore/
     +-- AccountSelector.swift      select, SelectionInput, SelectionResult
     +-- Cooldown.swift             availability, 쿨다운 산술
     +-- Headroom.swift             band, 잔여 계산
+    +-- SelectionExplanation.swift 왜 그 계정을 골랐는지 사람 말로
     `-- ShortCode.swift            shortCodes, mostRecentOther
 
 Sources/ClfStore/
-+-- KeychainTokenStore.swift       TokenStoring 구현
++-- CredentialStore.swift          키체인 자격증명 읽기/쓰기
++-- ClaudeKeychainReader.swift     터미널 claude 의 키체인 항목
++-- SecurityCLI.swift              /usr/bin/security 호출 경계
++-- TokenExtraction.swift          토큰 문자열 추출과 판별
++-- TokenHygiene.swift             로그에 토큰이 새지 않게 가린다
 +-- AccountsFile.swift             accounts.json 읽기/쓰기
 +-- RuntimeFile.swift              runtime.json. debounce + 원자적 교체
 +-- JSONLSink.swift                usage.jsonl, audit.jsonl append
-+-- DiagnosticLog.swift            회전 로그
++-- BuildFreshness.swift           돌고 있는 바이너리가 최신인지
 +-- ClaudeSettings.swift           ~/.claude/settings.json 병합 편집
 `-- AtomicWrite.swift              tmp + rename + 0600
 
@@ -155,7 +162,12 @@ Sources/ClfProxy/
 +-- Router.swift                   actor. 런타임 상태의 단일 소유자
 +-- ProxyServer.swift              NIOAsyncChannel 수신, 요청당 Task
 +-- RequestPipeline.swift          body 버퍼링, model/session 추출, 스왑 루프
++-- SingleAccountHandler.swift     계정 하나만 등록된 경우의 지름길
 +-- UpstreamExecutor.swift         AsyncHTTPClient 실행. UpstreamAttempt 생성
++-- UsageAPI.swift                 Usage API 호출
++-- RateLimitHeaders.swift         응답 헤더에서 한도 스냅샷
++-- OAuthRefresh.swift             만료 토큰 갱신
++-- RequestTrace.swift             요청 하나의 발자국
 +-- SSEPeek.swift                  peekFirstSSEFrame (Core 알고리즘 + NIO 타입)
 +-- RelayPump.swift                클라이언트 릴레이. once-write 불변식
 `-- ProxyError.swift
@@ -166,19 +178,37 @@ Sources/ClfDesktop/            남의 앱을 읽는다. 데스크톱 트랙의 �
 +-- Usage.swift                    Usage API 응답 파싱, 잔여와 등급
 +-- UsageFetcher.swift             네트워크 경계. 테스트가 가짜를 꽂는다
 +-- DesktopReader.swift            스냅샷 조립. 읽기 전용
-+-- Preferences.swift              어느 조직을 어떤 차례로 볼지
++-- Preferences.swift              어느 조직을 어떤 차례로 볼지, 알림, 리셋 표기
 +-- RefreshPacer.swift             갱신 주기. 사용량 변화가 정한다
++-- ReadGate.swift                 사람이 유발한 읽기의 문. 60초와 429
++-- UsageAlert.swift               언제 알림을 보낼지. 등급 경계와 소진
 +-- BarText.swift                  막대 글자, 이름 줄이기, 남은 시간
++-- FocusMark.swift                앞에 있는 창이 어느 계정 것인지
++-- AltInstance.swift              계정별 창의 상태(InstanceSlot), pid 훑기
++-- AltLauncher.swift              별도 인스턴스 띄우기, 디렉토리 정리
++-- SessionMirror.swift            같은 계정 폴더끼리 레코드 옮기기
++-- SessionHandoff.swift           계정을 건너 레코드 옮기기
++-- SessionDuplicate.swift         한 대화가 두 계정에 걸린 것 찾기
++-- HandoffGrace.swift             넘긴 뒤 창이 따라올 시간을 준다
 `-- LoginItem.swift                SMAppService.Status 판정 (호출은 앱에서)
 
 Sources/ClfApp/                앱. 판단이 없다
-+-- ClfAppMain.swift              @main, MenuBarExtra
++-- ClfAppMain.swift               @main, MenuBarExtra
 +-- UsageModel.swift               @MainActor. 읽기와 설정과 주기를 쥔다
-+-- Views.swift                    팝오버, 조직 카드, 설정 패널
++-- Views.swift                    팝오버, 계정 카드, 설정 패널, controlBox
++-- DotBlock.swift                 게이지와 Metrics(치수 상수 한 자리)
++-- BarLabel.swift                 메뉴바 라벨을 이미지로 굽는다
++-- HandoffModel.swift             넘기기 창의 상태
++-- HandoffView.swift              넘기기 창의 화면
++-- HandoffWindow.swift            그 창을 띄우고 활성화한다
++-- SharedSessionSection.swift     한 대화가 두 계정에 걸렸을 때 뜨는 줄
++-- AppFocus.swift                 창을 앞으로 꺼낸다. 기본 창은 pid 를 빼서 찾는다
++-- Notifier.swift                 데스크톱 알림 보내기와 권한
 `-- LoginItem.swift                ServiceManagement 를 부르는 유일한 자리
 
 Sources/clfctl/                앱 없이 단계별로 실행하는 도구
-`-- *Command.swift                 doctor, settings, accounts, ..., desktop
+`-- *Command.swift                 doctor, settings, accounts, runtime, select,
+                                    classify, sse-peek, upstream, serve, desktop
 ```
 
 ### Xcode 프로젝트를 두지 않는다

@@ -37,21 +37,28 @@ clf 이 소유하는 것과 소유하지 않는 것을 먼저 못박는다. 대�
 ### 데스크톱 트랙 (지금 제품)
 
 ```
-  [Claude Code 데스크톱 앱]
+  [Claude Code 데스크톱 앱]                   [계정별 창]
+        |                    ^                    ^
+        |  config.json,      |  세션 레코드       |  우리가 띄운다
+        |  Cookies           |  (SessionMirror,   |  CLAUDE_USER_DATA_DIR
+        |  읽기만 한다        |   SessionHandoff)  |  =~/.claude-alt-<이름>
+        v                    |                    |
+  +----------------------------------------------------+
+  |  clf.app  (LSUIElement)                           |
+  |    MenuBarExtra + 팝오버                           |
+  |    DesktopReader (조직별 토큰 해독)                |
+  |    RefreshPacer, ReadGate (갱신 주기와 문)         |
+  |    AltLauncher (계정별 창), Notifier (알림)        |
+  +----------------------------------------------------+
         |
-        |  config.json, Cookies       <- 읽기만 한다. 절대 쓰지 않는다
-        v
-  +-------------------------------------+
-  |  clf.app  (LSUIElement)            |
-  |    MenuBarExtra + 팝오버            |
-  |    DesktopReader (조직별 토큰 해독) |
-  |    RefreshPacer (갱신 주기)         |
-  +-------------------------------------+
-        |
-        |  GET /api/oauth/usage        <- 추론 요청이 아니다. 토큰을 안 쓴다
+        |  GET /api/oauth/usage        <- 추론 요청이 아니다
         v
   [api.anthropic.com]
 ```
+
+`config.json` 과 `Cookies` 는 읽기만 한다. **쓰는 것은 세션 레코드뿐이다.**
+420바이트짜리 포인터 파일이고 대화 내용에는 손대지 않는다.
+[13 문서](13-multi-instance.md) 10절과 11절.
 
 앱의 트래픽이 우리를 거치지 않는다. 우리는 앱이 남긴 자격증명으로 **따로**
 사용량을 물어볼 뿐이다. 앱이 죽어도 우리가 죽어도 상대는 멀쩡하다.
@@ -114,9 +121,14 @@ ClfApp        (SwiftUI, MenuBarExtra, MainActor)     clfctl  (검증 도구)
 |---|---|---|
 | **ClfCore** | HeaderBag, 헤더 변환, 응답 분류, reset epoch 계산, SSE 경계 스캐너/파서, 계정 선택 알고리즘, 쿨다운 산술 | 네트워크, 파일, 시계, 로그 |
 | **ClfStore** | Keychain 토큰, 계정/우선순위 영속화, 모델 쿨다운 캐시, usage/audit JSONL, `~/.claude/settings.json` 관리 | 라우팅 판단 |
-| **ClfDesktop** | safe storage 해독, 토큰 캐시 파싱, Usage API, 표시 문자열, 갱신 주기, 설정 | 화면. 남의 파일 쓰기 |
+| **ClfDesktop** | safe storage 해독, 토큰 캐시 파싱, Usage API, 표시 문자열, 갱신 주기, 설정, 계정별 창 관리, 세션 레코드 옮기기 | 화면 |
 | **ClfProxy** | 로컬 HTTP 서버, 업스트림 실행기, peek/릴레이 펌프, Router actor | 헤더/분류 규칙 (Core 호출) |
-| **ClfApp** | MenuBarExtra, 팝오버, 설정 화면, 로그인 항목 등록 | **판단.** 전부 ClfDesktop 에 있다 |
+| **ClfApp** | MenuBarExtra, 팝오버, 설정 화면, 넘기기 창, 알림 보내기, 로그인 항목 등록 | **판단.** 전부 ClfDesktop 에 있다 |
+
+**`ClfDesktop` 의 비목표에서 "남의 파일 쓰기" 를 지웠다.** 처음에는 읽기만
+했지만 [13 문서](13-multi-instance.md) 10절과 11절이 세션 레코드를 옮기면서
+데스크톱 앱의 데이터 디렉토리에 쓴다. 사용량 읽기 경로는 여전히 읽기 전용이고,
+쓰는 자리는 `SessionMirror` 와 `SessionHandoff` 둘뿐이다.
 
 `ClfApp` 에 판단을 두지 않는 이유는 뷰를 테스트할 수 없기 때문이다. 잔여를
 몇 퍼센트로 쓸지, 이름을 어떻게 줄일지, 리셋까지 몇 시간인지가 전부 순수
@@ -335,8 +347,8 @@ clf/
 |   |   +-- Selection/        AccountSelector, 쿨다운 산술
 |   |   `-- Model/            Account, AccountRuntime, RoutingEvent
 |   +-- ClfStore/
-|   |   +-- KeychainTokenStore.swift
-|   |   +-- ConfigStore.swift
+|   |   +-- CredentialStore.swift
+|   |   +-- AccountsFile.swift, RuntimeFile.swift
 |   |   +-- JSONLSink.swift
 |   |   `-- ClaudeSettings.swift
 |   +-- ClfProxy/
@@ -344,15 +356,23 @@ clf/
 |   |   +-- Router.swift          (actor)
 |   |   +-- UpstreamExecutor.swift
 |   |   `-- RelayPump.swift
-|   `-- ClfApp/
-|       +-- ClfApp.swift         (MenuBarExtra)
-|       +-- ViewModels/
-|       `-- Views/
+|   +-- ClfDesktop/          남의 앱 읽기, 계정별 창, 세션 옮기기
+|   +-- ClfApp/
+|   |   +-- ClfAppMain.swift      (MenuBarExtra)
+|   |   +-- UsageModel.swift      (@MainActor 상태 하나)
+|   |   `-- Views.swift, DotBlock.swift, BarLabel.swift, Handoff*.swift
+|   `-- clfctl/
++-- scripts/                 build, make-app, install-app, install-clfctl
++-- tools/make-icon.swift
++-- dev.sh                   디버그 빌드 후 터미널에 붙여 띄운다
 `-- Tests/
     +-- ClfCoreTests/        <- claulay 테스트 케이스 이식본
     +-- ClfStoreTests/
+    +-- ClfDesktopTests/     데스크톱 트랙 판단 전부
     `-- ClfProxyTests/
 ```
+
+파일 하나하나는 [04 문서](04-implementation.md) 3절에 있다.
 
 앱 데이터는 macOS 관례를 따른다.
 
@@ -360,6 +380,7 @@ clf/
 ~/Library/Application Support/clf/
 +-- accounts.json      계정 메타데이터 + 우선순위 (토큰 없음)
 +-- runtime.json       계정별 런타임 상태 (쿨다운, 무효화, ratelimit 스냅샷)
++-- desktop.json       메뉴바 앱 설정 (보는 계정, 막대 구성, 알림)
 +-- usage.jsonl
 +-- audit.jsonl
 `-- diagnostic.log
