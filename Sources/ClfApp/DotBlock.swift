@@ -154,6 +154,36 @@ extension UsageBand {
     }
 }
 
+/// 주간 Fable 창의 여유 색. 초록 대신 민트다.
+///
+/// 게이지 색은 남은 용량 등급이 정한다. 그래서 세 창이 다 여유면 세 줄이 같은
+/// 초록이었다. 셋째 줄만 민트로 빼면 창이 색으로 갈린다.
+///
+/// **여유 구간에서만 덮는다.** 15% 아래로 떨어지면 노랑, 5% 아래면 빨강으로
+/// 돌아간다. 그러지 않으면 같은 색이 창을 말하다가 등급을 말하는 두 겹 규칙이
+/// 된다. 브랜드 색(클레이)을 안 쓴 이유는 그 색이 노랑과 빨강 사이에 앉아서
+/// 여유 52% 가 위험으로 읽히기 때문이다.
+/// docs/design/fable-hue-mockup.html
+enum FableTint {
+    /// 이 창만 색을 바꾼다.
+    static let kind = LimitKind.weeklyScoped
+
+    /// 눈금 게이지. 1pt 짜리라 라이트에서는 한 단 어둡게 쓴다.
+    /// 초록 짝(0x3ce16b / 0x17993f)과 같은 명도 관계다.
+    static func dot(dark: Bool) -> Color {
+        dark ? Color(hex: 0x66d4cf) : Color(hex: 0x0a7a76)
+    }
+
+    /// 팝오버 알약. 숫자가 검정으로 얹히므로 밝은 쪽을 쓴다.
+    static let pill = Color(hex: 0x66d4cf)
+
+    /// 알약 안 막대. 라이트에서는 반투명 창에 섞여 밝아지므로 더 내린다.
+    /// 초록 짝(0x005c1f)과 같은 이유다.
+    static func fill(dark: Bool) -> Color {
+        dark ? Color(hex: 0x66d4cf) : Color(hex: 0x00605c)
+    }
+}
+
 extension Color {
     init(hex: UInt32) {
         self.init(.sRGB,
@@ -176,19 +206,25 @@ struct SegmentGauge: View {
     let band: UsageBand?
     let direction: GaugeDirection
     var dark = true
+    /// 주간 Fable 줄인가. 여유 구간의 색만 민트로 바뀐다.
+    var mint = false
 
-    init(limit: UsageLimit?, direction: GaugeDirection, dark: Bool = true) {
+    init(limit: UsageLimit?, direction: GaugeDirection, dark: Bool = true,
+         mint: Bool = false) {
         self.used = limit?.percentUsed
         self.band = limit?.band
         self.direction = direction
         self.dark = dark
+        self.mint = mint
     }
 
-    init(used: Int?, band: UsageBand?, direction: GaugeDirection, dark: Bool = true) {
+    init(used: Int?, band: UsageBand?, direction: GaugeDirection, dark: Bool = true,
+         mint: Bool = false) {
         self.used = used
         self.band = band
         self.direction = direction
         self.dark = dark
+        self.mint = mint
     }
 
     static var totalSteps: Int { Metrics.segSteps }
@@ -199,7 +235,9 @@ struct SegmentGauge: View {
     static var height: CGFloat { Metrics.segRowHeight + Metrics.segBorder * 2 }
 
     var body: some View {
-        let tint = band?.dotColor(dark: dark) ?? Color.secondary
+        let tint = mint && band == .ample
+            ? FableTint.dot(dark: dark)
+            : band?.dotColor(dark: dark) ?? Color.secondary
         let off = Color.primary.opacity(dark ? 0.22 : 0.16)
         let lit = used.map { direction.litSteps(used: $0, total: Self.totalSteps) } ?? 0
         Canvas { ctx, size in
@@ -241,7 +279,8 @@ struct SegmentBlock: View {
                              direction: direction, dark: dark)
             } else {
                 ForEach(LimitKind.allCases, id: \.self) { kind in
-                    SegmentGauge(limit: org.limits[kind], direction: direction, dark: dark)
+                    SegmentGauge(limit: org.limits[kind], direction: direction, dark: dark,
+                                 mint: kind == FableTint.kind)
                 }
             }
         }
@@ -320,10 +359,13 @@ struct UsageGauge: View {
     /// 파낸 자리와 채움 사이. 이게 없으면 가득 찼을 때 테두리가 사라져
     /// 100% 와 그냥 칠한 막대가 구별이 안 된다.
     var fillInset: CGFloat = 1.5
+    /// 주간 Fable 줄인가. 여유 구간의 색만 민트로 바뀐다.
+    var mint = false
 
-    init(limit: UsageLimit?, direction: GaugeDirection) {
+    init(limit: UsageLimit?, direction: GaugeDirection, mint: Bool = false) {
         self.percent = limit.map { direction.displayPercent(used: $0.percentUsed) }
         self.band = limit?.band
+        self.mint = mint
     }
 
     init(spend: SpendUsage, direction: GaugeDirection) {
@@ -340,9 +382,12 @@ struct UsageGauge: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let tint = band?.gaugeTint ?? Color.secondary.opacity(0.5)
+        let fable = mint && band == .ample
+        let tint = fable ? FableTint.pill : band?.gaugeTint ?? Color.secondary.opacity(0.5)
         // 알약은 tint 로 그대로 그리고 막대만 따로 칠한다
-        let fillTint = band?.gaugeFill(dark: scheme == .dark) ?? tint
+        let fillTint = fable
+            ? FableTint.fill(dark: scheme == .dark)
+            : band?.gaugeFill(dark: scheme == .dark) ?? tint
         GeometryReader { geo in
             let trackWidth = max(0, geo.size.width - numberArea - trackInset)
             let trackHeight = height - trackInset * 2

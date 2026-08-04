@@ -1,0 +1,325 @@
+<meta charset="utf-8">
+<title>주간 Fable 게이지를 파랑으로</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:30px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 8px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:900px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:8px 0 0; max-width:330px; }
+  .cols { display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  /* 팝오버 조각 */
+  .pop { width:312px; border-radius:14px; padding:12px 14px; box-sizing:border-box;
+         background:#252527; }
+  .pop.lt { background:#ececed; color:#000; }
+  .row { display:flex; align-items:center; gap:7px; height:28px; }
+  .rl { font-size:11px; width:58px; flex:none; opacity:.62; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; overflow:hidden; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:rgba(0,0,0,.28); }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px; }
+  .reset { font-size:10px; opacity:.5; margin-left:65px; }
+
+  /* 등급색: 지금 */
+  .g  { background:#249d42; } .g  .fill { background:#30d158; } .g  .num { color:#fff; }
+  .gy { background:#86868c; } .gy .fill { background:#aeaeb2; } .gy .num { color:#fff; }
+  .y  { background:#bf7f00; } .y  .fill { background:#ffcc00; } .y  .num { color:#000; }
+  .r  { background:#c9241b; } .r  .fill { background:#ff453a; } .r  .num { color:#fff; }
+  /* 파랑 후보 */
+  .b  { background:#0a84ff; } .b  .fill { background:#4da2ff; } .b  .num { color:#fff; }
+  .nb { background:#1b4ea8; } .nb .fill { background:#3d7ae0; } .nb .num { color:#fff; }
+  .tl { background:#0f8a86; } .tl .fill { background:#30d6cf; } .tl .num { color:#fff; }
+  .pu { background:#6b46c1; } .pu .fill { background:#a78bfa; } .pu .num { color:#fff; }
+
+  /* 메뉴바 조각. 1pt = 2px */
+  .bar { display:inline-flex; align-items:center; padding:5px 9px; border-radius:7px;
+         background:#111; }
+  .code { font-size:24px; font-weight:600; color:#fff; }
+  .nums { display:flex; flex-direction:column; margin-left:4px; }
+  .line { display:flex; align-items:center; height:22px; }
+  .tag { font-size:20px; font-weight:500; color:#c7c7c7; text-align:right; width:26px; }
+  .val { font-size:20px; font-weight:500; text-align:right; width:46px; margin-left:6px;
+         font-variant-numeric:tabular-nums; }
+  .gauge { display:flex; flex-direction:column; gap:4px; margin-left:4px; }
+  .seg { width:42px; height:8px; box-sizing:border-box; border:1px solid; }
+  .seg i { display:block; height:100%; }
+  .sg { border-color:#3ce16b; } .sg i { background:#3ce16b; }
+  .sb { border-color:#0a84ff; } .sb i { background:#0a84ff; }
+  .snb { border-color:#3d7ae0; } .snb i { background:#3d7ae0; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:980px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:3px;
+        vertical-align:-1px; margin-right:5px; }
+  .note { margin-top:22px; color:var(--dim); max-width:900px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>주간 Fable 게이지를 파랑으로</h1>
+<p class="lede">
+  지금 게이지 색은 <b>창 종류가 아니라 남은 용량 등급</b>이 정한다. 여유(50% 이상)
+  초록, 정상 회색, 주의(15% 미만) 노랑, 소진(5% 미만) 빨강이다. 그래서 세 창이
+  다 여유면 셋 다 초록이고, 셋 다 바닥이면 셋 다 빨강이다.
+</p>
+<p class="lede">
+  Fable 창만 파랑으로 바꾸는 것은 그 규칙에 <b>창 종류라는 두 번째 뜻</b>을
+  얹는 것이다. 어디까지 얹느냐로 안이 갈린다.
+</p>
+
+<h2>색은 이미 임자가 다 있다</h2>
+<table>
+  <tr><th>색</th><th>지금 쓰는 곳</th><th>파랑을 Fable 에 주면</th></tr>
+  <tr><td><span class="sw" style="background:#30d158"></span>초록</td>
+      <td>여유 등급</td><td>Fable 만 빠진다</td></tr>
+  <tr><td><span class="sw" style="background:#aeaeb2"></span>회색</td>
+      <td>정상 등급</td><td>그대로</td></tr>
+  <tr><td><span class="sw" style="background:#ffcc00"></span>노랑</td>
+      <td>주의 등급, 창 열림 배지</td><td>그대로</td></tr>
+  <tr><td><span class="sw" style="background:#ff453a"></span>빨강</td>
+      <td>소진 등급, 삭제</td><td>그대로</td></tr>
+  <tr><td><span class="sw" style="background:#0a84ff"></span>파랑(악센트)</td>
+      <td>기본 창 점, 플랜 배지, <b>메뉴바 포커스 밑줄</b>, 선택된 세그먼트</td>
+      <td class="bad">겹친다. 밑줄은 "등급색과 안 겹치는 파랑이라 위치를 말한다"
+          는 이유로 파랑을 골랐다</td></tr>
+  <tr><td><span class="sw" style="background:#30d6cf"></span>청록</td>
+      <td>다크에서 포커스 카드</td><td class="warn">겹친다</td></tr>
+  <tr><td><span class="sw" style="background:#a78bfa"></span>보라</td>
+      <td>라이트에서 포커스 카드</td><td class="warn">겹친다</td></tr>
+</table>
+
+<h2>A안. Fable 의 여유 구간만 파랑. 경고 구간은 그대로</h2>
+<div class="cols">
+  <div>
+    <h3>다크</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">95%</span><span class="track"></span><span class="fill" style="width:90%"></span></span></div>
+      <div class="reset">리셋: 11%, 3시간 26분 뒤</div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">64%</span><span class="track"></span><span class="fill" style="width:60%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill b"><span class="num">52%</span><span class="track"></span><span class="fill" style="width:49%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+  </div>
+  <div>
+    <h3>Fable 이 주의로 떨어지면</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">95%</span><span class="track"></span><span class="fill" style="width:90%"></span></span></div>
+      <div class="reset">리셋: 11%, 3시간 26분 뒤</div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill gy"><span class="num">31%</span><span class="track"></span><span class="fill" style="width:29%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill y"><span class="num">12%</span><span class="track"></span><span class="fill" style="width:11%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+    <p class="cap">
+      경고는 색이 곧 신호다. 파랑을 유지하면 그 신호를 잃는다. 그래서 A안은
+      여유일 때만 파랑이고 15% 아래에서는 노랑, 5% 아래에서는 빨강으로 돌아간다.
+    </p>
+  </div>
+  <div>
+    <h3>메뉴바</h3>
+    <div class="bar">
+      <span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">3h</span><span class="val" style="color:#3ce16b">95%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">64%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg sg"><i style="width:95%"></i></span>
+        <span class="seg sg"><i style="width:64%"></i></span>
+        <span class="seg sb"><i style="width:52%"></i></span>
+      </span>
+    </div>
+    <p class="cap">
+      눈금 게이지 셋째 줄만 파랑이 된다. 숫자 두 줄은 5시간과 주간 전체라
+      색이 안 바뀐다. 셋째 창을 숫자로 못 보는 대신 색으로 갈린다.
+    </p>
+  </div>
+</div>
+<p class="cap" style="max-width:900px">
+  <span class="bad">문제:</span> 이 파랑이 메뉴바 포커스 밑줄과 같은 색이다.
+  밑줄은 코드 아래 1.5pt, 게이지는 셋째 줄이라 자리는 다르지만, 같은 막대 안에서
+  같은 파랑이 두 가지 뜻으로 쓰인다.
+</p>
+
+<h2>B안. 파랑을 한 단 어둡게. 악센트와 갈린다</h2>
+<div class="cols">
+  <div>
+    <h3>다크</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">64%</span><span class="track"></span><span class="fill" style="width:60%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill nb"><span class="num">52%</span><span class="track"></span><span class="fill" style="width:49%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+  </div>
+  <div>
+    <h3>라이트</h3>
+    <div class="pop lt">
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill g"><span class="num">64%</span><span class="track"></span><span class="fill" style="width:60%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill nb"><span class="num">52%</span><span class="track"></span><span class="fill" style="width:49%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+  </div>
+  <div>
+    <h3>메뉴바</h3>
+    <div class="bar">
+      <span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">3h</span><span class="val" style="color:#3ce16b">95%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">64%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg sg"><i style="width:95%"></i></span>
+        <span class="seg sg"><i style="width:64%"></i></span>
+        <span class="seg snb"><i style="width:52%"></i></span>
+      </span>
+    </div>
+    <p class="cap">
+      <span class="good">악센트 파랑과 갈린다.</span> 대신 1pt 눈금에서는 어두운
+      파랑이 검은 메뉴바에 묻힌다. 눈금 색은 이미 그 이유로 등급색을 한 단
+      밝게 쓰고 있다.
+    </p>
+  </div>
+</div>
+
+<h2>C안. 세 창에 각자 색. 위험할 때만 등급색이 덮는다</h2>
+<div class="cols">
+  <div>
+    <h3>평상시</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">95%</span><span class="track"></span><span class="fill" style="width:90%"></span></span></div>
+      <div class="reset">리셋: 11%, 3시간 26분 뒤</div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill nb"><span class="num">64%</span><span class="track"></span><span class="fill" style="width:60%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill pu"><span class="num">52%</span><span class="track"></span><span class="fill" style="width:49%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+    <p class="cap">창이 색으로 갈린다. 초록/파랑/보라가 곧 5시간/주간/Fable 이다.</p>
+  </div>
+  <div>
+    <h3>주간 전체가 바닥나면</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">95%</span><span class="track"></span><span class="fill" style="width:90%"></span></span></div>
+      <div class="reset">리셋: 11%, 3시간 26분 뒤</div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill r"><span class="num">4%</span><span class="track"></span><span class="fill" style="width:4%"></span></span></div>
+      <div class="reset">리셋: 96%, 3일 2시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill pu"><span class="num">52%</span><span class="track"></span><span class="fill" style="width:49%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+    <p class="cap bad">
+      색이 두 가지 뜻을 오간다. 파랑이던 줄이 빨강이 되는데, 창이 바뀐 것인지
+      등급이 바뀐 것인지 색만으로는 모른다. 왼쪽 라벨을 읽어야 안다.
+    </p>
+  </div>
+  <div>
+    <h3>세 창이 다 여유면</h3>
+    <div class="pop">
+      <div class="row"><span class="rl">5시간</span>
+        <span class="pill g"><span class="num">99%</span><span class="track"></span><span class="fill" style="width:95%"></span></span></div>
+      <div class="reset">창 안 열림</div>
+      <div class="row"><span class="rl">주간 전체</span>
+        <span class="pill nb"><span class="num">88%</span><span class="track"></span><span class="fill" style="width:84%"></span></span></div>
+      <div class="reset">리셋: 40%, 4일 6시간 뒤</div>
+      <div class="row"><span class="rl">주간 Fable</span>
+        <span class="pill pu"><span class="num">91%</span><span class="track"></span><span class="fill" style="width:87%"></span></span></div>
+      <div class="reset">리셋: 40%, 4일 6시간 뒤</div>
+    </div>
+    <p class="cap good">
+      평상시 화면이 알록달록해서 세 줄을 눈으로 빨리 가른다. 대신 "다 괜찮다"
+      는 상태가 한눈에 안 읽힌다. 지금은 초록 세 줄이 그것을 말한다.
+    </p>
+  </div>
+</div>
+
+<h2>D안. 색은 등급 그대로. 창은 라벨 굵기로 가른다</h2>
+<div class="cols">
+  <div>
+    <h3>다크</h3>
+    <div class="pop">
+      <div class="row"><span class="rl" style="opacity:.62">5시간</span>
+        <span class="pill g"><span class="num">95%</span><span class="track"></span><span class="fill" style="width:90%"></span></span></div>
+      <div class="reset">리셋: 11%, 3시간 26분 뒤</div>
+      <div class="row"><span class="rl" style="opacity:.62">주간 전체</span>
+        <span class="pill g"><span class="num">64%</span><span class="track"></span><span class="fill" style="width:60%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+      <div class="row"><span class="rl" style="opacity:1;font-weight:600;color:#4da2ff">주간 Fable</span>
+        <span class="pill g"><span class="num">52%</span><span class="track"></span><span class="fill" style="width:49%"></span></span></div>
+      <div class="reset">리셋: 75%, 1일 17시간 뒤</div>
+    </div>
+    <p class="cap">
+      게이지는 손대지 않고 <b>라벨만</b> 파랑으로 굵게 쓴다. 등급 신호가 온전히
+      남고, 창 구분은 이미 글자가 하는 일이라 색이 그것을 거들 뿐이다.
+    </p>
+  </div>
+  <div>
+    <h3>메뉴바에서는</h3>
+    <div class="bar">
+      <span class="code">T52</span>
+      <span class="nums">
+        <span class="line"><span class="tag">3h</span><span class="val" style="color:#3ce16b">95%</span></span>
+        <span class="line"><span class="tag">1d</span><span class="val" style="color:#3ce16b">64%</span></span>
+      </span>
+      <span class="gauge">
+        <span class="seg sg"><i style="width:95%"></i></span>
+        <span class="seg sg"><i style="width:64%"></i></span>
+        <span class="seg sg"><i style="width:52%"></i></span>
+      </span>
+    </div>
+    <p class="cap bad">
+      막대에는 라벨이 없다. 눈금 세 줄은 순서로만 갈리므로 D안은 팝오버에서만
+      효과가 있다. 막대에서 Fable 을 가르고 싶은 것이 목적이면 D안은 답이 아니다.
+    </p>
+  </div>
+</div>
+
+<h2>비교</h2>
+<table>
+  <tr><th>안</th><th>Fable 이 눈에 갈리나</th><th>경고 신호</th><th>악센트 파랑과 겹침</th><th>막대에도 적용</th></tr>
+  <tr><td>A. 여유만 파랑</td><td>O</td><td class="good">지켜진다</td><td class="bad">겹친다</td><td>O</td></tr>
+  <tr><td>B. 어두운 파랑</td><td>O</td><td class="good">지켜진다</td><td class="good">안 겹친다</td>
+      <td class="warn">눈금에서 묻힌다</td></tr>
+  <tr><td>C. 창마다 색</td><td>O 가장 강하게</td><td class="warn">색이 두 뜻을 오간다</td>
+      <td class="bad">겹친다</td><td>O</td></tr>
+  <tr><td>D. 라벨만 파랑</td><td>팝오버만</td><td class="good">온전하다</td>
+      <td class="warn">글자라 덜 헷갈린다</td><td class="bad">안 된다</td></tr>
+</table>
+
+<p class="note">
+  <b>A안을 권한다.</b> 원하는 것(Fable 을 색으로 가른다)을 얻으면서 경고 신호를
+  잃지 않는다. 겹침은 파랑을 <code>#0a84ff</code> 대신 <code>#3d7ae0</code> 쯤으로
+  한 단 내려 B안과 섞으면 팝오버에서 해결된다. 눈금 게이지는 1pt 라 어두운
+  파랑이 묻히므로, 막대에서는 밝은 파랑을 그대로 쓰고 밑줄과 자리로 구별하는
+  편이 낫다.
+</p>
+<p class="note">
+  <b>C안은 한 번 더 생각할 값이 있다.</b> 세 창을 색으로 가르는 것은 매력적이지만,
+  같은 자리의 색이 창을 뜻하다가 등급을 뜻하게 되는 순간 규칙이 두 겹이 된다.
+  지금 화면에서 초록 세 줄이 "다 괜찮다" 를 한눈에 말하는 것도 잃는다.
+</p>

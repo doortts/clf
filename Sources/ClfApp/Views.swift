@@ -218,7 +218,8 @@ struct OrgCard: View {
                 Text(kind.label)
                     .subheadStyle().foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
-                UsageGauge(limit: limit, direction: direction)
+                UsageGauge(limit: limit, direction: direction,
+                           mint: kind == FableTint.kind)
             }
             Text(BarText.reset(limit?.resetsAt, window: kind.window, direction: direction))
                 .captionStyle().foregroundStyle(.tertiary)
