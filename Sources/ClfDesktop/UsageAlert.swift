@@ -10,12 +10,28 @@ public struct UsageAlert: Sendable, Equatable, Identifiable {
         case warning
         /// 다 썼다.
         case exhausted
+        /// 리셋으로 다시 쓸 수 있게 됐다.
+        case recovered
     }
 
     /// 같은 알림을 두 번 보내지 않기 위한 열쇠.
     ///
-    /// 계정, 창, 등급, **리셋 시각**을 담는다. 리셋 시각이 바뀌면 창이 새로
-    /// 열린 것이므로 다시 보낼 수 있어야 한다.
+    /// 계정, 창, 등급만 담는다. **리셋 시각은 넣지 않는다.**
+    ///
+    /// 예전에는 넣었다. 창이 새로 열리면 다시 보낼 수 있어야 한다는 이유였는데,
+    /// 서버가 `resets_at` 을 요청받은 순간에 계산해서 내려주기 때문에 값이
+    /// 읽기마다 미세하게 흔들린다. 실측하면 사용률이 그대로인 창의 값이 초
+    /// 경계를 넘나든다.
+    ///
+    /// ```
+    /// weekly_scoped 잔여 17% 고정, 몇 초 간격 세 번 읽기
+    ///   1786050000 -> 1786049999 -> 1786049999
+    /// ```
+    ///
+    /// 열쇠에 이 값이 있으면 읽을 때마다 다른 알림이 되어 같은 소식이 계속 온다.
+    /// 창이 새로 열린 것을 알아보는 일은 리셋 시각이 아니라 조건 자체가 한다.
+    /// `Notifier` 가 사라진 조건의 열쇠를 지우므로, 빨강을 벗어났다가 다시
+    /// 들어서면 그때 새 알림이 된다.
     public let key: String
     public let level: Level
     public let title: String
@@ -78,7 +94,7 @@ public enum UsageAlerts {
                 body += (body.hasSuffix(".") ? " " : ". ") + extra
             }
             out.append(UsageAlert(
-                key: key(org, binding.rawValue, .exhausted, resetsAt),
+                key: key(org, binding.rawValue, .exhausted),
                 level: .exhausted,
                 title: all ? "\(org.name) 한도 전부 소진"
                            : "\(org.name) \(binding.alertLabel) 소진",
@@ -91,7 +107,7 @@ public enum UsageAlerts {
                   limit.percentRemaining > 0,
                   limit.percentRemaining <= warnBelow else { continue }
             out.append(UsageAlert(
-                key: key(org, kind.rawValue, .warning, limit.resetsAt),
+                key: key(org, kind.rawValue, .warning),
                 level: .warning,
                 title: "\(org.name) \(kind.alertLabel) \(limit.percentRemaining)% 남음",
                 body: BarText.resetLine(limit.resetsAt, from: now,
@@ -143,22 +159,43 @@ public enum UsageAlerts {
         // 예산형은 리셋 시각이 응답에 없다. 없는 시간을 지어내지 않는다
         let unknown = "리셋 시각은 서버가 주지 않습니다."
         if spend.percentRemaining <= 0 {
-            return [UsageAlert(key: key(org, "spend", .exhausted, nil),
+            return [UsageAlert(key: key(org, "spend", .exhausted),
                                level: .exhausted,
                                title: "\(org.name) 월 예산 소진",
                                body: "\(spend.limitText) 를 다 썼습니다. " + unknown)]
         }
         guard spend.percentRemaining <= warnBelow else { return [] }
-        return [UsageAlert(key: key(org, "spend", .warning, nil),
+        return [UsageAlert(key: key(org, "spend", .warning),
                            level: .warning,
                            title: "\(org.name) 월 예산 \(spend.percentRemaining)% 남음",
                            body: unknown)]
     }
 
+    // MARK: 리셋으로 풀렸을 때
+
+    /// 빨강에 들어섰던 계정이 리셋으로 풀렸다는 알림.
+    ///
+    /// 판단은 `RecoveryWatch` 가 한다. 여기는 문구만 만든다. 소리는 없다.
+    /// 좋은 소식이라 눈에 띄어야 할 이유가 없고, 소리를 붙이면 소진 알림과
+    /// 같은 무게가 된다.
+    public static func recovered(_ org: OrgUsage) -> UsageAlert? {
+        guard let left = remaining(of: org) else { return nil }
+        return UsageAlert(key: key(org, "org", .recovered),
+                          level: .recovered,
+                          title: "\(org.name) 다시 쓸 수 있습니다",
+                          body: "잔여 \(left)% 로 돌아왔습니다.")
+    }
+
+    /// 이 계정을 실제로 막고 있는 잔여. 시간 창은 가장 빡빡한 창이고
+    /// Enterprise 는 월 예산이다. 읽지 못한 계정은 nil 이다.
+    static func remaining(of org: OrgUsage) -> Int? {
+        guard org.hasUsage, !org.isStale else { return nil }
+        if let spend = org.spend, org.limits.isEmpty { return spend.percentRemaining }
+        return org.binding?.percentRemaining
+    }
+
     private static func key(_ org: OrgUsage, _ scope: String,
-                            _ level: UsageAlert.Level, _ resetsAt: Date?) -> String {
-        // 초 단위로 적는다. 같은 창이면 값이 같고 창이 새로 열리면 달라진다
-        let epoch = resetsAt.map { String(Int($0.timeIntervalSince1970)) } ?? "none"
-        return [org.uuid, scope, level.rawValue, epoch].joined(separator: "|")
+                            _ level: UsageAlert.Level) -> String {
+        [org.uuid, scope, level.rawValue].joined(separator: "|")
     }
 }

@@ -140,20 +140,50 @@ final class UsageAlertTests: XCTestCase {
     func test_keySeparatesLevels() {
         let alerts = build(org([.session: limit(100, 3600), .weeklyAll: limit(97, 86_400)]))
         XCTAssertEqual(Set(alerts.map(\.key)).count, 2)
-        XCTAssertTrue(alerts.contains { $0.key.hasSuffix("|exhausted|1700003600") })
+        XCTAssertTrue(alerts.contains { $0.key.hasSuffix("|session|exhausted") })
+        XCTAssertTrue(alerts.contains { $0.key.hasSuffix("|weekly_all|warning") })
     }
 
-    /// 창이 새로 열리면 리셋 시각이 달라지므로 다시 보낼 수 있다.
-    func test_keyChangesWithTheResetTime() {
-        let first = build(org([.session: limit(100, 3600)])).first?.key
-        let later = build(org([.session: limit(100, 5 * 3600)])).first?.key
-        XCTAssertNotEqual(first, later)
+    /// **열쇠에 리셋 시각을 넣지 않는다.**
+    ///
+    /// 서버가 `resets_at` 을 요청받은 순간에 계산해 주기 때문에 사용률이 그대로인
+    /// 창의 값이 읽기마다 초 경계를 넘나든다. 실측한 흔들림이 1초라서 그것을
+    /// 재현한다. 열쇠가 흔들리면 같은 소식이 읽을 때마다 다시 온다.
+    func test_keyIgnoresResetTimeJitter() {
+        let a = build(org([.session: limit(97, 3600)])).first?.key
+        let b = build(org([.session: limit(97, 3599)])).first?.key
+        XCTAssertEqual(a, b)
     }
 
-    /// 같은 창, 같은 등급, 같은 리셋 시각이면 열쇠가 같다. 이것으로 중복을 막는다.
+    /// 리셋 시각을 아예 모르는 창과도 열쇠가 같아야 한다. 흔들림의 극단이다.
+    func test_keyIgnoresMissingResetTime() {
+        let a = build(org([.session: limit(97, 3600)])).first?.key
+        let b = build(org([.session: limit(97, nil)])).first?.key
+        XCTAssertEqual(a, b)
+    }
+
+    /// 같은 창, 같은 등급이면 열쇠가 같다. 이것으로 중복을 막는다.
     func test_keyIsStableForTheSameWindow() {
         let a = build(org([.session: limit(100, 3600)])).first?.key
         let b = build(org([.session: limit(100, 3600)])).first?.key
         XCTAssertEqual(a, b)
+    }
+
+    // MARK: 풀림 알림 문구
+
+    /// 막고 있는 창의 잔여를 적는다. 어느 창이 리셋됐는지는 말하지 않는다.
+    /// 여러 창이 함께 풀릴 수 있어서 하나를 집으면 틀린 말이 된다.
+    func test_recoveredCopy() {
+        let alert = UsageAlerts.recovered(org([.session: limit(0, 3600),
+                                               .weeklyAll: limit(29, 86_400)]))
+        XCTAssertEqual(alert?.level, .recovered)
+        XCTAssertEqual(alert?.title, "T52 다시 쓸 수 있습니다")
+        XCTAssertEqual(alert?.body, "잔여 71% 로 돌아왔습니다.")
+    }
+
+    /// 못 읽은 계정은 풀렸다고 말할 근거가 없다.
+    func test_recoveredNeedsAReading() {
+        XCTAssertNil(UsageAlerts.recovered(
+            OrgUsage(uuid: "u1", name: "T52", isActive: true, plan: "team", limits: [:])))
     }
 }

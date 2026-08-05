@@ -50,6 +50,8 @@ final class UsageModel: ObservableObject {
     @Published private(set) var notifyPermission = Notifier.Permission.unknown
     /// 앱을 켠 뒤 한 번이라도 알림을 판단했나. 첫 읽기는 표시만 하고 안 보낸다.
     private var notifiedOnce = false
+    /// 빨강에 들어섰던 계정. 리셋으로 풀릴 때 한 번 알리기 위해 기억한다.
+    private var recovery = RecoveryWatch()
     private var appearanceWatch: (any NSObjectProtocol)?
     private var spaceWatch: (any NSObjectProtocol)?
     /// 마지막으로 구울 때의 메뉴바 밝기. 바뀌면 다시 굽는다.
@@ -532,26 +534,28 @@ final class UsageModel: ObservableObject {
     ///
     /// **지금 참인 것 전부**를 넘겨야 한다. 사라진 조건의 열쇠를 지우는 일도
     /// 이 목록으로 하기 때문이다.
+    ///
+    /// 풀림 알림만 성질이 다르다. 그것은 지금 상태가 아니라 **바뀐 것**이라서
+    /// 한 번 지나가면 사라진다. `RecoveryWatch` 가 그 변화를 잡는다.
     private func notify(at now: Date) async {
         let visible = prefs.apply(to: known)
-        let alerts = visible.flatMap { org in
+        let live = visible.flatMap { org in
             UsageAlerts.build(for: org,
                               others: visible.filter { $0.uuid != org.uuid },
                               now: now)
         }
-        guard prefs.notify else {
-            // 꺼 둔 동안의 조건은 쌓아 두지 않는다
-            notifier.markSeen(alerts)
+        // 알림을 끈 상태에서도 기억은 해 둔다. 켤 때 그동안의 변화가 쏟아지면
+        // 안 되지만, 빨강에 들어선 사실은 남아 있어야 풀릴 때 알릴 수 있다
+        guard prefs.notify, notifiedOnce else {
+            // 꺼 둔 동안과 첫 읽기의 조건은 쌓아 두지 않는다.
+            // 이미 빨강인 상태로 앱을 켠 것은 새 소식이 아니다
+            recovery.seed(visible)
+            notifier.markSeen(live)
             notifiedOnce = true
             return
         }
-        // 이미 빨강인 상태로 앱을 켠 것은 새 소식이 아니다
-        guard notifiedOnce else {
-            notifier.markSeen(alerts)
-            notifiedOnce = true
-            return
-        }
-        await notifier.deliver(alerts)
+        let recovered = recovery.step(visible).compactMap { UsageAlerts.recovered($0) }
+        await notifier.deliver(live + recovered)
     }
 
     private func persist() {
