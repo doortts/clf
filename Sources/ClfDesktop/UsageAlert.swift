@@ -37,7 +37,7 @@ public struct UsageAlert: Sendable, Equatable, Identifiable {
 /// 것이 그것이고 잔여 퍼센트는 제목과 메뉴바에 이미 있다. 덧붙이는 문장은
 /// 한 줄만으로 오해가 생기는 경우에만 넣는다.
 public enum UsageAlerts {
-    /// 빨강 경계. 잔여 5% 미만이면 예고한다.
+    /// 빨강 경계. 잔여가 이 값 이하면(사용률 95% 부터) 예고한다.
     public static let warnBelow = 5
 
     /// 이 계정에 보낼 알림.
@@ -89,7 +89,7 @@ public enum UsageAlerts {
         for kind in LimitKind.allCases {
             guard let limit = org.limits[kind],
                   limit.percentRemaining > 0,
-                  limit.percentRemaining < warnBelow else { continue }
+                  limit.percentRemaining <= warnBelow else { continue }
             out.append(UsageAlert(
                 key: key(org, kind.rawValue, .warning, limit.resetsAt),
                 level: .warning,
@@ -133,7 +133,7 @@ public enum UsageAlerts {
     /// 넘어갈 곳이 될 만한 계정. 빨강 경계 위로 남은 계정 중 가장 여유로운 쪽.
     private static func spare(in others: [OrgUsage]) -> OrgUsage? {
         others
-            .filter { !$0.isStale && ($0.binding?.percentRemaining ?? 0) >= warnBelow }
+            .filter { !$0.isStale && ($0.binding?.percentRemaining ?? 0) > warnBelow }
             .max { ($0.binding?.percentRemaining ?? 0) < ($1.binding?.percentRemaining ?? 0) }
     }
 
@@ -148,7 +148,7 @@ public enum UsageAlerts {
                                title: "\(org.name) 월 예산 소진",
                                body: "\(spend.limitText) 를 다 썼습니다. " + unknown)]
         }
-        guard spend.percentRemaining < warnBelow else { return [] }
+        guard spend.percentRemaining <= warnBelow else { return [] }
         return [UsageAlert(key: key(org, "spend", .warning, nil),
                            level: .warning,
                            title: "\(org.name) 월 예산 \(spend.percentRemaining)% 남음",

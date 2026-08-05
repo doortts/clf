@@ -68,7 +68,7 @@ public struct UsageLimit: Sendable, Equatable {
 
     public var band: UsageBand {
         switch percentRemaining {
-        case ..<5:   return .empty
+        case ...5:   return .empty
         case ..<15:  return .low
         case ..<30:  return .normal
         default:     return .ample
@@ -91,9 +91,9 @@ public struct UsageLimit: Sendable, Equatable {
 /// 계정을 고르는 쪽(`ClfCore` 의 `HeadroomBand`)은 여전히 50% 를 쓴다. 그쪽은
 /// "어느 계정으로 넘길까" 를 정하는 값이고 이쪽은 화면 색이다.
 public enum UsageBand: Sendable, Equatable, CaseIterable {
-    /// 5% 미만. 사실상 소진
+    /// 5% 이하. 사실상 소진. 사용률로 95% 부터 빨강이다
     case empty
-    /// 5% 이상 15% 미만. 임계값 아래
+    /// 5% 초과 15% 미만. 임계값 아래
     case low
     /// 15% 이상 30% 미만. 눈길을 끌지 않는다
     case normal
@@ -159,7 +159,7 @@ public struct SpendUsage: Sendable, Equatable {
     /// 등급 경계는 시간 창과 같다. 돈이라고 다르게 볼 이유가 없다.
     public var band: UsageBand {
         switch percentRemaining {
-        case ..<5:   return .empty
+        case ...5:   return .empty
         case ..<15:  return .low
         case ..<30:  return .normal
         default:     return .ample

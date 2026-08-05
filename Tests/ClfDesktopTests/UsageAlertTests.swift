@@ -28,10 +28,10 @@ final class UsageAlertTests: XCTestCase {
         XCTAssertTrue(build(org([.session: limit(20, 3600)])).isEmpty)
     }
 
-    /// 잔여 5% 미만이면 예고한다. 5% 는 아직 아니다.
+    /// 잔여 5% 이하(사용률 95%)면 예고한다. 잔여 6% 는 아직 아니다.
     func test_warnsBelowFivePercentRemaining() {
-        XCTAssertEqual(build(org([.session: limit(96, 8040)])).count, 1)
-        XCTAssertTrue(build(org([.session: limit(95, 8040)])).isEmpty)
+        XCTAssertEqual(build(org([.session: limit(95, 8040)])).count, 1)
+        XCTAssertTrue(build(org([.session: limit(94, 8040)])).isEmpty)
     }
 
     /// 값을 못 읽었거나 낡은 값이면 알리지 않는다. 0% 로 읽고 소진이라

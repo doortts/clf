@@ -86,8 +86,8 @@ final class UsageParsingTests: XCTestCase {
 
     /// 메뉴바 색을 정하는 경계. 잔여 기준이다.
     func test_bandBoundaries() {
-        XCTAssertEqual(UsageLimit(percentUsed: 96, resetsAt: nil, severity: "").band, .empty)
-        XCTAssertEqual(UsageLimit(percentUsed: 95, resetsAt: nil, severity: "").band, .low)
+        XCTAssertEqual(UsageLimit(percentUsed: 95, resetsAt: nil, severity: "").band, .empty)
+        XCTAssertEqual(UsageLimit(percentUsed: 94, resetsAt: nil, severity: "").band, .low)
         XCTAssertEqual(UsageLimit(percentUsed: 86, resetsAt: nil, severity: "").band, .low)
         XCTAssertEqual(UsageLimit(percentUsed: 85, resetsAt: nil, severity: "").band, .normal)
         XCTAssertEqual(UsageLimit(percentUsed: 71, resetsAt: nil, severity: "").band, .normal)
