@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clf 아이콘 시안 - 일본 애니메이션 감독 오마주 여섯</title>
+<style>
+:root {
+  --ink:       #1d1d1f;
+  --ink-2:     #6e6e73;
+  --ink-3:     #86868b;
+  --canvas:    #f5f5f7;
+  --surface:   #ffffff;
+  --sep:       #d2d2d7;
+  --sep-soft:  #e8e8ed;
+  --accent:    #007aff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 40px 28px 96px;
+  font: 14px/1.65 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  color: var(--ink); background: var(--canvas);
+}
+main { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -.02em; }
+p.lede { color: var(--ink-2); font-size: 15px; max-width: 74ch; margin: 0 0 30px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 22px; }
+.card {
+  background: var(--surface); border: 1px solid var(--sep-soft); border-radius: 12px;
+  padding: 22px 20px 18px;
+}
+.icons { display: flex; align-items: flex-end; gap: 18px; margin: 0 0 14px; }
+.icons svg { display: block; }
+.big { filter: drop-shadow(0 5px 14px rgba(0,0,0,.18)); }
+.sm  { filter: drop-shadow(0 1px 3px rgba(0,0,0,.22)); }
+.smcol { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.smcol span { font-size: 10px; color: var(--ink-3); }
+h2 { font-size: 15px; margin: 0 0 2px; }
+h2 small { font-weight: 400; color: var(--ink-2); font-size: 12px; margin-left: 6px; }
+.card p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.note {
+  background: var(--surface); border: 1px solid var(--sep-soft);
+  border-left: 3px solid var(--accent); border-radius: 6px;
+  padding: 12px 15px; margin: 30px 0 0; max-width: 78ch; font-size: 13px;
+}
+.note b { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>clf 아이콘 시안: 일본 애니메이션 감독 오마주 여섯</h1>
+<p class="lede">
+  현대 미술가 여섯에 이어 두 번째 탐색이다. 이번에는 일본 애니메이션 감독들의
+  화면 어법을 빌린다. 회화 오마주가 평면 구성이었다면 이쪽은 빛, 공기, 움직임이
+  들어온다. 큰 것 옆의 작은 것이 32px, 메뉴바 관리 도구 목록에서 보이는 크기다.
+</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+
+<!-- 1. 미야자키 하야오 : 여름 하늘의 구름 글자 -->
+<symbol id="an-miyazaki" viewBox="0 0 256 256">
+  <clipPath id="ansq1"><rect width="256" height="256" rx="57"/></clipPath>
+  <linearGradient id="an1sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#6fbdf0"/><stop offset="1" stop-color="#dbf1ff"/>
+  </linearGradient>
+  <g clip-path="url(#ansq1)">
+    <rect width="256" height="256" fill="url(#an1sky)"/>
+    <!-- 먼 뭉게구름 -->
+    <g fill="#ffffff" opacity=".92">
+      <ellipse cx="52" cy="46" rx="34" ry="17"/>
+      <ellipse cx="84" cy="38" rx="24" ry="13"/>
+      <ellipse cx="206" cy="150" rx="30" ry="14"/>
+      <ellipse cx="230" cy="142" rx="18" ry="10"/>
+    </g>
+    <!-- 구름 글자: 그림자판을 먼저, 흰 판을 위에 -->
+    <g fill="none" stroke="#bcdcf0" stroke-width="20" stroke-linecap="round"
+       transform="translate(2.5,4)">
+      <path d="M90,86 A36 36 0 1 0 90,134"/>
+      <path d="M124,58 L124,140"/>
+      <path d="M164,58 L164,140"/>
+      <path d="M148,86 L198,86"/>
+      <path d="M150,114 L190,114"/>
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round">
+      <path d="M90,86 A36 36 0 1 0 90,134"/>
+      <path d="M124,58 L124,140"/>
+      <path d="M164,58 L164,140"/>
+      <path d="M148,86 L198,86"/>
+      <path d="M150,114 L190,114"/>
+    </g>
+    <!-- 빨간 연: f 팔 끝에 실로 매달린다 -->
+    <path d="M222,34 L238,54 L212,58 Z" fill="#d94f3d"/>
+    <path d="M222,56 C216,68 206,78 198,86" fill="none" stroke="#a8452f" stroke-width="2"/>
+    <!-- 언덕 두 겹과 나무 한 그루 -->
+    <path d="M0,192 C64,158 140,176 256,154 L256,256 L0,256 Z" fill="#71b356"/>
+    <path d="M0,224 C88,200 176,220 256,200 L256,256 L0,256 Z" fill="#4f9143"/>
+    <rect x="203" y="146" width="6" height="26" fill="#7a5230"/>
+    <circle cx="206" cy="134" r="21" fill="#3e7d33"/>
+    <circle cx="198" cy="127" r="10" fill="#57a047"/>
+  </g>
+</symbol>
+
+<!-- 2. 신카이 마코토 : 해질녘의 실루엣 -->
+<symbol id="an-shinkai" viewBox="0 0 256 256">
+  <clipPath id="ansq2"><rect width="256" height="256" rx="57"/></clipPath>
+  <linearGradient id="an2sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#17245e"/>
+    <stop offset=".45" stop-color="#6a3d8f"/>
+    <stop offset=".72" stop-color="#c8527f"/>
+    <stop offset=".9" stop-color="#f2925c"/>
+    <stop offset="1" stop-color="#f8c471"/>
+  </linearGradient>
+  <radialGradient id="an2glow" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#fff3d6" stop-opacity=".95"/>
+    <stop offset="1" stop-color="#fff3d6" stop-opacity="0"/>
+  </radialGradient>
+  <g clip-path="url(#ansq2)">
+    <rect width="256" height="256" fill="url(#an2sky)"/>
+    <g fill="#ffffff">
+      <circle cx="36" cy="34" r="1.4"/><circle cx="84" cy="22" r="1.1"/>
+      <circle cx="130" cy="42" r="1.5"/><circle cx="178" cy="26" r="1.2"/>
+      <circle cx="220" cy="52" r="1.4"/><circle cx="60" cy="66" r="1.1"/>
+      <circle cx="200" cy="80" r="1.2"/><circle cx="106" cy="74" r="1"/>
+      <circle cx="156" cy="60" r="1.6"/><circle cx="238" cy="96" r="1"/>
+    </g>
+    <!-- 가는 구름 띠 -->
+    <g fill="#ffffff" opacity=".45">
+      <rect x="26" y="112" width="88" height="4" rx="2"/>
+      <rect x="150" y="98" width="70" height="4" rx="2"/>
+      <rect x="60" y="132" width="52" height="3" rx="1.5"/>
+    </g>
+    <!-- 지는 해의 빛무리, 렌즈 플레어 -->
+    <circle cx="128" cy="176" r="86" fill="url(#an2glow)"/>
+    <rect x="20" y="171" width="216" height="1.6" fill="#ffffff" opacity=".55"/>
+    <circle cx="86" cy="172" r="3.4" fill="#ffffff" opacity=".7"/>
+    <circle cx="186" cy="172" r="2.2" fill="#ffffff" opacity=".6"/>
+    <!-- 글자는 지평선 위의 실루엣 -->
+    <text x="128" y="206" text-anchor="middle"
+          font-family="-apple-system, 'Helvetica Neue', sans-serif"
+          font-size="100" font-weight="800" letter-spacing="0"
+          fill="#131a3a">clf</text>
+    <!-- 새 두 마리 -->
+    <path d="M70,92 q5,-6 10,0 q5,-6 10,0" fill="none" stroke="#131a3a"
+          stroke-width="2" opacity=".8"/>
+    <path d="M182,120 q4,-5 8,0 q4,-5 8,0" fill="none" stroke="#131a3a"
+          stroke-width="1.6" opacity=".7"/>
+  </g>
+</symbol>
+
+<!-- 3. 곤 사토시 : 현실이 사선으로 갈라진다 -->
+<symbol id="an-kon" viewBox="0 0 256 256">
+  <clipPath id="ansq3"><rect width="256" height="256" rx="57"/></clipPath>
+  <clipPath id="an3day"><path d="M0,0 L176,0 L80,256 L0,256 Z"/></clipPath>
+  <clipPath id="an3night"><path d="M176,0 L256,0 L256,256 L80,256 Z"/></clipPath>
+  <g clip-path="url(#ansq3)">
+    <rect width="256" height="256" fill="#efe9dc"/>
+    <g clip-path="url(#an3day)">
+      <text x="128" y="166" text-anchor="middle"
+            font-family="Georgia, 'Times New Roman', serif"
+            font-size="108" font-weight="700" fill="#241d2e">clf</text>
+      <!-- 낮 쪽에 겹쳐 보이는 잔상 -->
+      <text x="124" y="162" text-anchor="middle"
+            font-family="Georgia, 'Times New Roman', serif"
+            font-size="108" font-weight="700" fill="none"
+            stroke="#b4536a" stroke-width="1.2" opacity=".65">clf</text>
+    </g>
+    <g clip-path="url(#an3night)">
+      <rect width="256" height="256" fill="#171030"/>
+      <text x="133" y="163" text-anchor="middle"
+            font-family="Georgia, 'Times New Roman', serif"
+            font-size="108" font-weight="700" fill="#f2e9e4">clf</text>
+    </g>
+    <!-- 균열: 흰 바탕 금과 빨간 심 -->
+    <path d="M176,0 L146,84 L158,120 L106,220 L80,256" fill="none"
+          stroke="#f6f1e7" stroke-width="7"/>
+    <path d="M176,0 L146,84 L158,120 L106,220 L80,256" fill="none"
+          stroke="#e0312e" stroke-width="2.4"/>
+  </g>
+</symbol>
+
+<!-- 4. 이마이시 히로유키 : 사선 돌진 -->
+<symbol id="an-imaishi" viewBox="0 0 256 256">
+  <clipPath id="ansq4"><rect width="256" height="256" rx="57"/></clipPath>
+  <g clip-path="url(#ansq4)">
+    <rect width="256" height="256" fill="#f4f1ea"/>
+    <path d="M0,206 L256,54 L256,148 L0,256 Z" fill="#e6262d"/>
+    <path d="M0,0 L118,0 L0,86 Z" fill="#141414"/>
+    <!-- 속도선 -->
+    <g fill="#141414">
+      <path d="M256,18 L172,36 L256,30 Z"/>
+      <path d="M256,180 L196,206 L256,196 Z" fill="#f4f1ea"/>
+      <path d="M0,150 L64,132 L0,138 Z"/>
+    </g>
+    <text x="122" y="158" text-anchor="middle" transform="skewX(-14)"
+          font-family="-apple-system, 'Helvetica Neue', sans-serif"
+          font-size="124" font-weight="900" letter-spacing="-6"
+          fill="#141414" stroke="#f4f1ea" stroke-width="7"
+          paint-order="stroke">clf</text>
+    <path d="M206,180 L214,200 L236,202 L219,215 L224,236 L206,224 L188,236
+             L193,215 L176,202 L198,200 Z" fill="#ffd23f"
+          stroke="#141414" stroke-width="4"/>
+  </g>
+</symbol>
+
+<!-- 5. 유아사 마사아키 : 판이 어긋난 손그림 -->
+<symbol id="an-yuasa" viewBox="0 0 256 256">
+  <clipPath id="ansq5"><rect width="256" height="256" rx="57"/></clipPath>
+  <g clip-path="url(#ansq5)">
+    <rect width="256" height="256" fill="#12a5a0"/>
+    <!-- 어긋난 마젠타 판이 먼저, 크림 획이 위에 -->
+    <g fill="none" stroke="#e0457b" stroke-width="18" stroke-linecap="round"
+       transform="translate(7,6)">
+      <path d="M92,84 C64,76 50,96 53,120 C56,147 76,158 95,149"/>
+      <path d="M122,58 C117,90 131,104 122,146"/>
+      <path d="M163,54 C156,92 170,110 161,150"/>
+      <path d="M147,90 C166,81 182,86 197,79"/>
+      <path d="M149,122 C166,115 180,120 191,115"/>
+    </g>
+    <g fill="none" stroke="#fdf3d8" stroke-linecap="round">
+      <path d="M92,84 C64,76 50,96 53,120 C56,147 76,158 95,149" stroke-width="18"/>
+      <path d="M122,58 C117,90 131,104 122,146" stroke-width="18"/>
+      <path d="M163,54 C156,92 170,110 161,150" stroke-width="18"/>
+      <path d="M147,90 C166,81 182,86 197,79" stroke-width="13"/>
+      <path d="M149,122 C166,115 180,120 191,115" stroke-width="11"/>
+    </g>
+    <!-- 소용돌이 해와 지렁이 선 -->
+    <path d="M206,52 C222,44 236,54 234,68 C232,80 220,86 210,80 C202,74 204,62 212,60
+             C218,58 224,64 220,69" fill="none" stroke="#ffd23f" stroke-width="5"
+          stroke-linecap="round"/>
+    <path d="M28,206 q10,-10 20,0 q10,10 20,0 q10,-10 20,0" fill="none"
+          stroke="#fdf3d8" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+    <path d="M30,228 q8,-8 16,0 q8,8 16,0" fill="none"
+          stroke="#241d3d" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+  </g>
+</symbol>
+
+<!-- 6. 오시이 마모루 : 인광 초록과 주사선 -->
+<symbol id="an-oshii" viewBox="0 0 256 256">
+  <clipPath id="ansq6"><rect width="256" height="256" rx="57"/></clipPath>
+  <pattern id="an6rain" width="22" height="30" patternUnits="userSpaceOnUse">
+    <rect x="9" y="3" width="3" height="10" fill="#1d5c3d"/>
+    <rect x="9" y="19" width="3" height="6" fill="#14432c"/>
+  </pattern>
+  <pattern id="an6scan" width="4" height="4" patternUnits="userSpaceOnUse">
+    <rect width="4" height="1.4" fill="#000000" opacity=".4"/>
+  </pattern>
+  <filter id="an6blur" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5"/>
+  </filter>
+  <g clip-path="url(#ansq6)">
+    <rect width="256" height="256" fill="#04100c"/>
+    <rect width="256" height="256" fill="url(#an6rain)" opacity=".85"/>
+    <!-- HUD 링과 눈금 -->
+    <circle cx="128" cy="128" r="94" fill="none" stroke="#2bd97f"
+            stroke-width="1.4" stroke-dasharray="7 11" opacity=".55"/>
+    <circle cx="128" cy="128" r="78" fill="none" stroke="#2bd97f"
+            stroke-width="1" opacity=".3"/>
+    <!-- 글자: 번진 판 위에 또렷한 판 -->
+    <text x="128" y="162" text-anchor="middle"
+          font-family="ui-monospace, 'SF Mono', Menlo, monospace"
+          font-size="94" font-weight="700" fill="#2bd97f" opacity=".85"
+          filter="url(#an6blur)">clf</text>
+    <text x="128" y="162" text-anchor="middle"
+          font-family="ui-monospace, 'SF Mono', Menlo, monospace"
+          font-size="94" font-weight="700" fill="#48fb9d">clf</text>
+    <!-- 커서 -->
+    <rect x="196" y="140" width="14" height="22" fill="#48fb9d" opacity=".9"/>
+    <rect width="256" height="256" fill="url(#an6scan)"/>
+  </g>
+</symbol>
+
+</defs>
+</svg>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#an-miyazaki"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#an-miyazaki"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>미야자키 하야오 <small>여름 하늘</small></h2>
+    <p>
+      뭉게구름으로 빚은 글자가 언덕 위에 떠 있고 빨간 연이 f 의 팔에
+      매달려 있다. 여섯 중 가장 목가적이고 온도가 높다. 32px 에서도
+      파랑 위 흰 글자라 판독이 산다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#an-shinkai"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#an-shinkai"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>신카이 마코토 <small>해질녘</small></h2>
+    <p>
+      남색에서 주황으로 떨어지는 하늘, 별, 렌즈 플레어. 글자는 지는 해를
+      등진 지평선의 실루엣이다. 다크 메뉴바 옆에 두면 하늘색이 곱게 뜨고,
+      32px 에서는 실루엣이 뭉개져 색만 남는다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#an-kon"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#an-kon"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>곤 사토시 <small>갈라지는 현실</small></h2>
+    <p>
+      화면이 사선으로 갈라져 낮과 밤이 같은 글자를 다르게 비춘다. 낮 쪽에는
+      붉은 잔상이 한 겹 겹쳐 있다. 계정을 갈아타며 한도를 오가는 앱의
+      정체성과 은근히 맞는 이야기 구조다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#an-imaishi"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#an-imaishi"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>이마이시 히로유키 <small>사선 돌진</small></h2>
+    <p>
+      빨간 사선 띠를 가로질러 기울어진 글자가 돌진한다. 속도선과 별 하나.
+      여섯 중 에너지가 가장 세고 32px 판독도 가장 좋다. 대신 조용한
+      도구라는 앱의 결과는 제일 멀다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#an-yuasa"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#an-yuasa"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>유아사 마사아키 <small>어긋난 판</small></h2>
+    <p>
+      손으로 그린 듯 흔들리는 획, 그리고 마젠타 판이 한 칸 밀려 있는
+      인쇄 사고 같은 색. 소용돌이 해가 구석에서 돈다. 자유롭고 유머가
+      있어서 개발 도구 아이콘들 사이에서 확실히 튄다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#an-oshii"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#an-oshii"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>오시이 마모루 <small>인광 초록</small></h2>
+    <p>
+      코드 비가 내리는 검은 화면, 모노스페이스 인광 글자, HUD 링과 주사선.
+      터미널 옆에 사는 앱이라는 사실과 가장 곧게 닿는다. 커서 블록이
+      글자 뒤에서 깜박이는 상상을 하게 된다.
+    </p>
+  </div>
+
+</div>
+
+<div class="note">
+  <b>고른 뒤의 파이프라인.</b> 이 여섯은 그라데이션, 번짐, 패턴을 쓰므로
+  <code>tools/make-icon.swift</code> 로 옮기기보다 SVG 를 1024px PNG 로
+  내보내 <code>iconutil</code> 에 직접 먹이는 쪽이 맞다. 예외는 이마이시와
+  곤으로, 평면 도형뿐이라 코드로도 그릴 수 있다. 어느 쪽이든 16px 와 32px 를
+  먼저 뽑아 메뉴바 관리 도구 목록에서 읽히는지 확인하고 시작한다.
+</div>
+
+</main>
+</body>
+</html>
