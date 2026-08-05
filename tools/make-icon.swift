@@ -1,8 +1,9 @@
 // 앱 아이콘을 그린다. 디자인 파일 대신 코드로 두는 이유는 색과 비율을 고치고
 // 다시 돌리면 끝나기 때문이다. 결과물(.icns)은 커밋하지 않는다.
 //
-// 그림: 둥근 사각형 위에 잔여 막대 셋. 팝오버가 보여주는 것과 같은 모양이라
-// 메뉴바 목록에서 봐도 무엇인지 안다.
+// 그림: 몬드리안 오마주. 검은 격자가 clf 세 글자를 만들고 빨강 노랑 파랑
+// 블록이 구석을 잡는다. 시안과 좌표가 같다.
+// docs/design/icon-artist-mockups.html
 import AppKit
 import Foundation
 
@@ -10,11 +11,35 @@ let sizes = [16, 32, 64, 128, 256, 512, 1024]
 let out = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
 try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
 
-/// 잔여가 많은 것부터. 실제 화면에서도 5시간이 대개 제일 여유 있다.
-let bars: [(fill: Double, color: NSColor)] = [
-    (0.92, NSColor(srgbRed: 0.20, green: 0.82, blue: 0.35, alpha: 1)),
-    (0.62, NSColor(srgbRed: 0.20, green: 0.82, blue: 0.35, alpha: 1)),
-    (0.34, NSColor(srgbRed: 1.00, green: 0.72, blue: 0.10, alpha: 1)),
+let paper  = NSColor(srgbRed: 0.965, green: 0.949, blue: 0.910, alpha: 1)
+let black  = NSColor(srgbRed: 0.082, green: 0.082, blue: 0.082, alpha: 1)
+let red    = NSColor(srgbRed: 0.835, green: 0.204, blue: 0.165, alpha: 1)
+let yellow = NSColor(srgbRed: 0.949, green: 0.788, blue: 0.298, alpha: 1)
+let blue   = NSColor(srgbRed: 0.141, green: 0.337, blue: 0.643, alpha: 1)
+
+/// 시안 좌표 그대로. 원점이 좌상단인 256 칸이고 그릴 때 뒤집는다.
+/// f 의 팔을 오른쪽 기둥에 붙이면 한글 'ㅐ' 로 읽힌다. 사이를 띄운 값이다.
+let shapes: [(x: Double, y: Double, w: Double, h: Double, color: NSColor)] = [
+    // c: 오른쪽이 열린 사각
+    (30, 72, 66, 12, black),
+    (30, 72, 12, 112, black),
+    (30, 172, 66, 12, black),
+    // l: 기둥 하나
+    (118, 40, 12, 144, black),
+    // f: 기둥과 그것을 관통하는 팔 둘
+    (158, 40, 12, 144, black),
+    (146, 40, 50, 12, black),
+    (146, 104, 42, 12, black),
+    // 지면이 되는 수평선과 오른쪽 기둥
+    (0, 196, 256, 12, black),
+    (214, 0, 12, 196, black),
+    // 색 블록. 블록은 반드시 검은 선과 한 변을 나눈다
+    (226, 0, 30, 76, red),
+    (226, 76, 30, 12, black),
+    (0, 208, 60, 48, yellow),
+    (56, 208, 12, 48, black),
+    (196, 208, 60, 48, blue),
+    (196, 208, 12, 48, black),
 ]
 
 func draw(_ px: Int) -> NSBitmapImageRep {
@@ -31,29 +56,20 @@ func draw(_ px: Int) -> NSBitmapImageRep {
     let side = s - inset * 2
     let plate = NSBezierPath(roundedRect: NSRect(x: inset, y: inset, width: side, height: side),
                              xRadius: side * 0.225, yRadius: side * 0.225)
-    NSGradient(starting: NSColor(srgbRed: 0.16, green: 0.17, blue: 0.20, alpha: 1),
-               ending:   NSColor(srgbRed: 0.07, green: 0.07, blue: 0.09, alpha: 1))!
-        .draw(in: plate, angle: -90)
+    plate.addClip()
+    paper.setFill()
+    NSBezierPath(rect: NSRect(x: inset, y: inset, width: side, height: side)).fill()
 
-    let barH = side * 0.108
-    let gap = side * 0.088
-    let left = inset + side * 0.17
-    let track = side * 0.66
-    let total = barH * 3 + gap * 2
-    var y = inset + (side - total) / 2 + total - barH
-
-    for bar in bars {
-        let bg = NSBezierPath(roundedRect: NSRect(x: left, y: y, width: track, height: barH),
-                              xRadius: barH / 2, yRadius: barH / 2)
-        NSColor.white.withAlphaComponent(0.13).setFill()
-        bg.fill()
-
-        let w = max(barH, track * bar.fill)
-        let fg = NSBezierPath(roundedRect: NSRect(x: left, y: y, width: w, height: barH),
-                              xRadius: barH / 2, yRadius: barH / 2)
-        bar.color.setFill()
-        fg.fill()
-        y -= barH + gap
+    let k = side / 256
+    for r in shapes {
+        // 좌상단 원점을 AppKit 의 좌하단 원점으로 뒤집는다. 16px 에서는
+        // 12칸 선이 1px 아래로 내려가 사라지므로 1px 로 받친다
+        let rect = NSRect(x: inset + r.x * k,
+                          y: inset + (256 - r.y - r.h) * k,
+                          width: max(r.w * k, 1),
+                          height: max(r.h * k, 1))
+        r.color.setFill()
+        NSBezierPath(rect: rect).fill()
     }
 
     NSGraphicsContext.restoreGraphicsState()
