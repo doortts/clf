@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clf 조사 - 빨강 구간이 벽지 위에서 눈을 아프게 하는 이유</title>
+<style>
+:root {
+  --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b;
+  --canvas: #f5f5f7; --surface: #ffffff; --sep: #d2d2d7; --sep-soft: #e8e8ed;
+  --accent: #007aff; --red: #ff3b30; --green-fg: #1f7a37; --red-fg: #b3261c;
+  --red-bg: #ffe8e6; --yellow-bg: #fdf3d7; --yellow-fg: #8a6508; --green-bg: #e3f7e8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 40px 28px 96px;
+  font: 14px/1.65 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  color: var(--ink); background: var(--canvas);
+}
+main { max-width: 1000px; margin: 0 auto; }
+h1 { font-size: 25px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -.02em; }
+h2 { font-size: 19px; margin: 44px 0 10px; padding-top: 18px; border-top: 1px solid var(--sep); }
+h3 { font-size: 15px; margin: 26px 0 8px; }
+p { margin: 0 0 12px; max-width: 78ch; }
+p.lede { color: var(--ink-2); font-size: 15px; }
+ul, ol { margin: 0 0 12px; padding-left: 22px; max-width: 78ch; }
+li { margin: 3px 0; }
+code {
+  font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+  background: #f0f0f2; border: 1px solid var(--sep-soft); border-radius: 4px; padding: 1px 5px;
+}
+pre {
+  background: var(--surface); border: 1px solid var(--sep-soft); border-radius: 8px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px;
+  font: 12.5px/1.6 ui-monospace, "SF Mono", Menlo, monospace;
+}
+pre code { background: none; border: 0; padding: 0; }
+table {
+  border-collapse: collapse; width: 100%; margin: 0 0 8px; background: var(--surface);
+  border: 1px solid var(--sep-soft); border-radius: 8px; overflow: hidden; font-size: 13px;
+}
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sep-soft); }
+th { background: #f7f7f8; font-weight: 600; font-size: 12px; color: var(--ink-2); }
+tr:last-child td { border-bottom: 0; }
+td.n { font-variant-numeric: tabular-nums; text-align: right; }
+.bad  { background: var(--red-bg); color: var(--red-fg); font-weight: 600; }
+.warn { background: var(--yellow-bg); color: var(--yellow-fg); }
+.ok   { background: var(--green-bg); color: var(--green-fg); }
+.note {
+  background: var(--surface); border: 1px solid var(--sep-soft);
+  border-left: 3px solid var(--accent); border-radius: 6px;
+  padding: 12px 15px; margin: 0 0 16px; max-width: 78ch;
+}
+.note.warn2 { border-left-color: var(--red); background: #fff; }
+.note b { font-weight: 600; }
+.cap { font-size: 12px; color: var(--ink-2); margin: 6px 0 0; }
+
+/* ---- 메뉴바 재현. 소스의 실제 치수와 색을 그대로 쓴다 ---- */
+.strip {
+  display: flex; align-items: center; gap: 14px;
+  height: 24px; padding: 0 10px; border-radius: 5px; overflow: hidden;
+  font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+.strip.zoom { zoom: 3; height: 24px; border-radius: 2px; }
+/* 세 안을 한 줄에 나란히 놓을 때는 2배다. 3배면 셋째 열이 페이지 밖으로 밀린다 */
+.strip.zoom2 { zoom: 2; height: 24px; border-radius: 2px; }
+.bar { display: flex; align-items: center; gap: 2px; padding: 0 1px; }
+.bar .code { font-size: 12px; font-weight: 600; line-height: 1; }
+.bar .nums { display: flex; flex-direction: column; }
+.bar .row {
+  display: flex; align-items: center; gap: 3px; height: 11px;
+  font-size: 10px; font-weight: 500; font-variant-numeric: tabular-nums;
+}
+.bar .tag { min-width: 14px; text-align: right; }
+.bar .val { min-width: 24px; text-align: right; }
+.gauge { display: flex; flex-direction: column; gap: 2px; }
+.gauge .g { width: 21px; height: 4px; border: .5px solid; box-sizing: border-box; }
+.gauge .g > i { display: block; height: 100%; }
+
+/* 다크 팔레트 (소스: dotColor(dark: true)) */
+.d .code, .d .val.normal { color: #e5e5ea; }
+.d .tag { color: rgba(255,255,255,.55); }
+.d .val.empty { color: #ff4a3d; }
+.d .val.ample { color: #3ce16b; }
+.d .g { background: rgba(255,255,255,.22); }
+/* 라이트 팔레트 (소스: dotColor(dark: false)) */
+.l .code { color: #000; }
+.l .tag { color: rgba(0,0,0,.5); }
+.l .val.normal { color: #86868c; }
+.l .val.empty { color: #e02017; }
+.l .val.ample { color: #17993f; }
+.l .g { background: rgba(0,0,0,.16); }
+
+/* 제안 A: 글자만 연한 산호 / 연한 노랑 */
+.pa.d .val.empty { color: #ffab9e; }
+.pa.l .val.empty { color: #9e1b12; }
+/* 제안 B: 라벨 뒤에 판 */
+.pb .bar {
+  background: rgba(0,0,0,.42); border-radius: 4px; padding: 1px 4px;
+}
+.pb.l .bar { background: rgba(255,255,255,.55); }
+
+.rowset { display: grid; grid-template-columns: 168px 1fr 1fr; gap: 10px 14px; align-items: center; margin: 0 0 8px; }
+.rowset .lbl { font-size: 12px; color: var(--ink-2); }
+.rowset .lbl b { color: var(--ink); display: block; font-weight: 600; font-size: 12.5px; }
+.hdr { font-size: 11px; font-weight: 600; color: var(--ink-3); }
+.zoomwrap { margin: 10px 0 22px; display: flex; gap: 34px; flex-wrap: wrap; align-items: flex-start; }
+.zoomwrap > div > .cap { max-width: 220px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>빨강 구간이 벽지 위에서 눈을 아프게 하는 이유</h1>
+<p class="lede">
+  스크린샷의 상태(사용률 96%, 빨강 구간)를 실제 색값으로 재현해서 벽지 여덟 벌
+  위에 얹었다. 결론부터: <b>빨강만 팔레트의 밝기 사다리에 구멍이 나 있다.</b>
+  나머지 셋은 L* 78 에서 92 사이인데 빨강 혼자 58 이라, 중간 밝기 벽지에서
+  대비가 1.1 에서 1.5 까지 떨어지면서 채도 차이만 남는다. 그 조합이 눈이 아픈
+  진짜 원인이다.
+</p>
+
+<h2>1. 지금 색이 어디서 오나</h2>
+<p>
+  메뉴바 막대는 <code>ImageRenderer</code> 로 구운 이미지다. 템플릿을 꺼서 색을
+  살리는 대신 <b>색이 구울 때 박힌다</b>. 그래서 적응형 색을 못 쓰고,
+  <code>BarImage.menuBarIsDark</code> 가 지금 메뉴바가 어두운지 밝은지를 보고
+  두 팔레트 중 하나를 고른다.
+</p>
+<table>
+  <tr>
+    <th>구간</th><th>잔여</th><th>다크 값</th><th class="n">L*</th><th class="n">C*</th>
+    <th>라이트 값</th><th class="n">L*</th><th class="n">C*</th>
+  </tr>
+  <tr><td>empty</td><td>5% 이하</td><td><code>#ff4a3d</code></td>
+      <td class="n bad">58</td><td class="n bad">82</td>
+      <td><code>#e02017</code></td><td class="n">48</td><td class="n bad">88</td></tr>
+  <tr><td>low</td><td>15% 미만</td><td><code>#ffe500</code></td>
+      <td class="n">90</td><td class="n bad">90</td>
+      <td><code>#bf7f00</code></td><td class="n">57</td><td class="n">66</td></tr>
+  <tr><td>ample</td><td>30% 이상</td><td><code>#3ce16b</code></td>
+      <td class="n">80</td><td class="n">80</td>
+      <td><code>#17993f</code></td><td class="n">56</td><td class="n">65</td></tr>
+  <tr><td>normal</td><td>15~30%</td><td><code>#e5e5ea</code></td>
+      <td class="n">91</td><td class="n">3</td>
+      <td><code>#86868c</code></td><td class="n">56</td><td class="n">3</td></tr>
+</table>
+<p class="cap">
+  L* 은 지각 밝기(0 검정, 100 흰색), C* 는 CIELAB 채도다.
+  다크 팔레트에서 <b>빨강만 밝기가 낮고 채도는 최고</b>인 것이 이 표의 요점이다.
+</p>
+
+<h2>2. 벽지 위에서 실제로 이렇게 보인다</h2>
+<p>
+  아래는 소스의 치수(코드 12pt, 숫자 10pt, 눈금 20칸)와 색값을 그대로 옮긴
+  재현이다. 왼쪽이 실제 크기, 오른쪽은 3배 확대다. 스크린샷의 상태를 그대로
+  넣었다: <code>T52</code>, 5시간 창 96% 빨강, 주간 창 68% 초록.
+</p>
+
+<div class="rowset">
+  <div></div>
+  <div class="hdr">실제 크기 (24pt 메뉴바)</div>
+  <div class="hdr">3배 확대</div>
+</div>
+
+<div id="samples"></div>
+
+<h2>3. 숫자로 본 원인</h2>
+<p>
+  같은 재현을 대비비로 옮긴 표다. 글자는 10pt 얇은 획이라 WCAG 기준으로는
+  4.5:1, 최소한 3:1 은 필요하다.
+</p>
+<table id="ratios"></table>
+<p class="cap">
+  회색은 3:1 미만, 빨간 칸은 2:1 미만이다. 대비가 2 아래면 밝기로는 사실상
+  같은 색이고, 눈은 색상 차이만으로 글자 경계를 찾아야 한다.
+</p>
+
+<div class="note warn2">
+  <b>왜 아픈가.</b> 원인이 둘 겹쳤다.
+  <ul>
+    <li><b>밝기 대비가 사라지고 채도 차이만 남는다.</b> 중간 남색 벽지에서
+        빨강 글자의 대비는 1.53:1 인데 채도 차이는 49 다. 밝기 경계가 없으면
+        눈은 초점을 맺을 자리를 못 찾고 계속 조절근을 움직인다. 글자가
+        떨리는 것처럼 보이는 감각이 이것이다.</li>
+    <li><b>채도 높은 빨강과 파랑은 눈 안에서 초점 거리가 다르다.</b> 파장이
+        긴 빨강이 앞에, 짧은 파랑이 뒤에 맺힌다(색수차). 두 색의 밝기가
+        비슷할 때 이 차이가 가장 크게 느껴져서 빨강 글자가 벽지에서 떠오르는
+        것처럼 보인다. 채도를 낮추면 그만큼 줄어든다.</li>
+  </ul>
+  스크린샷의 벽지는 정확히 이 두 조건을 동시에 만족하는 중간 채도 남색이다.
+</div>
+
+<h3>구조적 원인 하나 더: 팔레트는 둘, 벽지는 연속이다</h3>
+<p>
+  <code>menuBarIsDark</code> 는 참과 거짓 둘로 답한다. 그런데 메뉴바 바탕은
+  벽지가 그대로 비쳐서 L* 3 부터 96 까지 연속이다. 다크 팔레트의 값은 L* 10
+  근처를 겨냥해 고른 것이라 L* 40 에서 60 사이 벽지에서는 어느 색이든 대비가
+  무너진다. 빨강이 가장 심하게 무너지는 것일 뿐이고, <b>중간 밝기 벽지에서는
+  무채색 글자조차 3:1 을 못 넘긴다</b>(청록 벽지에서 2.42).
+</p>
+<p>
+  이 기계에서 방금 메뉴바를 캡처해 재 봤다. 지금은 밝은 벽지라 L* 95 이고
+  라이트 팔레트가 걸린다. 그쪽에서도 빨강 <code>#e02017</code> 은 흰 메뉴바에서
+  4.39:1 로 10pt 글자 기준을 겨우 못 넘긴다.
+</p>
+
+<h2>4. 제안</h2>
+
+<h3>A안: 글자색과 눈금색을 가른다 (권장)</h3>
+<p>
+  <b>고칠 곳이 한 함수다.</b> 지금 <code>barTextColor</code> 는
+  <code>dotColor</code> 를 그대로 돌려준다. 이 둘을 가르면 각자에게 맞는 값을
+  줄 수 있다.
+</p>
+<pre><code>// 지금
+func barTextColor(dark: Bool) -> Color { dotColor(dark: dark) }
+
+// 제안: 글자는 밝기를 벌고 채도를 버린다. 눈금은 그대로 둔다
+func barTextColor(dark: Bool) -> Color {
+    switch self {
+    case .empty: return dark ? Color(hex: 0xffab9e) : Color(hex: 0x9e1b12)
+    case .low:   return dark ? Color(hex: 0xffe98c) : Color(hex: 0xbf7f00)
+    default:     return dotColor(dark: dark)
+    }
+}</code></pre>
+<table>
+  <tr><th>값</th><th class="n">L*</th><th class="n">C*</th><th class="n">검정 벽지</th>
+      <th class="n">짙은 파랑</th><th class="n">중간 남색</th><th class="n">중간 회색</th></tr>
+  <tr><td>지금 <code>#ff4a3d</code></td><td class="n">58</td><td class="n">82</td>
+      <td class="n">5.93</td><td class="n warn">2.14</td><td class="n bad">1.53</td><td class="n bad">1.20</td></tr>
+  <tr><td>A안 <code>#ffab9e</code></td><td class="n">78</td><td class="n">35</td>
+      <td class="n ok">10.90</td><td class="n ok">3.93</td><td class="n warn">2.82</td><td class="n warn">2.20</td></tr>
+  <tr><td>무채색 상한 <code>#e5e5ea</code></td><td class="n">91</td><td class="n">3</td>
+      <td class="n">15.76</td><td class="n">5.69</td><td class="n">4.07</td><td class="n">3.18</td></tr>
+</table>
+<ul>
+  <li>대비가 어두운 벽지에서 두 배 가까이(5.93 -> 10.90), 중간 벽지에서
+      1.53 -> 2.82 로 오른다. 채도는 82 -> 35 로 절반 아래라 색수차도 같이 준다</li>
+  <li><b>빨강이 세 곳에서 동시에 칠해지는 것도 준다.</b> 지금은 숫자, 눈금
+      테두리, 눈금 채움이 모두 같은 채도의 빨강이다. 글자만 연하게 빼면
+      빨강 면적이 줄어 오래 봐도 덜 피곤하다</li>
+  <li>연한 산호가 위험으로 덜 읽힌다는 반론이 있다. 그런데 빨강 구간은
+      <b>눈금이 이미 꽉 차 있다</b>. 위험 신호는 색이 아니라 그 채움이 낸다.
+      색은 거들 뿐이다</li>
+  <li>노랑도 같이 손댄다. <code>#ffe500</code> 은 채도 90 짜리 원색 노랑이라
+      글자로는 과하다. <code>#ffe98c</code> 는 밝기를 지키면서 채도만 절반이다</li>
+</ul>
+
+<h3>세 안을 나란히</h3>
+<p>
+  대비가 가장 나빴던 바탕 셋에 세 안을 얹었다. 전부 2배 확대다.
+</p>
+<div id="compare"></div>
+
+<h3>B안: 막대 뒤에 판을 깐다</h3>
+<p>
+  A안은 글자를 고치지만 <b>눈금은 여전히 벽지에 묻는다</b>. 중간 밝기 벽지에서
+  눈금이 뭉개지는 것까지 고치려면 바탕을 우리가 정해야 한다. 막대 전체 뒤에
+  검정 42% 판을 두면 벽지가 무엇이든 대비가 고정된다.
+</p>
+<ul>
+  <li>모든 구간이 한 번에 나아진다. 팔레트를 손대지 않아도 다크 값이 겨냥한
+      L* 10 근처 바탕이 항상 만들어진다</li>
+  <li>대신 메뉴바 다른 항목들과 결이 달라진다. 시스템 항목은 바탕 없이 산다</li>
+  <li>A안과 겹쳐 쓸 수 있다. 판을 깔면 연한 산호도 대비 9 이상이 나온다</li>
+</ul>
+
+<h3>C안: 팔레트를 셋으로 늘린다</h3>
+<p>
+  근본 원인(팔레트 둘, 벽지 연속)을 직접 고치는 길이다. 벽지 밝기를 재서
+  어두움/중간/밝음 세 벌 중 하나를 고른다. 다만 메뉴바 아래 벽지 픽셀을 읽는
+  경로가 지금 없고, 벽지가 바뀔 때마다 다시 구워야 한다. <b>얻는 것보다 드는
+  것이 크다.</b> A안과 B안이 같은 증상을 훨씬 싸게 덮으므로 지금은 접는다.
+</p>
+
+<div class="note">
+  <b>추천.</b> A안을 먼저 넣는다. 값 셋을 바꾸는 일이고 되돌리기도 쉽다.
+  그걸로도 눈금이 벽지에 묻는 것이 거슬리면 B안을 겹친다. 판의 불투명도는
+  설정에 노브로 내놓지 않는다. 노브가 늘면 조합마다 대비를 다시 봐야 한다.
+</div>
+
+<script>
+// 소스 값 그대로. 이 표가 위의 재현과 아래 대비표의 유일한 출처다
+const BACKS = [
+  ['거의 검정 벽지',   '#0a0a0c', 'd'],
+  ['어두운 회색 메뉴바','#1c1c1e', 'd'],
+  ['짙은 파랑 벽지',   '#2456a4', 'd'],
+  ['중간 남색 벽지',   '#4a6fa5', 'd'],
+  ['중간 회색 벽지',   '#7f7f83', 'd'],
+  ['청록 벽지',        '#12a5a0', 'd'],
+  ['흰 메뉴바',        '#f5f5f7', 'l'],
+  ['밝은 하늘 벽지',   '#a8c8ea', 'l'],
+];
+const NOTE = {
+  '중간 남색 벽지': '스크린샷과 가장 가까운 바탕',
+  '어두운 회색 메뉴바': '색을 고를 때 겨냥한 바탕',
+};
+
+// 막대 하나: 코드 + 숫자 두 줄 + 눈금 세 줄. 스크린샷 상태 그대로
+function bar() {
+  return `<div class="bar">
+    <span class="code">T52</span>
+    <span class="nums">
+      <span class="row"><span class="tag">2h</span><span class="val empty">96%</span></span>
+      <span class="row"><span class="tag">0m</span><span class="val ample">68%</span></span>
+    </span>
+    <span class="gauge">
+      <span class="g" style="border-color:var(--gEmpty)"><i style="width:95%;background:var(--gEmpty)"></i></span>
+      <span class="g" style="border-color:var(--gAmple)"><i style="width:65%;background:var(--gAmple)"></i></span>
+      <span class="g" style="border-color:var(--gFable)"><i style="width:40%;background:var(--gFable)"></i></span>
+    </span>
+  </div>`;
+}
+
+const host = document.getElementById('samples');
+for (const [name, bg, mode] of BACKS) {
+  const vars = mode === 'd'
+    ? '--gEmpty:#ff4a3d;--gAmple:#3ce16b;--gFable:#40c8ff'
+    : '--gEmpty:#e02017;--gAmple:#17993f;--gFable:#0d5bb5';
+  const row = document.createElement('div');
+  row.className = 'rowset';
+  row.innerHTML = `
+    <div class="lbl"><b>${name}</b>${NOTE[name] ? NOTE[name] : mode === 'd' ? '다크 팔레트' : '라이트 팔레트'}<br><code>${bg}</code></div>
+    <div class="strip ${mode}" style="background:${bg};${vars}">${bar()}</div>
+    <div><div class="strip ${mode} zoom" style="background:${bg};${vars}">${bar()}</div></div>`;
+  host.appendChild(row);
+}
+
+// ---- 세 안 비교. 대비가 가장 나빴던 바탕 셋 -----------------------------
+const WORST = [
+  ['중간 남색 벽지', '#4a6fa5', 'd'],
+  ['중간 회색 벽지', '#7f7f83', 'd'],
+  ['청록 벽지',      '#12a5a0', 'd'],
+];
+const VARIANTS = [['지금', ''], ['A안 글자만 연한 산호', 'pa'], ['B안 판 + A안', 'pa pb']];
+const cmp = document.getElementById('compare');
+// 바탕 이름을 줄 위에 두고 세 안을 나란히 놓는다. 왼쪽에 라벨 열을 두면
+// 2배 확대한 막대 셋이 페이지 폭을 넘긴다
+for (const [name, bg, mode] of WORST) {
+  const vars = '--gEmpty:#ff4a3d;--gAmple:#3ce16b;--gFable:#40c8ff';
+  const block = document.createElement('div');
+  block.style.margin = '0 0 20px';
+  block.innerHTML =
+    `<div class="lbl" style="margin:0 0 6px"><b style="display:inline">${name}</b>
+       <code>${bg}</code></div>
+     <div style="display:flex;gap:16px;flex-wrap:wrap">` +
+    VARIANTS.map(([title, cls2]) =>
+      `<div><div class="hdr" style="margin:0 0 4px">${title}</div>
+         <div class="strip ${mode} ${cls2} zoom2" style="background:${bg};${vars}">${bar()}</div></div>`
+    ).join('') + '</div>';
+  cmp.appendChild(block);
+}
+
+// ---- 대비표 -------------------------------------------------------------
+const PAL = {
+  d: { empty: '#ff4a3d', low: '#ffe500', ample: '#3ce16b', normal: '#e5e5ea' },
+  l: { empty: '#e02017', low: '#bf7f00', ample: '#17993f', normal: '#86868c' },
+};
+const lin = c => (c /= 255) <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+const rgb = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+const lum = h => { const [r, g, b] = rgb(h); return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b); };
+const ratio = (a, b) => { const x = lum(a), y = lum(b), hi = Math.max(x, y), lo = Math.min(x, y); return (hi + 0.05) / (lo + 0.05); };
+const cls = r => r < 2 ? 'bad' : r < 3 ? 'warn' : 'ok';
+
+const t = document.getElementById('ratios');
+t.innerHTML = '<tr><th>배경</th><th>팔레트</th>' +
+  ['empty 96% (빨강)', 'low (노랑)', 'ample 68% (초록)', 'normal (무채색)']
+    .map(h => `<th class="n">${h}</th>`).join('') + '</tr>' +
+  BACKS.map(([name, bg, mode]) => {
+    const p = PAL[mode];
+    return `<tr><td>${name} <code>${bg}</code></td><td>${mode === 'd' ? '다크' : '라이트'}</td>` +
+      ['empty', 'low', 'ample', 'normal'].map(k => {
+        const r = ratio(p[k], bg);
+        return `<td class="n ${cls(r)}">${r.toFixed(2)}:1</td>`;
+      }).join('') + '</tr>';
+  }).join('');
+</script>
+
+</main>
+</body>
+</html>
