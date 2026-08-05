@@ -53,8 +53,17 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# 임시 서명. 배포용은 아니지만 이게 없으면 로컬에서도 실행이 막힌다
-codesign --force --sign - "$APP" 2>/dev/null
+# 서명. CLF_SIGN_IDENTITY 가 있으면 Developer ID 로 서명한다. 공증에는
+# hardened runtime 과 보안 타임스탬프가 필수다. 값이 없으면 지금처럼 임시
+# 서명으로 떨어져 로컬 빌드가 계속 돌아간다. docs/design/14-self-update.html
+if [ -n "${CLF_SIGN_IDENTITY:-}" ]; then
+  codesign --force --options runtime --timestamp \
+           --sign "$CLF_SIGN_IDENTITY" "$APP"
+  echo "  Developer ID 서명: $CLF_SIGN_IDENTITY"
+else
+  # 임시 서명. 배포용은 아니지만 이게 없으면 로컬에서도 실행이 막힌다
+  codesign --force --sign - "$APP" 2>/dev/null
+fi
 
 echo "  $APP  ($CONFIG, $VERSION)"
 echo "  open $APP        메뉴바에 뜬다"
