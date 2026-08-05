@@ -1,0 +1,171 @@
+<meta charset="utf-8">
+<title>Fable 청록이 흰색으로 읽히는 문제</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:26px 0 8px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:900px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:6px 0 0; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  .set { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .one { }
+  .lbl { font-size:11px; color:var(--dim); margin-bottom:5px; font-family:"SF Mono",ui-monospace,monospace; }
+  /* 실제 크기. 1pt = 1px 로 그린다 */
+  .real { display:inline-flex; align-items:center; padding:3px 5px; border-radius:4px;
+          background:#141416; }
+  .rg { display:flex; flex-direction:column; gap:2px; margin-left:4px; }
+  .rs { width:21px; height:4px; box-sizing:border-box; border:.5px solid; }
+  .rs i { display:block; height:100%; }
+  /* 4배 확대 */
+  .big { display:inline-flex; align-items:center; padding:6px 10px; border-radius:6px;
+         background:#141416; margin-top:6px; }
+  .bg { display:flex; flex-direction:column; gap:6px; margin-left:8px; }
+  .bs { width:84px; height:14px; box-sizing:border-box; border:2px solid; }
+  .bs i { display:block; height:100%; }
+  .code { font-size:12px; font-weight:600; color:#fff; }
+  .code.b { font-size:24px; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:900px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; }
+  th { color:var(--dim); font-weight:500; }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:3px;
+        vertical-align:-1px; margin-right:5px; }
+  .note { margin-top:20px; color:var(--dim); max-width:900px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>Fable 청록이 흰색으로 읽히는 문제</h1>
+<p class="lede">
+  지금 값 <code>#5ee7de</code> 는 밝기는 충분한데 <b>채도가 모자라다.</b> 1pt
+  눈금에서 안티에일리어싱에 채도가 씻기면 남는 것은 밝기뿐이라 정상 등급의
+  연한 흰색(<code>#e5e5ea</code>)과 같은 자리로 읽힌다.
+</p>
+<table>
+  <tr><th>색</th><th>대비</th><th>채도 (Lab C)</th><th>흰색과 거리 (dE)</th></tr>
+  <tr><td><span class="sw" style="background:#e5e5ea"></span>정상 등급 <code>#e5e5ea</code></td>
+      <td>14.66</td><td>2.6</td><td>-</td></tr>
+  <tr><td><span class="sw" style="background:#5ee7de"></span>지금 <code>#5ee7de</code></td>
+      <td>12.23</td><td class="bad">39.6</td><td class="bad">40.7</td></tr>
+  <tr><td><span class="sw" style="background:#3ce16b"></span>참고 초록 <code>#3ce16b</code></td>
+      <td>10.67</td><td class="good">80.2</td><td>73.9</td></tr>
+</table>
+<p class="lede">
+  초록은 채도가 80 이라 흰색과 헷갈릴 여지가 없다. 청록을 그만큼 올릴 수는
+  없지만(청록은 원래 채도 상한이 낮다) 40 에서 50 으로는 올릴 수 있다.
+</p>
+
+<h2>후보. 셋째 줄이 Fable 이다</h2>
+<div class="set">
+  <div class="one">
+    <div class="lbl">지금 #5ee7de</div>
+    <span class="real"><span class="code">T52</span><span class="rg">
+      <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="rs" style="border-color:#5ee7de"><i style="width:64%;background:#5ee7de"></i></span>
+    </span></span>
+    <div class="big"><span class="code b">T52</span><span class="bg">
+      <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="bs" style="border-color:#5ee7de"><i style="width:64%;background:#5ee7de"></i></span>
+    </span></div>
+    <p class="cap bad">둘째 줄(정상 등급 연한 흰색)과 셋째 줄이 비슷하다</p>
+  </div>
+
+  <div class="one">
+    <div class="lbl">A. #00e5d0</div>
+    <span class="real"><span class="code">T52</span><span class="rg">
+      <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="rs" style="border-color:#00e5d0"><i style="width:64%;background:#00e5d0"></i></span>
+    </span></span>
+    <div class="big"><span class="code b">T52</span><span class="bg">
+      <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="bs" style="border-color:#00e5d0"><i style="width:64%;background:#00e5d0"></i></span>
+    </span></div>
+    <p class="cap good">채도 50.4, 흰색과 52. 대비는 11.49 로 지금과 비슷하다</p>
+  </div>
+
+  <div class="one">
+    <div class="lbl">B. #2bd9c4</div>
+    <span class="real"><span class="code">T52</span><span class="rg">
+      <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="rs" style="border-color:#2bd9c4"><i style="width:64%;background:#2bd9c4"></i></span>
+    </span></span>
+    <div class="big"><span class="code b">T52</span><span class="bg">
+      <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="bs" style="border-color:#2bd9c4"><i style="width:64%;background:#2bd9c4"></i></span>
+    </span></div>
+    <p class="cap">채도 46.5, 흰색과 49. 한 단 차분하다</p>
+  </div>
+
+  <div class="one">
+    <div class="lbl">C. #00d1bd</div>
+    <span class="real"><span class="code">T52</span><span class="rg">
+      <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="rs" style="border-color:#00d1bd"><i style="width:64%;background:#00d1bd"></i></span>
+    </span></span>
+    <div class="big"><span class="code b">T52</span><span class="bg">
+      <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="bs" style="border-color:#00d1bd"><i style="width:64%;background:#00d1bd"></i></span>
+    </span></div>
+    <p class="cap">채도 47.2, 대비 9.51. 가장 진한 청록이지만 밝기를 잃는다</p>
+  </div>
+
+  <div class="one">
+    <div class="lbl">D. #00e0c0 (초록 쪽으로)</div>
+    <span class="real"><span class="code">T52</span><span class="rg">
+      <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="rs" style="border-color:#00e0c0"><i style="width:64%;background:#00e0c0"></i></span>
+    </span></span>
+    <div class="big"><span class="code b">T52</span><span class="bg">
+      <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+      <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+      <span class="bs" style="border-color:#00e0c0"><i style="width:64%;background:#00e0c0"></i></span>
+    </span></div>
+    <p class="cap warn">채도 52.6 로 가장 높지만 초록과의 거리가 44.7 로 가장 가깝다</p>
+  </div>
+</div>
+
+<h2>수치</h2>
+<table>
+  <tr><th>후보</th><th>대비 (어두운 바)</th><th>채도</th><th>흰색과 dE</th><th>초록과 dE</th></tr>
+  <tr><td><span class="sw" style="background:#5ee7de"></span>지금 <code>#5ee7de</code></td>
+      <td>12.23</td><td class="bad">39.6</td><td class="bad">40.7</td><td>59.1</td></tr>
+  <tr><td><span class="sw" style="background:#00e5d0"></span><b>A <code>#00e5d0</code></b></td>
+      <td class="good">11.49</td><td class="good">50.4</td><td class="good">52.0</td><td class="good">50.9</td></tr>
+  <tr><td><span class="sw" style="background:#2bd9c4"></span>B <code>#2bd9c4</code></td>
+      <td>10.36</td><td>46.5</td><td>49.0</td><td>51.1</td></tr>
+  <tr><td><span class="sw" style="background:#00d1bd"></span>C <code>#00d1bd</code></td>
+      <td class="warn">9.51</td><td>47.2</td><td>50.5</td><td>51.5</td></tr>
+  <tr><td><span class="sw" style="background:#00e0c0"></span>D <code>#00e0c0</code></td>
+      <td>10.88</td><td class="good">52.6</td><td class="good">54.8</td><td class="warn">44.7</td></tr>
+</table>
+
+<p class="note">
+  <b>A안 <code>#00e5d0</code> 을 권한다.</b> 채도를 39.6 에서 50.4 로 올려 흰색과의
+  거리가 40.7 에서 52.0 이 된다. 대비는 11.49 로 지금과 거의 같아서 밝기는
+  잃지 않는다. 초록과도 50.9 로 충분히 멀다.
+</p>
+<p class="note">
+  <b>채도를 더 올리는 길은 초록으로 가는 길이다.</b> D안이 채도 52.6 으로 가장
+  높지만 초록과의 거리가 44.7 로 좁아진다. 청록의 채도 상한은 초록 쪽에
+  붙어 있어서, 흰색에서 멀어지려고 채도만 올리면 이번에는 초록과 헷갈린다.
+  50 근처가 두 색 사이의 가운데다.
+</p>
+<p class="note">
+  <b>밝은 벽지 쪽은 그대로 둔다.</b> 지금 <code>#0fa39c</code> 의 채도는 36.5 이고
+  후보들(<code>#00a89c</code> 39.0, <code>#00a294</code> 38.6)과의 차이가 3 이내다.
+  밝은 바탕에서는 어두운 색이 회색과 헷갈릴 여지가 적고, 대비도 2.38~2.72 로
+  서로 비슷해서 바꿔서 얻는 것이 없다.
+</p>

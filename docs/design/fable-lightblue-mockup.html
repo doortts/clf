@@ -1,0 +1,178 @@
+<meta charset="utf-8">
+<title>Fable 을 연파랑으로 하면</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:26px 0 8px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:900px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:6px 0 0; max-width:200px; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  .set { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .lbl { font-size:11px; color:var(--dim); margin-bottom:5px;
+         font-family:"SF Mono",ui-monospace,monospace; }
+  /* 실제 크기. 1pt = 1px */
+  .real { display:inline-flex; align-items:flex-start; padding:3px 5px; border-radius:4px;
+          background:#141416; }
+  .rcode { font-size:12px; font-weight:600; color:#fff; }
+  .rul { display:block; height:2px; background:#0a84ff; margin-top:1px; }
+  .rg { display:flex; flex-direction:column; gap:2px; margin-left:4px; }
+  .rs { width:21px; height:4px; box-sizing:border-box; border:.5px solid; }
+  .rs i { display:block; height:100%; }
+  /* 4배 */
+  .big { display:inline-flex; align-items:flex-start; padding:6px 10px; border-radius:6px;
+         background:#141416; margin-top:6px; }
+  .bcode { font-size:24px; font-weight:600; color:#fff; }
+  .bul { display:block; height:5px; background:#0a84ff; margin-top:2px; }
+  .bg { display:flex; flex-direction:column; gap:6px; margin-left:8px; }
+  .bs { width:84px; height:14px; box-sizing:border-box; border:2px solid; }
+  .bs i { display:block; height:100%; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:900px; }
+  th, td { border:1px solid var(--line); padding:5px 9px; text-align:left; }
+  th { color:var(--dim); font-weight:500; }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:3px;
+        vertical-align:-1px; margin-right:5px; }
+  .note { margin-top:20px; color:var(--dim); max-width:900px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>Fable 을 연파랑으로 하면</h1>
+<p class="lede">
+  지금 문제는 밝기가 아니라 <b>채도</b>다. 1pt 눈금에서 채도가 씻기면 밝기만
+  남아서 정상 등급의 연한 흰색과 같은 자리로 읽힌다. 그런데 sRGB 에서
+  <b>연파랑은 같은 밝기의 청록보다 채도가 낮다.</b> 연하게 만들수록 더 낮아진다.
+</p>
+<table>
+  <tr><th>후보</th><th>대비</th><th>채도</th><th>흰색과 dE</th><th>밑줄 파랑과 dE</th></tr>
+  <tr><td><span class="sw" style="background:#e5e5ea"></span>정상 등급 <code>#e5e5ea</code></td>
+      <td>14.66</td><td>2.6</td><td>-</td><td>-</td></tr>
+  <tr><td><span class="sw" style="background:#5ee7de"></span>지금 청록 <code>#5ee7de</code></td>
+      <td>12.23</td><td class="bad">39.6</td><td class="bad">40.7</td><td>88.2</td></tr>
+  <tr><td><span class="sw" style="background:#00e5d0"></span><b>청록 A <code>#00e5d0</code></b></td>
+      <td>11.49</td><td class="good">50.4</td><td class="good">52.0</td><td>97.7</td></tr>
+  <tr><td><span class="sw" style="background:#7fd6ff"></span>연파랑 <code>#7fd6ff</code></td>
+      <td>11.36</td><td class="bad">32.1</td><td class="bad">31.8</td><td>58.0</td></tr>
+  <tr><td><span class="sw" style="background:#64d2ff"></span>연파랑 <code>#64d2ff</code></td>
+      <td>10.69</td><td class="bad">36.5</td><td class="bad">36.8</td><td>56.7</td></tr>
+  <tr><td><span class="sw" style="background:#5ac8fa"></span>연파랑 <code>#5ac8fa</code></td>
+      <td>9.70</td><td class="bad">37.8</td><td class="bad">39.0</td><td>52.5</td></tr>
+  <tr><td><span class="sw" style="background:#40c8ff"></span>연파랑 <code>#40c8ff</code></td>
+      <td>9.57</td><td class="warn">41.8</td><td class="warn">42.8</td><td>51.3</td></tr>
+  <tr><td><span class="sw" style="background:#4db8ff"></span>파랑 <code>#4db8ff</code></td>
+      <td>8.42</td><td>44.8</td><td>46.8</td><td class="bad">38.8</td></tr>
+  <tr><td><span class="sw" style="background:#0a84ff"></span>참고. 포커스 밑줄
+      <code>#0a84ff</code></td><td>5.04</td><td>71.0</td><td>-</td><td>-</td></tr>
+</table>
+<p class="lede">
+  연파랑 넷 다 <b>지금 청록보다 흰색에 더 가깝다.</b> 가장 채도가 높은
+  <code>#40c8ff</code> 도 42.8 로 지금(40.7)과 거의 같고 청록 A안(52.0)에는 못
+  미친다. 채도를 더 올리면 <code>#4db8ff</code> 처럼 <b>포커스 밑줄 파랑</b>과
+  가까워진다(38.8).
+</p>
+
+<h2>눈으로. 코드 아래 파란 밑줄이 켜진 상태다</h2>
+<div class="set">
+  <div>
+    <div class="lbl">청록 A #00e5d0</div>
+    <span class="real"><span><span class="rcode">T52</span><span class="rul"></span></span>
+      <span class="rg">
+        <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="rs" style="border-color:#00e5d0"><i style="width:64%;background:#00e5d0"></i></span>
+      </span></span>
+    <div class="big"><span><span class="bcode">T52</span><span class="bul"></span></span>
+      <span class="bg">
+        <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="bs" style="border-color:#00e5d0"><i style="width:64%;background:#00e5d0"></i></span>
+      </span></div>
+    <p class="cap good">셋째 줄이 둘째 줄(흰색)과도, 밑줄과도 갈린다</p>
+  </div>
+
+  <div>
+    <div class="lbl">연파랑 #64d2ff</div>
+    <span class="real"><span><span class="rcode">T52</span><span class="rul"></span></span>
+      <span class="rg">
+        <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="rs" style="border-color:#64d2ff"><i style="width:64%;background:#64d2ff"></i></span>
+      </span></span>
+    <div class="big"><span><span class="bcode">T52</span><span class="bul"></span></span>
+      <span class="bg">
+        <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="bs" style="border-color:#64d2ff"><i style="width:64%;background:#64d2ff"></i></span>
+      </span></div>
+    <p class="cap bad">흰색과 dE 36.8. 지금보다 더 희게 읽힌다</p>
+  </div>
+
+  <div>
+    <div class="lbl">연파랑 #40c8ff (연파랑 중 최선)</div>
+    <span class="real"><span><span class="rcode">T52</span><span class="rul"></span></span>
+      <span class="rg">
+        <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="rs" style="border-color:#40c8ff"><i style="width:64%;background:#40c8ff"></i></span>
+      </span></span>
+    <div class="big"><span><span class="bcode">T52</span><span class="bul"></span></span>
+      <span class="bg">
+        <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="bs" style="border-color:#40c8ff"><i style="width:64%;background:#40c8ff"></i></span>
+      </span></div>
+    <p class="cap warn">흰색 42.8 로 지금과 비슷. 밑줄과 51.3 로 좁아진다</p>
+  </div>
+
+  <div>
+    <div class="lbl">파랑 #4db8ff (채도를 더 올리면)</div>
+    <span class="real"><span><span class="rcode">T52</span><span class="rul"></span></span>
+      <span class="rg">
+        <span class="rs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="rs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="rs" style="border-color:#4db8ff"><i style="width:64%;background:#4db8ff"></i></span>
+      </span></span>
+    <div class="big"><span><span class="bcode">T52</span><span class="bul"></span></span>
+      <span class="bg">
+        <span class="bs" style="border-color:#3ce16b"><i style="width:18%;background:#3ce16b"></i></span>
+        <span class="bs" style="border-color:#e5e5ea"><i style="width:51%;background:#e5e5ea"></i></span>
+        <span class="bs" style="border-color:#4db8ff"><i style="width:64%;background:#4db8ff"></i></span>
+      </span></div>
+    <p class="cap bad">밑줄 파랑과 38.8. 게이지와 밑줄이 같은 파랑 계열이 된다</p>
+  </div>
+</div>
+
+<h2>왜 이렇게 되나</h2>
+<table>
+  <tr><th>사실</th><th>결과</th></tr>
+  <tr><td>sRGB 에서 파랑 원색은 어둡다 (파랑의 밝기 기여가 7%)</td>
+      <td>파랑을 밝게 만들려면 빨강과 초록을 섞어야 하고, 섞는 만큼 채도가 떨어진다.
+          <b>연파랑은 정의상 채도가 낮다</b></td></tr>
+  <tr><td>청록은 초록(72%)과 파랑(7%)의 합이라 밝다</td>
+      <td>같은 밝기에서 채도를 더 남길 수 있다. <code>#00e5d0</code> 이 채도 50 을
+          유지하면서 대비 11.49 다</td></tr>
+  <tr><td>포커스 밑줄이 이미 파랑이다</td>
+      <td>파랑 계열의 채도를 올리면 밑줄과 가까워진다. 두 축 사이에 낀다</td></tr>
+</table>
+
+<p class="note">
+  <b>연파랑은 이 문제를 못 고친다.</b> 지금 청록보다 흰색에 더 가깝거나(32~39),
+  비슷하거나(42.8), 아니면 밑줄 파랑과 겹친다(38.8). 흰색으로 읽히는 것이 고치려던
+  문제라면 연파랑은 방향이 반대다.
+</p>
+<p class="note">
+  <b>파랑을 꼭 쓰고 싶다면 <code>#40c8ff</code> 다.</b> 연파랑 중 채도가 가장 높고
+  밑줄과 51.3 로 아직 갈린다. 대신 흰색과의 거리는 지금과 같으니 "흰색으로 보인다"
+  는 문제는 남는다. 그 경우엔 채도가 아니라 다른 축으로 갈라야 한다. 예를 들어
+  Fable 줄만 눈금 대신 <b>다른 모양</b>(테두리만, 점선, 높이 1pt 더)으로 그리는
+  길이 있다.
+</p>
+<p class="note">
+  <b>권함은 그대로 청록 <code>#00e5d0</code> 이다.</b> 흰색과 52.0, 초록과 50.9,
+  밑줄과 97.7 로 세 방향 다 멀다. 세 색이 각자 다른 것을 말하는 화면에서 이만큼
+  떨어진 값이 달리 없다.
+</p>
