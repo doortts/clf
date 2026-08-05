@@ -95,11 +95,9 @@ struct BarOrgView: View {
 
     var body: some View {
         HStack(spacing: Metrics.barGap) {
+            // 색을 박지 않는다. `BarImage.menuBarIsDark` 가 실제 메뉴바 밝기를
+            // 보므로 이 뷰의 colorScheme 이 그 밝기를 뜻한다
             Text(code).font(.system(size: 12, weight: .semibold))
-                // 흰색으로 박는다. 메뉴바는 벽지 위에 반투명으로 얹히므로
-                // 시스템 외양이 라이트여도 실제 바탕은 어두울 수 있다.
-                // 그때 기본색(검정)으로 구우면 코드가 안 보인다
-                .foregroundStyle(.white)
                 .overlay(alignment: .bottom) {
                     if focused {
                         // 코드 폭만. 등급색과 안 겹치는 파랑이라 상태가
@@ -132,9 +130,6 @@ struct BarOrgView: View {
         // 줄 상자를 11pt 로 누른다. 10pt 의 자연 줄 상자가 13pt 라 2pt 를 누르는
         // 셈이고, 그게 없으면 두 줄이 26pt 로 메뉴바 24pt 를 넘는다. 실측으로
         // 잘리지는 않지만 위아래 여유가 1px 뿐이다.
-        //
-        // 색을 값으로 박는 것은 이 화면만의 예외다. 구운 이미지라 재질도
-        // vibrancy 도 없어서 시스템 라벨색이 적응할 바탕 자체가 없다.
         // docs/design/popover-hig27-applied-mockup.html
         HStack(spacing: Metrics.barTagGap) {
             // 라벨을 끄면(없음 모드) 칸이 아니라 열이 사라진다. 켜 두면 라벨이
@@ -143,14 +138,15 @@ struct BarOrgView: View {
             if let tagColumn {
                 Text(row.tag ?? "")
                     .font(.system(size: Metrics.captionSize, weight: .medium))
-                    // 코드와 같은 이유로 색을 박는다. .tertiary 는 어두운 바탕에서
-                    // 거의 사라졌다. 숫자보다는 뒤로 물러나야 하니 회색으로 둔다
-                    .foregroundStyle(Color(white: 0.78))
+                    // 숫자보다 뒤로 물러난다. 밝기는 외양이 정하고, 그 외양은
+                    // 실제 메뉴바 밝기다
+                    .foregroundStyle(.secondary)
                     .frame(minWidth: tagColumn, alignment: .trailing)
             }
             Text(row.value)
                 .font(.system(size: Metrics.captionSize, weight: .medium).monospacedDigit())
-                .foregroundStyle(row.band?.fillColor ?? .secondary)
+                // 눈금과 같은 값을 쓴다. 시스템 색은 이 크기에서 씻긴다
+                .foregroundStyle(row.band?.barTextColor(dark: dark) ?? .secondary)
                 // 100% 는 네 글자다. 자리가 좁으면 % 가 다음 줄로 떨어진다
                 .lineLimit(1)
                 // 오른쪽 정렬이라 두 자리와 세 자리의 오른쪽 끝이 맞는다.
@@ -201,9 +197,27 @@ struct BarLabelView: View {
 /// 그러지 않으면 다크 메뉴바에 검은 글씨가 얹혀 안 보인다.
 @MainActor
 enum BarImage {
-    /// 메뉴바는 시스템 외양을 따른다.
+    /// 메뉴바가 지금 어두운가.
+    ///
+    /// **시스템 외양이 아니라 메뉴바 항목의 외양을 본다.** 메뉴바 바탕은 벽지를
+    /// 따르므로 시스템 외양이 라이트여도 어두운 벽지에서는 메뉴바가 어둡다.
+    /// macOS 는 그 판단을 상태 항목 뷰의 외양에 내려준다. 실측하면 이렇게 갈린다.
+    ///
+    /// ```
+    /// NSApp.effectiveAppearance  : Aqua          <- 시스템 외양
+    /// statusWindow appearance    : VibrantDark   <- 실제 메뉴바
+    /// ```
+    ///
+    /// `MenuBarExtra` 는 `NSStatusItem` 을 감추므로 창 목록에서 상태 항목 창을
+    /// 찾는다. 못 찾으면 시스템 외양으로 떨어진다. 그때 동작은 예전과 같다.
     static var menuBarIsDark: Bool {
-        NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let appearance = statusBarWindow?.effectiveAppearance ?? NSApp.effectiveAppearance
+        return appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
+    /// 상태 항목이 사는 창. 공개 타입이 아니라 이름으로 찾는다.
+    private static var statusBarWindow: NSWindow? {
+        NSApp.windows.first { String(describing: type(of: $0)) == "NSStatusBarWindow" }
     }
 
     static func render(orgs: [OrgUsage], detail: BarDetail, direction: GaugeDirection,

@@ -51,6 +51,9 @@ final class UsageModel: ObservableObject {
     /// 앱을 켠 뒤 한 번이라도 알림을 판단했나. 첫 읽기는 표시만 하고 안 보낸다.
     private var notifiedOnce = false
     private var appearanceWatch: (any NSObjectProtocol)?
+    private var spaceWatch: (any NSObjectProtocol)?
+    /// 마지막으로 구울 때의 메뉴바 밝기. 바뀌면 다시 굽는다.
+    private var barWasDark: Bool?
     private var activeUUID: String?
     /// 앞에 있는 앱. 어느 계정 창인지는 FocusMark 가 답한다.
     private var focusWatch: (any NSObjectProtocol)?
@@ -83,6 +86,7 @@ final class UsageModel: ObservableObject {
             }
         }
         watchAppearance()
+        watchMenuBarBrightness()
         watchFrontApp()
         watchActiveOrg()
         watchClock()
@@ -120,7 +124,11 @@ final class UsageModel: ObservableObject {
                 let (uuid, live) = await Task.detached(priority: .utility) {
                     (reader.activeOrgUUID(), AltInstance.scanInstances())
                 }.value
-                await MainActor.run { self?.setInstances(live) }
+                await MainActor.run {
+                    self?.setInstances(live)
+                    // 벽지가 바뀌면 알림이 없다. 여기서 같이 확인한다
+                    self?.redrawIfBrightnessChanged()
+                }
                 await self?.applyActiveOrg(uuid)
                 await self?.mirrorBackAll()
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
@@ -280,6 +288,29 @@ final class UsageModel: ObservableObject {
         await refresh(scheduled: true)
     }
 
+    /// 벽지를 바꾸거나 스페이스를 옮기면 메뉴바 밝기가 바뀐다.
+    ///
+    /// 시스템 외양은 그대로이므로 외양 알림이 안 온다. 그런 알림이 아예 없어서
+    /// 스페이스 전환을 듣고, 그것으로도 안 잡히는 경우를 위해 계정 감시 루프가
+    /// 5초마다 밝기를 확인한다. 읽는 값은 프로퍼티 하나라 공짜다.
+    private func watchMenuBarBrightness() {
+        guard spaceWatch == nil else { return }
+        spaceWatch = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.redrawIfBrightnessChanged() }
+        }
+    }
+
+    /// 메뉴바 밝기가 지난번과 다르면 다시 굽는다.
+    private func redrawIfBrightnessChanged() {
+        let dark = BarImage.menuBarIsDark
+        guard dark != barWasDark else { return }
+        barWasDark = dark
+        redrawBar()
+    }
+
     /// 라이트와 다크를 오가면 막대 그림을 다시 구워야 한다. 색이 구울 때
     /// 박히므로 그냥 두면 배경과 같은 색 글씨가 남는다.
     private func watchAppearance() {
@@ -363,6 +394,7 @@ final class UsageModel: ObservableObject {
     }
 
     private func redrawBar() {
+        barWasDark = BarImage.menuBarIsDark
         barImage = BarImage.render(orgs: barOrgs, detail: prefs.barDetail,
                                    direction: prefs.gaugeDirection,
                                    resetLabel: prefs.resetLabel,

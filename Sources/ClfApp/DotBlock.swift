@@ -108,16 +108,17 @@ extension UsageBand {
     /// 면으로 칠할 때 멀쩡하던 값이 점으로는 흐려 보인다. 라이트 모드 경고색이
     /// 노랑이 아니라 앰버인 것도 그래서다. systemYellow 는 흰 바탕에서 대비가
     /// 2.1 이라 점으로 그리면 거의 안 보인다.
-    /// 정상 등급만 `dark` 를 안 본다. **막대는 외양이 아니라 벽지 위에 얹힌다.**
-    /// `.primary` 로 두면 라이트 외양에서 검정이 되어 어두운 메뉴바에서 사라졌다.
-    /// 코드 글자와 라벨이 이미 밝은 값으로 박혀 있으므로 여기도 박는다.
+    /// 정상 등급은 어두운 쪽에서 연한 흰색, 밝은 쪽에서 회색이다.
+    ///
+    /// `.primary` 로 두면 안 된다. 흰 바탕에서 검정 1pt 점은 너무 세게 튀어서
+    /// 정상 등급이 눈길을 끌지 않는다는 뜻을 잃는다.
     /// docs/design/band-normal-white-mockup.html A안
     func dotColor(dark: Bool) -> Color {
         switch self {
         case .ample:  return dark ? Color(hex: 0x3ce16b) : Color(hex: 0x17993f)
         case .low:    return dark ? Color(hex: 0xffe500) : Color(hex: 0xbf7f00)
         case .empty:  return dark ? Color(hex: 0xff4a3d) : Color(hex: 0xe02017)
-        case .normal: return Color(hex: 0xe5e5ea)
+        case .normal: return dark ? Color(hex: 0xe5e5ea) : Color(hex: 0x86868c)
         }
     }
 
@@ -160,18 +161,21 @@ extension UsageBand {
         }
     }
 
-    /// 면으로 칠할 때는 시스템 색을 그대로 쓴다.
-    ///
-    /// 정상 등급만 값을 박는다. 막대의 숫자가 이 색을 쓰는데, `.primary` 는
-    /// 라이트 외양에서 검정이 되어 어두운 메뉴바에서 사라졌다.
+    /// 면으로 칠할 때는 시스템 색을 그대로 쓴다. 팝오버 배지가 쓴다.
     var fillColor: Color {
         switch self {
         case .ample:  return .green
         case .low:    return .yellow
         case .empty:  return .red
-        case .normal: return Color(hex: 0xe5e5ea)
+        case .normal: return .primary
         }
     }
+
+    /// 막대의 숫자 색. 눈금과 같은 값을 쓴다.
+    ///
+    /// 시스템 색(`.green` 등)은 1pt 점에서 씻기는 것과 같은 이유로 구운 이미지의
+    /// 작은 글자에서도 흐리다. 눈금이 이미 그 보정을 갖고 있으니 같이 쓴다.
+    func barTextColor(dark: Bool) -> Color { dotColor(dark: dark) }
 }
 
 /// 주간 Fable 창의 여유 색. 초록 대신 민트다.
@@ -188,10 +192,12 @@ enum FableTint {
     /// 이 창만 색을 바꾼다.
     static let kind = LimitKind.weeklyScoped
 
-    /// 눈금 게이지. 1pt 짜리라 라이트에서는 한 단 어둡게 쓴다.
-    /// 초록 짝(0x3ce16b / 0x17993f)과 같은 명도 관계다.
+    /// 눈금 게이지. 1pt 짜리라 색이 안티에일리어싱에 씻긴다. 두 벌 다 한 단
+    /// 올렸다. 어두운 바탕 대비 10.41 -> 12.23, 밝은 바탕 3.56 -> 5.90 이다.
+    /// 더 올리면(0x7ff2ea, 13.84) 거의 흰색이라 정상 등급의 연한 흰색과 헷갈린다.
+    /// docs/design/fable-brighter-mint-mockup.html D안
     static func dot(dark: Bool) -> Color {
-        dark ? Color(hex: 0x66d4cf) : Color(hex: 0x0a7a76)
+        dark ? Color(hex: 0x5ee7de) : Color(hex: 0x0fa39c)
     }
 
     /// 팝오버 알약. 숫자가 검정으로 얹히므로 밝은 쪽을 쓴다.
@@ -258,9 +264,7 @@ struct SegmentGauge: View {
         let tint = mint && band == .ample
             ? FableTint.dot(dark: dark)
             : band?.dotColor(dark: dark) ?? Color.secondary
-        // 빈 칸도 벽지 위다. .primary 로 두면 라이트 외양에서 검정 16% 가 되어
-        // 어두운 메뉴바에서 트랙이 사라지고 막대만 공중에 뜬 것처럼 보인다
-        let off = Color.white.opacity(0.22)
+        let off = Color.primary.opacity(dark ? 0.22 : 0.16)
         let lit = used.map { direction.litSteps(used: $0, total: Self.totalSteps) } ?? 0
         Canvas { ctx, size in
             let b = Metrics.segBorder
