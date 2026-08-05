@@ -173,19 +173,31 @@ tr:last-child td { border-bottom: 0; }
     <td>자기를 지우고 자기를 복사할 수는 없다. 밖에서 기다리는 손이 있어야 한다</td>
   </tr>
   <tr>
-    <td><code>xattr -dr com.apple.quarantine</code></td>
+    <td>DMG 마운트 staging (<code>hdiutil attach -nobrowse</code>, 복사, detach)</td>
     <td><span class="tag keep">그대로</span></td>
-    <td>clf 는 임시 서명이라 격리 딱지가 붙으면 Gatekeeper 가 막는다</td>
+    <td>clf 도 공증받은 DMG 로 배포한다. 명시적 mountpoint 를 주는 방식까지 같이 가져온다</td>
   </tr>
   <tr>
-    <td>DMG 마운트 staging (<code>hdiutil attach</code>, 복사, detach, 약 90줄)</td>
+    <td>zip 경로와 DMG 경로를 같은 모양으로 맞추기</td>
     <td><span class="tag drop">버린다</span></td>
-    <td>clf 릴리즈 자산은 zip 하나다. 두 경로를 같은 모양으로 맞추는 일 자체가 사라진다</td>
+    <td>자산은 DMG 하나다. 두 경로를 맞추려고 있던 분기가 사라진다</td>
   </tr>
   <tr>
     <td>OS별 자산 고르기 (dmg, exe, msi, zip 우선순위)</td>
     <td><span class="tag drop">버린다</span></td>
-    <td>macOS 전용 앱이다. <code>clf-macos-*.zip</code> 하나를 이름으로 찾는다</td>
+    <td>macOS 전용 앱이다. <code>clf-*.dmg</code> 하나를 이름으로 찾는다</td>
+  </tr>
+  <tr>
+    <td><code>xattr -dr com.apple.quarantine</code></td>
+    <td><span class="tag drop">버린다</span></td>
+    <td>공증받고 스테이플한 번들은 격리 딱지가 붙어 있어도 Gatekeeper 를 통과한다.
+        딱지를 떼는 것은 검사를 건너뛰는 일이라 공증을 받는 쪽과 방향이 반대다</td>
+  </tr>
+  <tr>
+    <td>없음</td>
+    <td><span class="tag new">더한다</span></td>
+    <td><code>spctl -a</code> 로 내려받은 번들을 교체 전에 평가한다.
+        공증 티켓이 붙어 있어야만 제자리에 넣는다</td>
   </tr>
   <tr>
     <td><code>Authorization: token</code> 헤더와 호스트 일치 검사</td>
@@ -225,17 +237,59 @@ tr:last-child td { border-bottom: 0; }
   커밋에서 빌드한 것만 업데이트 대상으로 본다.
 </p>
 
+<h3>서명이 임시 서명에서 Developer ID 로 바뀐다</h3>
+<p>
+  <code>scripts/make-app.sh</code> 는 지금 <code>codesign --force --sign -</code> 로
+  임시 서명만 한다. 공증을 받으려면 세 가지가 더 필요하다.
+</p>
+<pre><code>codesign --force --options runtime --timestamp \
+         --sign "Developer ID Application: ..." .build/clf.app</code></pre>
+<ul>
+  <li><code>--options runtime</code>: hardened runtime. 없으면 공증이 거절된다</li>
+  <li><code>--timestamp</code>: 보안 타임스탬프. 인증서가 만료된 뒤에도 서명이 유효하다</li>
+  <li>인증서 이름은 스크립트에 박지 않고 <code>CLF_SIGN_IDENTITY</code> 환경 변수로 받는다.
+      값이 없으면 지금처럼 임시 서명으로 떨어져 로컬 빌드가 계속 돌아간다</li>
+</ul>
+
 <h3>릴리즈 절차</h3>
 <p>
-  자산은 zip 하나다. <code>scripts/make-app.sh</code> 가 만든 번들을 그대로 싸서 올린다.
-  <code>ditto -c -k --keepParent</code> 를 쓰는 이유는 <code>zip</code> 명령이
-  심볼릭 링크와 확장 속성을 흘려서 서명이 깨지기 때문이다.
+  <b>공증은 앱과 DMG 두 번 받는다.</b> DMG 만 스테이플하면 사용자가 앱을 꺼낸
+  뒤에는 티켓이 따라오지 않는다. 우리 업데이트 경로는 DMG 에서 <code>.app</code> 을
+  꺼내 쓰므로 앱에 붙은 티켓이 정작 중요한 쪽이다.
 </p>
 <pre><code># scripts/release.sh v0.4.0
-git tag "$1"
-./scripts/make-app.sh release
-ditto -c -k --keepParent .build/clf.app ".build/clf-macos-$1.zip"
-gh release create "$1" ".build/clf-macos-$1.zip" --generate-notes</code></pre>
+set -euo pipefail
+TAG=$1
+
+git tag "$TAG"
+CLF_SIGN_IDENTITY="$CLF_SIGN_IDENTITY" ./scripts/make-app.sh release
+
+# 1. 앱 공증. notarytool 은 폴더를 안 받으므로 zip 으로 싸서 올린다.
+#    올리는 용도일 뿐이고 이 zip 은 릴리즈에 안 붙는다
+ditto -c -k --keepParent .build/clf.app .build/notarize.zip
+xcrun notarytool submit .build/notarize.zip \
+      --keychain-profile clf-notary --wait
+xcrun stapler staple .build/clf.app
+
+# 2. 스테이플한 앱으로 DMG 를 만든다. /Applications 심볼릭 링크는 넣지 않는다.
+#    clf 는 ~/Applications 에 사는 앱이고 창에 뜬 링크가 그쪽으로 유도한다
+DMG=".build/clf-$TAG.dmg"
+rm -rf .build/dmgroot && mkdir -p .build/dmgroot
+cp -R .build/clf.app .build/dmgroot/
+hdiutil create -volname "clf $TAG" -srcfolder .build/dmgroot \
+        -ov -format UDZO "$DMG"
+
+# 3. DMG 도 공증한다. 브라우저로 직접 받아 여는 사람이 이 티켓을 본다
+xcrun notarytool submit "$DMG" --keychain-profile clf-notary --wait
+xcrun stapler staple "$DMG"
+
+gh release create "$TAG" "$DMG" --generate-notes</code></pre>
+<div class="note">
+  <code>ditto -c -k --keepParent</code> 를 쓰는 이유는 <code>zip</code> 명령이
+  심볼릭 링크와 확장 속성을 흘려서 서명이 깨지기 때문이다. 공증 업로드용
+  zip 에서 서명이 깨지면 거절 사유가 <b>서명 없음</b> 으로 나와서 원인을 찾는 데
+  오래 걸린다.
+</div>
 
 <h2>3. 언제 확인하나</h2>
 <p>
@@ -454,27 +508,34 @@ gh release create "$1" ".build/clf-macos-$1.zip" --generate-notes</code></pre>
 1. GET /releases/latest
    tag_name 을 자기 버전과 semver 비교
         |
-2. 자산 zip 을 URLSession 으로 받는다
-   ~/Library/Caches/clf/update/v0.5.0/
+2. 자산 DMG 를 URLSession 으로 받는다
+   ~/Library/Caches/clf/update/v0.5.0/clf-v0.5.0.dmg
         |
-3. ditto -x -k 로 펼친다
-   ...update/v0.5.0/clf.app
+3. hdiutil attach -nobrowse -readonly
+           -mountpoint .../v0.5.0/.mount
         |
-4. 서명을 확인한다
-   codesign -v (실패하면 여기서 멈춘다)
+4. ditto 로 .app 을 캐시 폴더에 꺼내고
+   hdiutil detach 로 곧바로 내린다
+   .../v0.5.0/clf.app
         |
-5. helper 스크립트를 임시 폴더에 쓰고
-   Process detached 로 띄운다  ------------>  6. 부모가 죽기를 기다린다
+5. spctl -a -vv 로 평가한다
+   accepted, source=Notarized Developer ID
+   아니면 여기서 멈춘다
+        |
+6. helper 스크립트를 임시 폴더에 쓰고
+   Process detached 로 띄운다  ------------>  7. 부모가 죽기를 기다린다
         |                                       (0.5초씩 최대 15초)
-7. NSApp.terminate                                    |
-                                             8. 제자리 교체
-                                                rm -rf  <bundle>
-                                                ditto   new -> <bundle>
-                                                xattr -dr com.apple.quarantine
+8. NSApp.terminate                                    |
+                                             9. 제자리 교체. mv 두 번이라
+                                                번들이 없는 순간이 없다
+                                                ditto new -&gt; &lt;bundle&gt;.new
+                                                mv &lt;bundle&gt;     &lt;bundle&gt;.old
+                                                mv &lt;bundle&gt;.new &lt;bundle&gt;
+                                                rm -rf &lt;bundle&gt;.old
                                                       |
-                                             9. open <bundle>
+                                            10. open &lt;bundle&gt;
                                                        |
-                                            10. 임시 폴더를 지운다</code></pre>
+                                            11. 캐시 폴더를 지운다</code></pre>
 
 <h3>왜 제자리인가</h3>
 <p>
@@ -483,7 +544,9 @@ gh release create "$1" ".build/clf-macos-$1.zip" --generate-notes</code></pre>
 </p>
 <ul>
   <li>clf 은 <code>~/Applications</code> 에 산다. 관리자 권한을 요구하지 않으려는
-      선택이고 <code>docs/design/11-menubar-app.md</code> 의 결정이다</li>
+      선택이고 <code>docs/design/11-menubar-app.md</code> 의 결정이다.
+      공증을 받아도 이 자리는 그대로 둔다. 사용자 폴더에 있으면 helper 가
+      관리자 인증 없이 교체할 수 있어서 자동 업데이트 쪽이 오히려 쉬워진다</li>
   <li>로그인 항목 등록은 번들 경로에 매인다. 경로가 바뀌면
       <code>SMAppService</code> 등록이 끊어져 사용자가 승인을 다시 해야 한다.
       제자리 교체는 그 문제를 아예 만들지 않는다</li>
@@ -508,37 +571,51 @@ gh release create "$1" ".build/clf-macos-$1.zip" --generate-notes</code></pre>
     <td><b>직접 받기</b> 만 보여준다. <code>/Applications</code> 에 관리자가 넣어 둔 경우</td>
   </tr>
   <tr>
-    <td><code>codesign -v</code> 실패</td>
-    <td>error. 깨진 zip 을 제자리에 넣으면 앱이 안 뜨고 되돌릴 손이 없다</td>
+    <td>DMG 마운트 실패, 또는 안에 <code>clf.app</code> 이 없음</td>
+    <td>error. 받은 파일이 온전하지 않다. 캐시를 지우고 <b>다시 시도</b></td>
+  </tr>
+  <tr>
+    <td><code>spctl -a -vv</code> 가 accepted 가 아님</td>
+    <td>error. 공증 티켓이 없거나 서명이 우리 것이 아니다. 제자리에 넣지 않는다</td>
   </tr>
 </table>
+<div class="note warn">
+  <b>교체 전 평가가 이 설계의 유일한 안전장치다.</b> 우리는 앱을 자기 자리에
+  덮어쓰는 권한을 helper 에게 준다. 릴리즈 자산이 바뀌었거나 중간에서 응답이
+  바뀌었을 때 그것을 걸러낼 곳은 여기뿐이다. HTTPS 와 GitHub 을 믿는 것과
+  별개로, 실제로 실행할 번들이 우리 Developer ID 로 서명되고 공증받은 것인지
+  <code>spctl -a -vv &lt;app&gt;</code> 으로 한 번 본다. 출력이
+  <code>source=Notarized Developer ID</code> 가 아니면 멈춘다.
+</div>
 
 <h2>6. 위험과 대비</h2>
 <table>
   <tr><th style="width:26%">위험</th><th>왜 생기나</th><th>대비</th></tr>
   <tr>
-    <td>Gatekeeper 가 막는다</td>
-    <td>clf 는 임시 서명(<code>codesign --sign -</code>)이고 공증을 안 받았다.
-        내려받은 번들에 격리 딱지가 붙으면 확인되지 않은 개발자로 걸린다</td>
-    <td>helper 가 교체 직후 <code>xattr -dr com.apple.quarantine</code> 을 돌린다.
-        받는 쪽이 <code>URLSession</code> 이라 딱지가 안 붙는 것이 보통이지만
-        믿고 넘기지 않는다</td>
+    <td>공증 티켓이 안 붙은 번들이 나간다</td>
+    <td>앱을 스테이플하기 전에 DMG 를 만들면 꺼낸 <code>.app</code> 에는 티켓이
+        없다. 온라인일 때는 그냥 통과해서 릴리즈할 때 눈치채기 어렵다</td>
+    <td>릴리즈 절차가 앱을 먼저 스테이플하고 그 결과로 DMG 를 만든다.
+        올린 뒤 <code>spctl -a -vv</code> 로 자기 자산을 한 번 본다.
+        앱이 교체 직전에 하는 것과 같은 검사다</td>
   </tr>
   <tr>
-    <td>알림 권한이 초기화된다</td>
-    <td>알림 권한은 번들 ID 와 서명에 매인다. 임시 서명은 기계마다 값이 달라서
-        다른 기계에서 빌드한 번들로 갈아타면 권한이 새 앱 것으로 잡힐 수 있다</td>
-    <td>교체 뒤 첫 실행에서 <code>Notifier.refreshPermission</code> 결과를 본다.
-        <code>denied</code> 로 떨어졌으면 설정에 이미 있는 안내 줄이 그대로 뜬다.
-        1단계 검증 항목에 넣는다</td>
+    <td>이전 임시 서명 빌드에서 갈아탈 때 권한이 끊긴다</td>
+    <td>알림 권한과 로그인 항목 등록은 서명에 매인다. 임시 서명은 기계마다
+        값이 달라서 Developer ID 서명으로 처음 갈아타는 그 한 번은 시스템이
+        다른 앱으로 볼 수 있다</td>
+    <td>공증 이후 버전끼리는 서명이 같아 문제가 없다. 갈아타는 첫 번만
+        <code>Notifier.refreshPermission</code> 과
+        <code>loginItem.isChecked</code> 를 확인한다. <code>denied</code> 로
+        떨어지면 설정에 이미 있는 안내 줄이 그대로 뜬다</td>
   </tr>
   <tr>
     <td>교체 중에 앱이 사라진다</td>
-    <td><code>rm -rf</code> 와 <code>ditto</code> 사이에서 helper 가 죽으면
-        번들이 없는 상태로 남는다</td>
-    <td>순서를 바꾼다. 새 번들을 <code>&lt;bundle&gt;.new</code> 로 옮기고
+    <td><code>rm -rf</code> 로 지운 다음 <code>ditto</code> 로 복사하면 그 사이에
+        helper 가 죽었을 때 번들이 없는 상태로 남는다. 되돌릴 손이 없다</td>
+    <td>먼저 <code>&lt;bundle&gt;.new</code> 로 다 복사해 두고
         <code>mv</code> 두 번으로 자리를 바꾼다. <code>mv</code> 는 같은 볼륨에서
-        원자적이다</td>
+        원자적이라 어느 순간에 멈춰도 실행할 수 있는 번들이 한 자리에 있다</td>
   </tr>
   <tr>
     <td>돌고 있는 번들을 덮어쓴다</td>
@@ -574,14 +651,17 @@ public var seenReleaseTag: String?  = nil     // 점을 지운 태그</code></pr
                         순수 함수만 둔다. 네트워크도 파일도 안 만진다
   UpdateInstaller.swift helper 스크립트 본문을 문자열로 만든다
                         경로를 넣어 쉘 인용까지 여기서 끝낸다
+                        spctl 출력을 읽어 accepted 인지 판정하는 함수도 여기
 
 Sources/ClfApp/
   UpdateModel.swift     @MainActor. 상태 기계, URLSession 호출, 진행률
+                        DMG 마운트와 detach 도 여기서 부른다
   Views.swift           SettingsPane 에 업데이트 칸 한 덩이
 </code></pre>
 <p>
   <code>ClfDesktop</code> 쪽 두 파일이 테스트의 전부다. 실제로 틀릴 수 있는
-  것은 버전 비교와 스크립트 문자열이고, 둘 다 프로세스를 띄우지 않고 볼 수 있다.
+  것은 버전 비교, 스크립트 문자열, spctl 판정이고, 셋 다 프로세스를 띄우지 않고
+  볼 수 있다. <code>hdiutil</code> 호출은 성공과 실패 두 갈래뿐이라 손으로 본다.
 </p>
 
 <h2>9. 테스트</h2>
@@ -594,35 +674,44 @@ Sources/ClfApp/
   <li><code>v0.4.0</code> 과 <code>0.4.0</code> 이 같다</li>
   <li><code>0.4.0-3-gabc123</code> 은 릴리즈 버전이 아니다. 확인을 건너뛴다</li>
   <li><code>abc1234</code>, <code>dev</code>, 빈 문자열은 파싱 실패로 떨어진다</li>
-  <li>자산 목록에서 <code>clf-macos-v0.5.0.zip</code> 을 고르고
-      <code>clf-linux.tar.gz</code> 는 안 고른다</li>
+  <li>자산 목록에서 <code>clf-v0.5.0.dmg</code> 를 고르고
+      <code>clf-v0.5.0.dmg.sha256</code> 은 안 고른다. 확장자로만 보면
+      <code>.dmg</code> 로 끝나는 것을 찾아야 걸러진다</li>
   <li>자산이 하나도 안 맞으면 nil 이고 error 로 가지 않는다.
       릴리즈 페이지로 보내면 된다</li>
   <li>helper 스크립트에 공백과 인용부호가 든 경로를 넣어도 문법이 깨지지 않는다</li>
+  <li>spctl 판정: <code>source=Notarized Developer ID</code> 만 통과한다.
+      <code>source=Developer ID</code> (공증 없음),
+      <code>rejected</code>, 빈 출력은 모두 막는다</li>
   <li>24시간 규칙: 마지막 확인이 23시간 전이면 건너뛰고 25시간 전이면 확인한다.
       <code>Clock</code> 을 주입해 시계를 고정한다</li>
 </ul>
 <p>
-  교체 자체는 단위 테스트로 확인할 수 없다. 손으로 한 번 본다. 이전 태그로
+  마운트와 교체는 단위 테스트로 확인할 수 없다. 손으로 한 번 본다. 이전 태그로
   빌드한 번들을 <code>~/Applications</code> 에 넣고 실행해서 최신 릴리즈로
   갈아타는지, 갈아탄 뒤에 로그인 항목과 알림 권한이 살아 있는지 확인한다.
+  마운트 지점이 남지 않았는지도 같이 본다. <code>detach</code> 를 빠뜨리면
+  Finder 사이드바에 볼륨이 쌓인다.
 </p>
 
 <h2>10. 단계</h2>
 <ol>
-  <li><b>태그를 만든다.</b> <code>v0.4.0</code> 을 붙이고
-      <code>scripts/release.sh</code> 로 첫 릴리즈를 올린다. 비교 대상이 없으면
-      아래 전부가 검증되지 않는다</li>
+  <li><b>서명과 공증 파이프라인.</b> <code>make-app.sh</code> 에 Developer ID
+      서명과 hardened runtime, <code>scripts/release.sh</code> 에 notarytool 과
+      stapler. 여기까지 끝내고 <code>v0.4.0</code> 을 첫 릴리즈로 올린다.
+      비교 대상이 없으면 아래 전부가 검증되지 않는다</li>
   <li><b>확인까지.</b> <code>UpdateCheck.swift</code> 와 테스트, 설정에
-      <b>지금 확인</b> 단추와 결과 한 줄. 여기까지만으로도 손으로 받아 갈 수 있다</li>
+      <b>지금 확인</b> 단추와 결과 한 줄. 여기까지만으로도 사용자는 릴리즈
+      페이지에서 DMG 를 받아 갈 수 있다</li>
   <li><b>자동 확인.</b> 24시간 규칙, ETag, 톱니의 점</li>
-  <li><b>제자리 교체.</b> helper 스크립트와 <b>설치하고 다시 시작</b>.
-      쓰기 권한과 서명 검사에서 막히는 경로를 먼저 만든다</li>
+  <li><b>제자리 교체.</b> DMG 마운트와 spctl 평가, helper 스크립트,
+      <b>설치하고 다시 시작</b>. 쓰기 권한과 평가에서 막히는 경로를 먼저 만든다</li>
 </ol>
 <p>
-  2단계에서 멈춰도 쓸 만하다. 새 버전이 났다는 것만 알면 사용자는
-  <code>git pull</code> 로 갈 수 있다. 4단계는 그 수고를 없애는 것이지
-  없으면 안 되는 것이 아니다.
+  1단계가 제일 무겁고 나머지의 전제다. 공증 없이 2단계부터 손대면 사용자가
+  받은 DMG 가 확인되지 않은 개발자로 걸려서 확인 기능이 오히려 민원을 만든다.
+  2단계에서 멈춰도 쓸 만하다. 4단계는 DMG 를 열고 끌어다 놓는 수고를 없애는
+  것이지 없으면 안 되는 것이 아니다.
 </p>
 
 </main>

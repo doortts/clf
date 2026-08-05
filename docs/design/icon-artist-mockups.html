@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clf 아이콘 시안 - 현대 미술가 오마주 여섯</title>
+<style>
+:root {
+  --ink:       #1d1d1f;
+  --ink-2:     #6e6e73;
+  --ink-3:     #86868b;
+  --canvas:    #f5f5f7;
+  --surface:   #ffffff;
+  --sep:       #d2d2d7;
+  --sep-soft:  #e8e8ed;
+  --accent:    #007aff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 40px 28px 96px;
+  font: 14px/1.65 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  color: var(--ink); background: var(--canvas);
+}
+main { max-width: 980px; margin: 0 auto; }
+h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -.02em; }
+p.lede { color: var(--ink-2); font-size: 15px; max-width: 74ch; margin: 0 0 30px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 22px; }
+.card {
+  background: var(--surface); border: 1px solid var(--sep-soft); border-radius: 12px;
+  padding: 22px 20px 18px;
+}
+.icons { display: flex; align-items: flex-end; gap: 18px; margin: 0 0 14px; }
+.icons svg { display: block; }
+.big { filter: drop-shadow(0 5px 14px rgba(0,0,0,.18)); }
+.sm  { filter: drop-shadow(0 1px 3px rgba(0,0,0,.22)); }
+.smcol { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.smcol span { font-size: 10px; color: var(--ink-3); }
+h2 { font-size: 15px; margin: 0 0 2px; }
+h2 small { font-weight: 400; color: var(--ink-2); font-size: 12px; margin-left: 6px; }
+.card p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.note {
+  background: var(--surface); border: 1px solid var(--sep-soft);
+  border-left: 3px solid var(--accent); border-radius: 6px;
+  padding: 12px 15px; margin: 30px 0 0; max-width: 78ch; font-size: 13px;
+}
+.note b { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>clf 아이콘 시안: 현대 미술가 오마주 여섯</h1>
+<p class="lede">
+  DMG 로 배포하면 아이콘이 첫인상이 된다. 지금 아이콘(잔여 막대 셋)은 기능 설명에
+  충실하지만 Dock 도 없는 메뉴바 앱이 굳이 설명적일 이유가 없다.
+  clf 세 글자를 소재로, 서로 다른 현대 미술가의 어법을 빌린 여섯 방향이다.
+  큰 것 옆의 작은 것이 32px, 메뉴바 관리 도구 목록에서 보이는 크기다.
+</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+
+<!-- 1. 몬드리안 : 격자가 곧 글자 -->
+<symbol id="ic-mondrian" viewBox="0 0 256 256">
+  <clipPath id="sq1"><rect width="256" height="256" rx="57"/></clipPath>
+  <g clip-path="url(#sq1)">
+    <rect width="256" height="256" fill="#f6f2e8"/>
+    <!-- c -->
+    <rect x="30" y="72" width="66" height="12" fill="#151515"/>
+    <rect x="30" y="72" width="12" height="112" fill="#151515"/>
+    <rect x="30" y="172" width="66" height="12" fill="#151515"/>
+    <!-- l -->
+    <rect x="118" y="40" width="12" height="144" fill="#151515"/>
+    <!-- f : 팔이 오른쪽 기둥에 닿으면 한글 'ㅐ' 로 읽힌다. 사이를 띄운다 -->
+    <rect x="158" y="40" width="12" height="144" fill="#151515"/>
+    <rect x="146" y="40" width="50" height="12" fill="#151515"/>
+    <rect x="146" y="104" width="42" height="12" fill="#151515"/>
+    <!-- 지면이 되는 수평선과 오른쪽 기둥 -->
+    <rect x="0" y="196" width="256" height="12" fill="#151515"/>
+    <rect x="214" y="0" width="12" height="196" fill="#151515"/>
+    <rect x="226" y="0" width="30" height="76" fill="#d5342a"/>
+    <rect x="226" y="76" width="30" height="12" fill="#151515"/>
+    <rect x="0" y="208" width="60" height="48" fill="#f2c94c"/>
+    <rect x="196" y="208" width="60" height="48" fill="#2456a4"/>
+    <rect x="56" y="208" width="12" height="48" fill="#151515"/>
+    <rect x="196" y="208" width="12" height="48" fill="#151515"/>
+  </g>
+</symbol>
+
+<!-- 2. 로스코 : 색면 아래 가라앉은 이름 -->
+<symbol id="ic-rothko" viewBox="0 0 256 256">
+  <clipPath id="sq2"><rect width="256" height="256" rx="57"/></clipPath>
+  <filter id="soft2" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="7"/>
+  </filter>
+  <filter id="soft2b"><feGaussianBlur stdDeviation="1.4"/></filter>
+  <g clip-path="url(#sq2)">
+    <rect width="256" height="256" fill="#2b0a10"/>
+    <rect x="22" y="18" width="212" height="100" fill="#e2622b" opacity=".95" filter="url(#soft2)"/>
+    <rect x="22" y="130" width="212" height="106" fill="#9c1f2e" filter="url(#soft2)"/>
+    <text x="128" y="200" text-anchor="middle" filter="url(#soft2b)"
+          font-family="Georgia, serif" font-size="62" fill="#d8a03c" opacity=".34"
+          letter-spacing="4">clf</text>
+  </g>
+</symbol>
+
+<!-- 3. 칸딘스키 : 글자를 도형으로 해체 -->
+<symbol id="ic-kandinsky" viewBox="0 0 256 256">
+  <clipPath id="sq3"><rect width="256" height="256" rx="57"/></clipPath>
+  <g clip-path="url(#sq3)">
+    <rect width="256" height="256" fill="#ece4cf"/>
+    <!-- c : 열린 원. l 에 닿으면 한글 '예' 로 읽히므로 사이를 벌린다 -->
+    <circle cx="76" cy="124" r="50" fill="none" stroke="#1c1c1c" stroke-width="9"
+            stroke-dasharray="255 60" transform="rotate(28 76 124)"/>
+    <circle cx="72" cy="120" r="29" fill="#2b5ea7" opacity=".55"/>
+    <circle cx="83" cy="130" r="15" fill="#d94a2b" opacity=".78"/>
+    <!-- l : 기운 수직선 -->
+    <line x1="142" y1="44" x2="150" y2="198" stroke="#1c1c1c" stroke-width="10"/>
+    <!-- f : 사선과 그것을 가로지르는 팔. 팔이 획을 관통해야 f 로 읽힌다 -->
+    <line x1="184" y1="36" x2="202" y2="202" stroke="#1c1c1c" stroke-width="10"/>
+    <line x1="164" y1="72" x2="228" y2="58" stroke="#1c1c1c" stroke-width="8"/>
+    <line x1="168" y1="126" x2="224" y2="114" stroke="#d94a2b" stroke-width="7"/>
+    <!-- 잔향 -->
+    <circle cx="202" cy="196" r="14" fill="#e0b52e"/>
+    <path d="M34,200 L62,168 L72,206 Z" fill="#d94a2b" opacity=".8"/>
+    <g stroke="#1c1c1c" stroke-width="2">
+      <line x1="28" y1="40" x2="88" y2="26"/>
+      <line x1="30" y1="50" x2="90" y2="36"/>
+      <line x1="32" y1="60" x2="92" y2="46"/>
+    </g>
+  </g>
+</symbol>
+
+<!-- 4. 마티스 : 가위로 오린 글자 -->
+<symbol id="ic-matisse" viewBox="0 0 256 256">
+  <clipPath id="sq4"><rect width="256" height="256" rx="57"/></clipPath>
+  <g clip-path="url(#sq4)">
+    <rect width="256" height="256" fill="#1746a0"/>
+    <!-- c : 산호색 초승달 -->
+    <path d="M96,60 C58,64 34,98 40,140 C46,178 76,198 102,190
+             C86,178 66,162 63,132 C60,102 74,84 98,76
+             C100,68 100,62 96,60 Z" fill="#ff6f5e"/>
+    <!-- l : 흰 해초 줄기 -->
+    <path d="M128,44 C116,84 142,104 126,140 C114,170 140,182 130,200"
+          fill="none" stroke="#f5f0e6" stroke-width="17" stroke-linecap="round"/>
+    <!-- f : 노란 줄기와 두 팔 -->
+    <path d="M180,52 C172,96 190,128 178,198"
+          fill="none" stroke="#ffd23f" stroke-width="17" stroke-linecap="round"/>
+    <path d="M158,86 C180,74 198,78 212,70"
+          fill="none" stroke="#ffd23f" stroke-width="13" stroke-linecap="round"/>
+    <path d="M162,130 C180,122 194,126 206,120"
+          fill="none" stroke="#ffd23f" stroke-width="11" stroke-linecap="round"/>
+    <!-- 초록 이파리, 산호 별 -->
+    <path d="M30,226 C46,196 74,192 92,206 C70,212 56,228 52,246 C42,242 32,236 30,226 Z"
+          fill="#2f9e68"/>
+    <path d="M214,26 L222,44 L242,46 L228,60 L234,80 L216,68 L200,80 L204,58 L190,46 L210,42 Z"
+          fill="#ff6f5e" opacity=".9"/>
+  </g>
+</symbol>
+
+<!-- 5. 리히텐슈타인 : 망점과 검은 윤곽 -->
+<symbol id="ic-pop" viewBox="0 0 256 256">
+  <clipPath id="sq5"><rect width="256" height="256" rx="57"/></clipPath>
+  <pattern id="dots5" width="17" height="17" patternUnits="userSpaceOnUse">
+    <rect width="17" height="17" fill="#fdfcf4"/>
+    <circle cx="8.5" cy="8.5" r="4.7" fill="#e33b2e"/>
+  </pattern>
+  <pattern id="dots5b" width="14" height="14" patternUnits="userSpaceOnUse">
+    <rect width="14" height="14" fill="#2360c4"/>
+    <circle cx="7" cy="7" r="2.6" fill="#fdfcf4" opacity=".85"/>
+  </pattern>
+  <g clip-path="url(#sq5)">
+    <rect width="256" height="256" fill="url(#dots5)"/>
+    <path d="M0,192 L256,150 L256,256 L0,256 Z" fill="url(#dots5b)"/>
+    <path d="M0,192 L256,150" stroke="#101010" stroke-width="7"/>
+    <text x="128" y="152" text-anchor="middle" transform="skewX(-6)"
+          font-family="-apple-system, 'Helvetica Neue', sans-serif"
+          font-size="118" font-weight="900" letter-spacing="-6"
+          fill="#ffe23c" stroke="#101010" stroke-width="10" paint-order="stroke">clf</text>
+  </g>
+</symbol>
+
+<!-- 6. 라일리 : 위상이 밀리는 자리가 글자 -->
+<symbol id="ic-riley" viewBox="0 0 256 256">
+  <clipPath id="sq6"><rect width="256" height="256" rx="57"/></clipPath>
+  <pattern id="st6" width="32" height="256" patternUnits="userSpaceOnUse">
+    <rect width="16" height="256" fill="#111111"/>
+    <rect x="16" width="16" height="256" fill="#f4f4f2"/>
+  </pattern>
+  <pattern id="st6b" width="32" height="256" patternUnits="userSpaceOnUse"
+           patternTransform="translate(16 0)">
+    <rect width="16" height="256" fill="#111111"/>
+    <rect x="16" width="16" height="256" fill="#f4f4f2"/>
+  </pattern>
+  <mask id="mtx6">
+    <rect width="256" height="256" fill="#000"/>
+    <text x="128" y="172" text-anchor="middle"
+          font-family="-apple-system, 'Helvetica Neue', sans-serif"
+          font-size="132" font-weight="800" letter-spacing="-4" fill="#fff">clf</text>
+  </mask>
+  <g clip-path="url(#sq6)">
+    <rect width="256" height="256" fill="url(#st6)"/>
+    <rect width="256" height="256" fill="url(#st6b)" mask="url(#mtx6)"/>
+  </g>
+</symbol>
+
+</defs>
+</svg>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#ic-mondrian"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#ic-mondrian"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>몬드리안 <small>신조형주의</small></h2>
+    <p>
+      격자가 곧 글자다. c 는 오른쪽이 열린 사각, l 은 기둥 하나, f 는 팔 둘.
+      빨강 파랑 노랑 블록은 잔여 등급색의 먼 친척이라 앱 정체성과도 닿는다.
+      32px 에서도 획이 굵어 형태가 살아남는다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#ic-rothko"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#ic-rothko"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>로스코 <small>색면추상</small></h2>
+    <p>
+      번지는 색면 둘, 아래층에 이름이 가라앉아 있다. 멀리서는 색으로,
+      가까이서는 글자로 읽힌다. 여섯 중 가장 조용해서 메뉴바 앱의 성격과
+      맞다. 대신 32px 에서는 글자가 사라지고 색만 남는다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#ic-kandinsky"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#ic-kandinsky"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>칸딘스키 <small>기하 추상</small></h2>
+    <p>
+      글자를 도형으로 해체했다. c 는 열린 원, l 은 기운 수직선, f 는 사선과
+      교차하는 팔. 원 안의 파랑과 빨강이 시선을 잡는다. 글자로 읽히기보다
+      구성으로 보이는 쪽이라 이름 전달력은 중간이다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#ic-matisse"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#ic-matisse"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>마티스 <small>컷아웃</small></h2>
+    <p>
+      가위로 오린 종이 글자. 파랑 바탕에 산호, 흰색, 노랑이 유기적으로
+      흐른다. 여섯 중 가장 따뜻하고, 곡선뿐이라 딱딱한 도구 아이콘들
+      사이에서 확실히 다르게 보인다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#ic-pop"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#ic-pop"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>리히텐슈타인 <small>팝아트</small></h2>
+    <p>
+      망점 바탕에 검은 윤곽, 노란 글자. 여섯 중 이름 전달력이 가장 세고
+      32px 에서도 글자가 또렷하다. 대신 가장 시끄러워서, 조용한 도구라는
+      앱의 결과는 긴장이 있다.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="icons">
+      <svg class="big" width="176" height="176"><use href="#ic-riley"/></svg>
+      <div class="smcol">
+        <svg class="sm" width="32" height="32"><use href="#ic-riley"/></svg>
+        <span>32px</span>
+      </div>
+    </div>
+    <h2>라일리 <small>옵아트</small></h2>
+    <p>
+      줄무늬의 위상이 반 칸 밀리는 자리가 글자다. 흑백뿐이라 라이트와 다크
+      어느 메뉴바 옆에서도 산다. 큰 크기에서 효과가 제일 좋고, 32px 에서는
+      무늬가 뭉개질 수 있어 줄 간격을 키운 파생판이 필요하다.
+    </p>
+  </div>
+
+</div>
+
+<div class="note">
+  <b>고른 뒤의 파이프라인.</b> 지금 아이콘은 <code>tools/make-icon.swift</code> 가
+  코드로 그리고 <code>make-app.sh</code> 가 iconset 으로 굽는다. 시안을 고르면
+  그 그림을 스위프트 코드로 옮기는 것이 첫 선택지고, 형태가 복잡한 시안
+  (마티스, 리히텐슈타인)은 SVG 를 1024px PNG 로 내보내
+  <code>iconutil</code> 에 직접 먹이는 쪽이 싸다. 어느 쪽이든 16px 와 32px 를
+  먼저 뽑아 메뉴바 관리 도구 목록에서 읽히는지 확인하고 시작한다.
+</div>
+
+</main>
+</body>
+</html>
