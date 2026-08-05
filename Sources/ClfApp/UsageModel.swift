@@ -156,7 +156,7 @@ final class UsageModel: ObservableObject {
         let name = org.name
         Task { [weak self] in
             do {
-                try await Task.detached(priority: .userInitiated) {
+                _ = try await Task.detached(priority: .userInitiated) {
                     try launcher.launch(name: name, uuid: uuid)
                 }.value
             } catch {
