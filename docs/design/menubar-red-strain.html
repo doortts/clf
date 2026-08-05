@@ -91,6 +91,8 @@ td.n { font-variant-numeric: tabular-nums; text-align: right; }
 .l .val.ample { color: #17993f; }
 .l .g { background: rgba(0,0,0,.16); }
 
+/* 적용됨: 밝은 쪽 빨강을 한 단 내렸다. 글자와 눈금이 같이 내려간다 */
+.newred.l .val.empty { color: #a3190f; }
 /* 제안 A: 글자만 연한 산호 / 연한 노랑 */
 .pa.d .val.empty { color: #ffab9e; }
 .pa.l .val.empty { color: #9e1b12; }
@@ -205,7 +207,42 @@ td.n { font-variant-numeric: tabular-nums; text-align: right; }
   4.39:1 로 10pt 글자 기준을 겨우 못 넘긴다.
 </p>
 
-<h2>4. 제안</h2>
+<h2>4. 적용한 것: 밝은 쪽 빨강을 한 단 내렸다</h2>
+<p>
+  위 조사는 어두운 벽지 쪽을 겨냥했는데, 흰 벽지에서 실측해 보니 <b>밝은 쪽에도
+  같은 종류의 구멍이 있었다</b>. 라이트 값들은 흰 팝오버 기준으로 고른 것인데
+  메뉴바는 벽지가 반투명하게 비쳐서 순백보다 어둡게 나온다. 실측한 흰 메뉴바가
+  L* 90.6 이고 그 위에서 <code>#e02017</code> 은 3.73:1 로 10pt 글자 기준을
+  못 넘겼다.
+</p>
+<p>
+  밝은 바탕에서는 <b>어두워지는 쪽이 대비를 번다</b>. 밝기를 L* 48 에서 35 로
+  내렸다. 채도는 68 로 남아서 여전히 빨강으로 읽힌다. 글자와 눈금이 같은
+  <code>dotColor</code> 를 쓰므로 둘이 함께 내려간다.
+</p>
+<pre><code>case .empty: return dark ? Color(hex: 0xff4a3d) : Color(hex: 0xa3190f)
+//                                                            ^^^^^^ 예전 0xe02017</code></pre>
+<table>
+  <tr><th>값</th><th class="n">L*</th><th class="n">C*</th><th class="n">순백</th>
+      <th class="n">실측 흰 메뉴바</th><th class="n">밝은 하늘 벽지</th><th class="n">베이지 벽지</th></tr>
+  <tr><td>예전 <code>#e02017</code></td><td class="n">48</td><td class="n">88</td>
+      <td class="n">4.79</td><td class="n warn">3.73</td><td class="n warn">2.76</td><td class="n">3.23</td></tr>
+  <tr><td>지금 <code>#a3190f</code></td><td class="n">35</td><td class="n">68</td>
+      <td class="n ok">7.77</td><td class="n ok">6.05</td><td class="n ok">4.48</td><td class="n ok">5.25</td></tr>
+</table>
+<div id="lightcompare" style="margin: 14px 0 0"></div>
+<p class="cap">
+  아래 남은 제안 셋은 어두운 벽지 쪽 이야기고 아직 적용하지 않았다.
+</p>
+<div class="note">
+  <b>다음으로 나쁜 것은 노랑이다.</b> 밝은 쪽 앰버 <code>#bf7f00</code> 은
+  실측 흰 메뉴바에서 2.62:1 로, 손대기 전의 빨강보다도 낮다. 무채색
+  <code>#86868c</code> 2.82, 초록 <code>#17993f</code> 2.89 도 같은 처지다.
+  셋 다 같은 원인(팝오버 기준으로 고른 값을 반투명 메뉴바에 쓴 것)이므로
+  같은 방향으로 내리면 된다. 이번에는 빨강만 손댔다.
+</div>
+
+<h2>5. 어두운 벽지 쪽 제안 (미적용)</h2>
 
 <h3>A안: 글자색과 눈금색을 가른다 (권장)</h3>
 <p>
@@ -325,6 +362,27 @@ for (const [name, bg, mode] of BACKS) {
     <div class="strip ${mode}" style="background:${bg};${vars}">${bar()}</div>
     <div><div class="strip ${mode} zoom" style="background:${bg};${vars}">${bar()}</div></div>`;
   host.appendChild(row);
+}
+
+// ---- 적용한 것: 밝은 바탕 둘에서 예전 값과 지금 값 ----------------------
+{
+  const host2 = document.getElementById('lightcompare');
+  const LIGHT = [['실측 흰 메뉴바', '#e3e3e3'], ['밝은 하늘 벽지', '#a8c8ea']];
+  for (const [name, bg] of LIGHT) {
+    const block = document.createElement('div');
+    block.style.margin = '0 0 16px';
+    block.innerHTML =
+      `<div class="lbl" style="margin:0 0 6px"><b style="display:inline">${name}</b>
+         <code>${bg}</code></div>
+       <div style="display:flex;gap:16px;flex-wrap:wrap">` +
+      [['예전 #e02017', ''], ['지금 #a3190f', 'newred']].map(([title, cls2]) =>
+        `<div><div class="hdr" style="margin:0 0 4px">${title}</div>
+           <div class="strip l ${cls2} zoom2" style="background:${bg};
+             --gEmpty:${cls2 ? '#a3190f' : '#e02017'};--gAmple:#17993f;--gFable:#0d5bb5">
+             ${bar()}</div></div>`
+      ).join('') + '</div>';
+    host2.appendChild(block);
+  }
 }
 
 // ---- 세 안 비교. 대비가 가장 나빴던 바탕 셋 -----------------------------

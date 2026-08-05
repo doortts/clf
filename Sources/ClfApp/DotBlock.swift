@@ -113,11 +113,19 @@ extension UsageBand {
     /// `.primary` 로 두면 안 된다. 흰 바탕에서 검정 1pt 점은 너무 세게 튀어서
     /// 정상 등급이 눈길을 끌지 않는다는 뜻을 잃는다.
     /// docs/design/band-normal-white-mockup.html A안
+    ///
+    /// **밝은 쪽 빨강은 한 단 어둡다.** 라이트 값들은 흰 팝오버 기준으로 고른
+    /// 것인데 메뉴바는 벽지가 반투명하게 비쳐서 순백보다 어둡게 나온다. 실측한
+    /// 흰 메뉴바가 L* 90.6 이고 그 위에서 예전 값(`#e02017`)은 대비가 3.73 뿐이라
+    /// 10pt 글자 기준(4.5)에 못 미쳤다. L* 을 48 에서 35 로 내리면 6.05 가 되고,
+    /// 밝은 하늘색 벽지처럼 흰색보다 어두운 바탕에서도 2.76 에서 4.48 로 오른다.
+    /// 채도는 68 로 남아서 여전히 빨강으로 읽힌다.
+    /// docs/design/menubar-red-strain.html
     func dotColor(dark: Bool) -> Color {
         switch self {
         case .ample:  return dark ? Color(hex: 0x3ce16b) : Color(hex: 0x17993f)
         case .low:    return dark ? Color(hex: 0xffe500) : Color(hex: 0xbf7f00)
-        case .empty:  return dark ? Color(hex: 0xff4a3d) : Color(hex: 0xe02017)
+        case .empty:  return dark ? Color(hex: 0xff4a3d) : Color(hex: 0xa3190f)
         case .normal: return dark ? Color(hex: 0xe5e5ea) : Color(hex: 0x86868c)
         }
     }
