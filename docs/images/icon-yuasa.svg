@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- clf 앱 아이콘 원본. 유아사 마사아키 오마주 시안.
+       docs/design/icon-anime-mockups.html 에서 골라낸 판이고
+       tools/make-icon.swift 가 같은 좌표를 코드로 그린다. -->
+  <clipPath id="sq"><rect width="256" height="256" rx="57"/></clipPath>
+  <g clip-path="url(#sq)">
+    <rect width="256" height="256" fill="#12a5a0"/>
+    <!-- 어긋난 마젠타 판이 먼저, 크림 획이 위에 -->
+    <g fill="none" stroke="#e0457b" stroke-width="18" stroke-linecap="round"
+       transform="translate(7,6)">
+      <path d="M92,84 C64,76 50,96 53,120 C56,147 76,158 95,149"/>
+      <path d="M122,58 C117,90 131,104 122,146"/>
+      <path d="M163,54 C156,92 170,110 161,150"/>
+      <path d="M147,90 C166,81 182,86 197,79"/>
+      <path d="M149,122 C166,115 180,120 191,115"/>
+    </g>
+    <g fill="none" stroke="#fdf3d8" stroke-linecap="round">
+      <path d="M92,84 C64,76 50,96 53,120 C56,147 76,158 95,149" stroke-width="18"/>
+      <path d="M122,58 C117,90 131,104 122,146" stroke-width="18"/>
+      <path d="M163,54 C156,92 170,110 161,150" stroke-width="18"/>
+      <path d="M147,90 C166,81 182,86 197,79" stroke-width="13"/>
+      <path d="M149,122 C166,115 180,120 191,115" stroke-width="11"/>
+    </g>
+    <!-- 소용돌이 해와 지렁이 선 -->
+    <path d="M206,52 C222,44 236,54 234,68 C232,80 220,86 210,80 C202,74 204,62 212,60
+             C218,58 224,64 220,69" fill="none" stroke="#ffd23f" stroke-width="5"
+          stroke-linecap="round"/>
+    <path d="M28,206 q10,-10 20,0 q10,10 20,0 q10,-10 20,0" fill="none"
+          stroke="#fdf3d8" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+    <path d="M30,228 q8,-8 16,0 q8,8 16,0" fill="none"
+          stroke="#241d3d" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+  </g>
+</svg>
