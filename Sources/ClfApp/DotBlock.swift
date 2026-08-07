@@ -136,35 +136,40 @@ extension UsageBand {
         self == .normal ? .secondary : fillColor
     }
 
-    /// 팝오버 알약. **정상 등급만 바탕에 따라 갈린다.**
+    /// 팝오버 알약. **어두운 쪽과 밝은 쪽이 서로 뒤집혀 있다.**
     ///
-    /// 어두운 팝오버에서는 연한 흰색이 회색보다 두 배 또렷하고(대비 11.9 대
-    /// 6.0), 밝은 팝오버에서는 반대로 흰 바탕에 묻힌다(1.5 대 2.9). 초록과
-    /// 민트가 이미 같은 이유로 두 벌인데 정상 등급만 한 벌로 버티고 있었다.
+    /// 어두운 팝오버는 알약이 밝고 숫자가 검정이다. 정상 등급만 여기서
+    /// 갈리는데, 연한 흰색이 회색보다 두 배 또렷하다(대비 11.9 대 6.0).
     /// docs/design/band-normal-white-mockup.html A안
+    ///
+    /// 밝은 팝오버는 알약이 어둡고 숫자가 흰색이다. 예전에는 이쪽도 알약이
+    /// 밝고 막대만 어두웠는데, 그러면 한 줄 안에서 밝은 알약이 어두운 막대를
+    /// 감싸는 모양이 되어 막대가 파인 홈처럼 읽혔다. 알약과 막대의 색을
+    /// 맞바꿔서 어두운 알약 위에 밝은 막대가 얹히게 한다.
+    /// docs/design/light-gauge-invert-mockup.html B안
     func gaugePill(dark: Bool) -> Color {
-        guard self == .normal else { return gaugeTint }
-        return dark ? Color(hex: 0xe5e5ea) : Color(hex: 0x86868c)
+        guard !dark else { return self == .normal ? Color(hex: 0xe5e5ea) : gaugeTint }
+        switch self {
+        case .ample:  return Color(hex: 0x12803a)
+        case .low:    return Color(hex: 0x8f6000)
+        case .empty:  return Color(hex: 0xa3190f)
+        case .normal: return Color(hex: 0x6e6e72)
+        }
     }
 
     /// 트랙을 채우는 막대 색. 라이트에서만 알약과 따로 간다.
     ///
-    /// 어두운 팝오버에서는 알약색 하나로 충분했다. 밝은 팝오버에서는 그
-    /// 색이 그대로 나오면서 정상 구간의 막대가 화면에서 제일 어두운
-    /// 덩어리가 되고, 여유 구간의 초록은 트랙과 대비가 1.3 밖에 안 되어
-    /// 어디까지 찼는지 안 보였다. 눈길을 끌지 않아야 할 쪽이 더 세게 튀는
-    /// 뒤집힘이다. 숫자가 앉는 알약은 그대로 두고 막대만 바꾼다.
-    /// docs/design/light-gauge-mockup.html B안
-    /// **값이 시안보다 한 단 어둡다.** 팝오버 창이 반투명이라 칠한 색이
-    /// 뒤쪽과 섞여 밝아진다. 실측으로 시안의 목표색(#12803a, #9a9aa0)이
-    /// 화면에 나오는 지점까지 내렸다.
+    /// 어두운 팝오버에서는 알약색 하나로 충분하다. 밝은 팝오버에서는 알약이
+    /// 어두워졌으므로 막대가 밝은 쪽을 맡는다. 주의와 소진은 시스템 색을
+    /// 그대로 쓰고 여유와 정상만 값을 박는다.
+    /// docs/design/light-gauge-invert-mockup.html B안
     func gaugeFill(dark: Bool) -> Color {
         // 정상 등급은 어두운 쪽에서도 값을 박는다. .secondary 는 재질 위에서
         // 흐려서 어디까지 찼는지 안 보였다
         guard !dark else { return self == .normal ? Color(hex: 0xe5e5ea) : gaugeTint }
         switch self {
-        case .ample:  return Color(hex: 0x005c1f)
-        case .normal: return Color(hex: 0x86868c)
+        case .ample:  return Color(hex: 0x34c759)
+        case .normal: return Color(hex: 0xaeaeb2)
         case .low, .empty: return gaugeTint
         }
     }
@@ -221,20 +226,20 @@ enum FableTint {
         dark ? Color(hex: 0x40c8ff) : Color(hex: 0x0d5bb5)
     }
 
-    /// 팝오버 알약. 눈금과 같은 파랑이다.
+    /// 팝오버 알약. 등급 색과 같은 규칙으로 밝기마다 뒤집힌다.
     ///
-    /// 숫자가 검정으로 얹히므로 밝은 쪽을 쓴다. 검은 글자 대비 10.92 로 초록
-    /// 알약(9.90)과 같은 수준이다.
-    static let pill = Color(hex: 0x40c8ff)
-
-    /// 알약 안 막대.
-    ///
-    /// 어두운 쪽은 알약과 같은 색이고 트랙에 덮인 검정 25% 가 둘을 가른다.
-    /// 밝은 쪽은 한 단 내려야 트랙과 갈린다. 대비 2.59 로 초록 짝(2.24)보다
-    /// 조금 낫다.
-    static func fill(dark: Bool) -> Color {
+    /// 어두운 쪽은 밝은 파랑에 검은 숫자다. 검은 글자 대비 10.92 로 초록
+    /// 알약(9.90)과 같은 수준이다. 밝은 쪽은 짙은 파랑에 흰 숫자이고
+    /// 대비는 9.0 이다. `UsageBand.gaugePill(dark:)` 과 같이 움직인다.
+    static func pill(dark: Bool) -> Color {
         dark ? Color(hex: 0x40c8ff) : Color(hex: 0x004a94)
     }
+
+    /// 알약 안 막대. 양쪽 다 밝은 파랑이다.
+    ///
+    /// 어두운 쪽은 알약과 같은 색이고 트랙에 덮인 검정 25% 가 둘을 가른다.
+    /// 밝은 쪽은 알약이 짙어졌으므로 이 색이 그 위에 얹힌다.
+    static let fill = Color(hex: 0x40c8ff)
 }
 
 extension Color {
@@ -426,15 +431,15 @@ struct UsageGauge: View {
         self.band = spend.band
     }
 
-    /// 숫자 색. 등급이 정한다. 모르는 값은 바탕도 흐릿해서 기본색이 낫다.
+    /// 숫자 색. 모르는 값은 바탕도 흐릿해서 기본색이 낫다.
     ///
-    /// 정상 등급은 알약이 바탕에 따라 갈리므로 글자도 같이 뒤집는다. 어두운
-    /// 팝오버에서는 연한 흰색 알약이라 검은 글자, 밝은 팝오버에서는 회색
-    /// 알약이라 흰 글자다.
+    /// **밝은 팝오버는 등급을 안 본다.** 알약이 네 등급 모두 어두워졌으므로
+    /// 흰 글자 하나로 통일한다. 줄마다 글자색이 갈리지 않는 것이 덤이다.
+    /// 어두운 팝오버는 알약이 밝아서 등급마다 갈린다.
     private var ink: Color {
         guard let band else { return .primary }
-        if band == .normal { return scheme == .dark ? .black : .white }
-        return band.prefersLightInk ? .white : .black
+        guard scheme == .dark else { return .white }
+        return band == .normal ? .black : (band.prefersLightInk ? .white : .black)
     }
 
     @Environment(\.colorScheme) private var scheme
@@ -442,11 +447,11 @@ struct UsageGauge: View {
     var body: some View {
         let fable = mint && band == .ample
         let tint = fable
-            ? FableTint.pill
+            ? FableTint.pill(dark: scheme == .dark)
             : band?.gaugePill(dark: scheme == .dark) ?? Color.secondary.opacity(0.5)
         // 알약은 tint 로 그대로 그리고 막대만 따로 칠한다
         let fillTint = fable
-            ? FableTint.fill(dark: scheme == .dark)
+            ? FableTint.fill
             : band?.gaugeFill(dark: scheme == .dark) ?? tint
         GeometryReader { geo in
             let trackWidth = max(0, geo.size.width - numberArea - trackInset)
@@ -459,8 +464,10 @@ struct UsageGauge: View {
                     Capsule().fill(tint)
                     // 바깥을 한 단 어둡게 깐다. 막대와 같은 색이면 막대가
                     // 배경에 잠겨 평평해 보인다. 색을 새로 정하지 않고
-                    // 검정을 덮으므로 등급색이 무엇이든 같은 만큼 내려간다
-                    Capsule().fill(Color.black.opacity(Metrics.gaugeTrackDim))
+                    // 검정을 덮으므로 등급색이 무엇이든 같은 만큼 내려간다.
+                    // 밝은 쪽은 알약이 이미 막대보다 어두우므로 덮지 않는다
+                    Capsule().fill(Color.black.opacity(
+                        scheme == .dark ? Metrics.gaugeTrackDim : 0))
                     Capsule()
                         .frame(width: trackWidth, height: trackHeight)
                         .offset(x: numberArea)
