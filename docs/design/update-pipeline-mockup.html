@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>clf 자동 업데이트 - 전체 과정 한 장</title>
+<style>
+:root {
+  --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b;
+  --canvas: #f5f5f7; --surface: #ffffff; --sep: #d2d2d7; --sep-soft: #e8e8ed;
+  --accent: #007aff; --accent-bg: #e8f1ff;
+  --green: #34c759; --green-bg: #e3f7e8; --green-fg: #1f7a37;
+  --amber-bg: #fdf3d7; --amber-fg: #8a6508;
+  --red: #ff3b30; --red-bg: #ffe8e6; --red-fg: #b3261c;
+  --violet-bg: #efe9fb; --violet-fg: #5b3fa8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 40px 28px 96px;
+  font: 14px/1.65 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  color: var(--ink); background: var(--canvas);
+}
+main { max-width: 1060px; margin: 0 auto; }
+h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -.02em; }
+h2 { font-size: 19px; margin: 44px 0 12px; padding-top: 18px; border-top: 1px solid var(--sep); }
+h3 { font-size: 15px; margin: 24px 0 8px; }
+p { margin: 0 0 12px; max-width: 78ch; }
+p.lede { color: var(--ink-2); font-size: 15px; }
+ul { margin: 0 0 12px; padding-left: 22px; max-width: 78ch; }
+li { margin: 3px 0; }
+code {
+  font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+  background: #f0f0f2; border: 1px solid var(--sep-soft); border-radius: 4px; padding: 1px 5px;
+}
+table {
+  border-collapse: collapse; width: 100%; margin: 0 0 14px; background: var(--surface);
+  border: 1px solid var(--sep-soft); border-radius: 8px; overflow: hidden; font-size: 13px;
+}
+th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--sep-soft); vertical-align: top; }
+th { background: #f7f7f8; font-weight: 600; font-size: 12px; color: var(--ink-2); }
+tr:last-child td { border-bottom: 0; }
+.note {
+  background: var(--surface); border: 1px solid var(--sep-soft);
+  border-left: 3px solid var(--accent); border-radius: 6px;
+  padding: 12px 15px; margin: 0 0 16px; max-width: 80ch;
+}
+.note.warn { border-left-color: var(--red); }
+.note.ok { border-left-color: var(--green); }
+.note b { font-weight: 600; }
+.tag {
+  display: inline-block; font-size: 11px; font-weight: 600; border-radius: 4px;
+  padding: 1px 7px; white-space: nowrap;
+}
+.tag.done { background: var(--green-bg); color: var(--green-fg); }
+.tag.todo { background: var(--accent-bg); color: #0059c1; }
+.tag.block { background: var(--red-bg); color: var(--red-fg); }
+
+/* ---- 파이프라인 ---- */
+.lane { margin: 0 0 10px; }
+.lane-hd {
+  display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px;
+}
+.lane-hd .who { font-size: 15px; font-weight: 700; }
+.lane-hd .where { font-size: 12px; color: var(--ink-2); }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.step {
+  flex: 1 1 150px; min-width: 150px; background: var(--surface);
+  border: 1px solid var(--sep-soft); border-radius: 9px; padding: 10px 11px;
+  position: relative;
+}
+.step .n {
+  font-size: 10px; font-weight: 700; color: var(--ink-3); letter-spacing: .04em;
+}
+.step .t { font-size: 12.5px; font-weight: 600; margin: 2px 0 4px; }
+.step .d { font-size: 11px; line-height: 1.45; color: var(--ink-2); }
+.step .d code { font-size: 10.5px; padding: 0 3px; }
+.step.gate { border-color: #f0b8b3; background: #fffaf9; }
+.step.gate .t { color: var(--red-fg); }
+.step.out { border-color: #b9d5f5; background: #f7fbff; }
+.arrow {
+  align-self: center; color: var(--ink-3); font-size: 15px; flex: 0 0 auto; padding: 0 1px;
+}
+.band {
+  border-radius: 10px; padding: 13px; margin: 0 0 12px;
+}
+.band.make { background: var(--violet-bg); }
+.band.store { background: var(--amber-bg); }
+.band.use { background: #e6f2fb; }
+.band .cap { font-size: 11.5px; color: var(--ink-2); margin: 9px 2px 0; }
+.band .cap b { color: var(--ink); }
+.down { text-align: center; color: var(--ink-3); font-size: 20px; margin: 2px 0 8px; }
+.store-box {
+  background: var(--surface); border: 1px dashed #d9b96a; border-radius: 9px;
+  padding: 12px 14px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+}
+.store-box .k { font-size: 12px; color: var(--ink-2); }
+.store-box .v { font: 12px ui-monospace, "SF Mono", Menlo, monospace; }
+.asset {
+  display: inline-block; background: #fff8e6; border: 1px solid #e8cf94;
+  border-radius: 5px; padding: 2px 8px; font: 11.5px ui-monospace, Menlo, monospace;
+}
+</style>
+</head>
+<body>
+<main>
+
+<h1>자동 업데이트 전체 과정 한 장</h1>
+<p class="lede">
+  만드는 쪽과 쓰는 쪽이 릴리즈 저장소 하나로 만난다. 아래 세 띠가 그 전부다.
+  보라는 내 기계에서 도는 일, 노랑은 저장소에 놓이는 것, 파랑은 사용자 기계에서
+  도는 일이다. 빨간 테두리 칸은 <b>통과 못 하면 거기서 멈추는 관문</b>이다.
+</p>
+
+<h2>1. 릴리즈 파일은 어디로 가나</h2>
+<p>
+  <b>지금 이 저장소에는 원격이 둘이다.</b> 어느 쪽인지 정하지 않으면 나머지
+  설계가 흔들린다. 확인한 사실부터.
+</p>
+<table>
+  <tr><th style="width:18%">원격</th><th style="width:32%">주소</th><th>확인한 것</th></tr>
+  <tr>
+    <td><code>origin</code></td>
+    <td><code>github.com/doortts/clf</code></td>
+    <td><b>비공개다.</b> 익명으로 릴리즈 API 를 부르면 <code>404</code> 다.
+        토큰을 넣어 물어보니 <code>private: true</code> 로 답한다.
+        지금까지 커밋과 README 는 여기로 올라갔다</td>
+  </tr>
+  <tr>
+    <td><code>oss</code></td>
+    <td><code>oss.navercorp.com/sw-chae/clf</code></td>
+    <td>사내 GHE. <code>gh</code> 가 이 호스트에 로그인되어 있다.
+        지금은 정기 점검 중이라 <code>403</code> 이 돌아와 상태를 못 봤다</td>
+  </tr>
+</table>
+<div class="note warn">
+  <b>설계 문서의 전제가 틀렸다.</b> 14 문서는 "github.com/doortts/clf 은 공개
+  저장소다. 익명으로 읽는다" 라고 적고, 그 전제로 yonagit 의 토큰 처리
+  코드를 버렸다. 그런데 저장소가 비공개라 <b>익명으로는 릴리즈를 못 읽는다</b>.
+  둘 중 어디로 가든 이 문제는 남는다. 사내 GHE 도 로그인 없이는 못 읽는다.
+</div>
+
+<h3>그래서 갈림길이 하나 생긴다</h3>
+<p>
+  clf 는 GitHub 클라이언트가 아니다. Claude 데스크톱 앱의 토큰을 읽을 뿐이고
+  <b>GitHub 자격증명은 하나도 갖고 있지 않다</b>. yonagit 은 이 문제가 없었다.
+  그 앱은 사용자가 이미 GHE 에 OAuth 로그인한 상태라 그 토큰을 그대로 빌려 쓴다.
+</p>
+<table>
+  <tr><th style="width:24%">길</th><th>무엇이 달라지나</th></tr>
+  <tr>
+    <td><b>A. 저장소를 공개로</b></td>
+    <td>설계가 지금 문서 그대로 선다. 익명 호출, 토큰 없음, 코드가 가장 적다.
+        소스를 공개해도 되는지가 유일한 질문이다</td>
+  </tr>
+  <tr>
+    <td><b>B. 릴리즈만 공개 저장소로</b></td>
+    <td>소스는 비공개로 두고 <code>doortts/clf-releases</code> 같은 빈 공개
+        저장소를 만들어 DMG 만 올린다. 코드 변화는 저장소 이름 한 줄뿐이다</td>
+  </tr>
+  <tr>
+    <td><b>C. 사내 GHE 에 올리고 토큰을 받는다</b></td>
+    <td>사용자가 설정에 개인 토큰을 붙여넣어야 한다. 메뉴바 도구에 그걸
+        시키는 것은 무겁고, 토큰 저장까지 우리 몫이 된다. yonagit 의
+        토큰 처리 코드를 되살려야 한다</td>
+  </tr>
+  <tr>
+    <td><b>D. 자동 업데이트를 접는다</b></td>
+    <td>새 버전이 있다는 것만 알리고 받는 것은 사람이 한다.
+        그러려면 확인 호출도 익명으로 되어야 해서 결국 A 나 B 가 필요하다</td>
+  </tr>
+</table>
+<div class="note">
+  <b>추천은 B 다.</b> 소스 공개 여부를 지금 정하지 않아도 되고, 앱 코드에서
+  바뀌는 것은 저장소 이름 하나다. 공증받은 DMG 는 그 자체로 서명이 검증되니
+  릴리즈 파일이 공개된 곳에 있어도 안전 문제는 새로 생기지 않는다.
+</div>
+
+<h2>2. 어떤 도구로 만드나</h2>
+<p>
+  <b>업데이트 프레임워크를 안 쓴다.</b> macOS 에서 이 자리의 표준은 Sparkle 인데,
+  Sparkle 이 대신 해 주는 어려운 일 둘을 우리는 이미 다른 방법으로 풀었다.
+</p>
+<table>
+  <tr><th style="width:26%">Sparkle 이 해 주는 것</th><th>우리가 이미 가진 것</th></tr>
+  <tr>
+    <td>appcast XML 로 새 버전 알리기</td>
+    <td>GitHub Releases API 한 번 호출. 별도 서버도 XML 도 없다</td>
+  </tr>
+  <tr>
+    <td>EdDSA 서명으로 내려받은 것 검증</td>
+    <td>애플 공증. <code>spctl -a</code> 가 검사한다. 우리가 키를 만들고
+        보관하고 돌릴 일이 없다</td>
+  </tr>
+  <tr>
+    <td>업데이트 UI 창</td>
+    <td>팝오버 설정 안 한 칸. Sparkle 의 창은 <code>LSUIElement</code>
+        메뉴바 앱과 결이 안 맞는다</td>
+  </tr>
+  <tr>
+    <td>번들 교체와 재실행</td>
+    <td>이것만 우리가 만든다. bash helper 20 줄</td>
+  </tr>
+</table>
+<p>
+  남는 것이 네 번째 하나라서 의존성을 하나 들이는 대신 직접 만든다.
+  이 저장소는 핵심 타겟에 의존성 0 을 지키는 곳이고 Xcode 프로젝트도 없다.
+  Sparkle 을 넣으면 그 두 가지가 같이 흔들린다.
+</p>
+<table>
+  <tr><th style="width:22%">쓰는 도구</th><th style="width:20%">어디서</th><th>무엇에</th></tr>
+  <tr><td><code>URLSession</code></td><td>앱 안</td><td>릴리즈 조회와 DMG 내려받기. 진행률과 무활동 타임아웃</td></tr>
+  <tr><td><code>hdiutil</code></td><td>앱 안</td><td>DMG 를 명시한 지점에 붙였다가 곧바로 뗀다</td></tr>
+  <tr><td><code>ditto</code></td><td>앱 안 / helper</td><td>서명과 확장 속성을 지키며 복사</td></tr>
+  <tr><td><code>spctl -a -vv</code></td><td>앱 안</td><td><b>관문.</b> 공증 티켓을 확인한다</td></tr>
+  <tr><td>bash helper</td><td>앱 밖</td><td>부모가 죽기를 기다렸다가 제자리 교체하고 다시 띄운다</td></tr>
+  <tr><td><code>codesign</code>, <code>notarytool</code>, <code>stapler</code></td><td>릴리즈 기계</td><td>서명, 공증, 티켓 붙이기</td></tr>
+  <tr><td><code>gh</code></td><td>릴리즈 기계</td><td>태그와 릴리즈 생성, DMG 올리기</td></tr>
+</table>
+
+<h2>3. 전체 과정</h2>
+
+<div class="band make">
+  <div class="lane-hd">
+    <span class="who">만드는 쪽</span>
+    <span class="where">내 기계에서 <code>scripts/release.sh v0.1.0 --publish</code> 한 번</span>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="n">1</div><div class="t">태그를 붙인다</div>
+      <div class="d"><code>git tag -a v0.1.0</code><br>
+        버전 문자열이 여기서 나온다. 태그가 없으면 커밋 해시가 박혀 비교할 수 없다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">2</div><div class="t">짓고 서명한다</div>
+      <div class="d"><code>swift build</code> + <code>codesign</code><br>
+        Developer ID, hardened runtime, 보안 타임스탬프. 인증서는 키체인에서 찾는다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step gate">
+      <div class="n">3 관문</div><div class="t">서명을 먼저 본다</div>
+      <div class="d"><code>codesign --verify --deep --strict</code><br>
+        공증 왕복은 몇 분이다. 여기서 걸릴 것을 거기까지 들고 가지 않는다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">4</div><div class="t">앱을 공증한다</div>
+      <div class="d">zip 으로 싸서 애플에 올리고 <code>status: Accepted</code> 를 확인한다.
+        이 zip 은 올리는 용도라 릴리즈에 안 붙는다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">5</div><div class="t">티켓을 앱에 박는다</div>
+      <div class="d"><code>stapler staple</code><br>
+        <b>DMG 를 만들기 전에</b> 한다. 그래야 꺼낸 앱에 티켓이 따라온다</div>
+    </div>
+  </div>
+  <div class="steps" style="margin-top:8px">
+    <div class="step">
+      <div class="n">6</div><div class="t">DMG 로 싼다</div>
+      <div class="d"><code>hdiutil create</code><br>
+        스테이플된 앱을 <code>ditto</code> 로 옮겨 담는다.
+        <code>/Applications</code> 링크는 안 넣는다. clf 는 <code>~/Applications</code> 에 산다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">7</div><div class="t">DMG 도 공증한다</div>
+      <div class="d">브라우저로 직접 받아 여는 사람이 이 티켓을 본다.
+        공증이 두 번인 이유가 이것이다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step gate">
+      <div class="n">8 관문</div><div class="t">내 자산을 스스로 평가</div>
+      <div class="d"><code>spctl -a -vv</code> 가
+        <code>Notarized Developer ID</code> 라고 답해야 한다.
+        <b>사용자 기계가 할 검사와 같은 것</b>이다. 여기서 안 되는 걸 올리면 거기서도 막힌다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step out">
+      <div class="n">9 <span class="tag block">되돌릴 수 없음</span></div>
+      <div class="t">내보낸다</div>
+      <div class="d">태그 push, <code>gh release create --repo ...</code><br>
+        여기까지가 <code>--publish</code> 를 줬을 때만 도는 구간이다</div>
+    </div>
+  </div>
+  <p class="cap">
+    <b>1 - 8 은 몇 번을 돌려도 안전하다.</b> 그래서 기본값이고, 되돌릴 수 없는 9 만
+    <code>--publish</code> 뒤에 둔다. 포장만 시험할 때는 <code>--skip-notarize</code> 로
+    공증을 건너뛰어 몇 초에 끝낸다.
+  </p>
+</div>
+
+<div class="down">v</div>
+
+<div class="band store">
+  <div class="lane-hd">
+    <span class="who">릴리즈 저장소</span>
+    <span class="where">두 기계가 만나는 유일한 곳</span>
+  </div>
+  <div class="store-box">
+    <div>
+      <div class="k">주소 (정해야 한다)</div>
+      <div class="v">github.com/doortts/clf<span style="color:var(--red-fg)"> - 지금은 비공개</span></div>
+    </div>
+    <div>
+      <div class="k">태그</div>
+      <div class="v">v0.1.0</div>
+    </div>
+    <div>
+      <div class="k">자산 하나</div>
+      <div><span class="asset">clf-v0.1.0.dmg</span></div>
+    </div>
+    <div>
+      <div class="k">릴리즈 노트</div>
+      <div class="v">--generate-notes</div>
+    </div>
+  </div>
+  <p class="cap">
+    앱이 보는 것은 <code>GET /repos/&lt;소유자&gt;/&lt;저장소&gt;/releases/latest</code> 하나다.
+    응답의 <code>tag_name</code> 으로 버전을 비교하고 <code>assets</code> 에서
+    <code>.dmg</code> 로 끝나는 것을 고른다. <b>이 호출이 익명으로 되느냐가
+    1절의 갈림길이다.</b>
+  </p>
+</div>
+
+<div class="down">v</div>
+
+<div class="band use">
+  <div class="lane-hd">
+    <span class="who">쓰는 쪽</span>
+    <span class="where">사용자 기계. 앱이 스스로 한다</span>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="n">1</div><div class="t">확인한다</div>
+      <div class="d">켤 때 한 번, 그 뒤 24시간마다.
+        <code>ETag</code> 를 보내 <code>304</code> 를 받으면 한도를 안 깎는다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">2</div><div class="t">버전을 견준다</div>
+      <div class="d">semver 비교. 자기 버전이 태그 꼴이 아니면 <b>개발 빌드</b>로 보고
+        아무것도 안 한다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">3</div><div class="t">점을 올린다</div>
+      <div class="d">팝오버 톱니에 점 하나. 숫자도 글자도 없다.
+        사용자가 설정을 열 이유를 만드는 것이 전부다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">4</div><div class="t">사람이 누른다</div>
+      <div class="d"><b>설치하고 다시 시작.</b> 여기까지 자동으로 오지 않는다.
+        앱을 갈아 끼우는 일은 사람이 시작한다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">5</div><div class="t">받는다</div>
+      <div class="d">캐시 폴더로 내려받는다. 30초 동안 새 조각이 안 오면
+        멈춘 것으로 보고 끊는다</div>
+    </div>
+  </div>
+  <div class="steps" style="margin-top:8px">
+    <div class="step">
+      <div class="n">6</div><div class="t">붙였다 뗀다</div>
+      <div class="d"><code>hdiutil attach</code> 로 우리가 정한 지점에 붙이고,
+        <code>.app</code> 을 꺼낸 뒤 곧바로 <code>detach</code>.
+        안 떼면 Finder 에 볼륨이 쌓인다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step gate">
+      <div class="n">7 관문</div><div class="t">공증을 확인한다</div>
+      <div class="d"><code>spctl -a -vv</code> 가
+        <code>Notarized Developer ID</code> 가 아니면 <b>여기서 멈춘다</b>.
+        helper 에게 번들을 덮어쓸 권한을 주기 전 마지막 검사다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">8</div><div class="t">helper 를 띄우고 죽는다</div>
+      <div class="d">자기를 지우면서 자기를 복사할 수 없다.
+        밖에서 기다릴 손을 detached 로 띄우고 <code>NSApp.terminate</code>.
+        로그 경로를 먼저 남긴다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step">
+      <div class="n">9</div><div class="t">제자리에서 바꾼다</div>
+      <div class="d">부모가 죽기를 기다린 뒤 <code>mv</code> 두 번.
+        번들이 없는 순간이 없다. 경로가 그대로라 로그인 항목 등록도 안 끊긴다</div>
+    </div>
+    <span class="arrow">-&gt;</span>
+    <div class="step out">
+      <div class="n">10</div><div class="t">다시 뜬다</div>
+      <div class="d"><code>open</code>. 새 버전이 메뉴바에 돌아온다.
+        성공하면 캐시를 지우고, <b>실패하면 남긴다</b></div>
+    </div>
+  </div>
+  <p class="cap">
+    <b>실패하면 두 개가 남는다.</b> 받아 둔 DMG 와
+    <code>~/Library/Logs/clf/update-&lt;tag&gt;.log</code>.
+    앞의 것은 사람이 직접 설치할 수 있는 가장 짧은 길이고, 뒤의 것은 helper 가
+    앱이 죽은 뒤에 돌기 때문에 남는 유일한 단서다.
+  </p>
+</div>
+
+<h2>4. 지금 어디까지 왔나</h2>
+<table>
+  <tr><th style="width:12%">단계</th><th style="width:16%">상태</th><th>무엇이</th></tr>
+  <tr>
+    <td>만드는 쪽 2 - 5</td><td><span class="tag done">확인함</span></td>
+    <td>Developer ID 서명, 앱 공증(<code>Accepted</code>), 스테이플,
+        <code>spctl</code> 이 <code>Notarized Developer ID</code>.
+        격리 딱지를 강제로 붙인 사본도 통과해서 <code>xattr</code> 을 버린 판단이 맞았다</td>
+  </tr>
+  <tr>
+    <td>만드는 쪽 1, 6 - 9</td><td><span class="tag block">막힘</span></td>
+    <td>notarytool 키체인 프로필이 사라져 다시 등록해야 한다.
+        그리고 릴리즈 저장소를 정해야 한다 (1절)</td>
+  </tr>
+  <tr>
+    <td>스크립트 손질</td><td><span class="tag todo">할 것</span></td>
+    <td><code>--publish</code> 분리, <code>--skip-notarize</code>,
+        <code>--repo</code> 명시, 인증서 자동 탐색</td>
+  </tr>
+  <tr>
+    <td>쓰는 쪽 1 - 2</td><td><span class="tag todo">할 것</span></td>
+    <td><code>UpdateCheck.swift</code>. 순수 함수라 릴리즈가 없어도 테스트로 잠근다.
+        <b>지금 바로 시작할 수 있는 유일한 칸</b>이다</td>
+  </tr>
+  <tr>
+    <td>쓰는 쪽 3 - 10</td><td><span class="tag todo">할 것</span></td>
+    <td>화면, 내려받기, 마운트, 관문, helper</td>
+  </tr>
+</table>
+<div class="note ok">
+  <b>순서.</b> 릴리즈 저장소를 정하는 것이 먼저다. 그게 정해져야 확인 호출에
+  토큰이 필요한지가 정해지고, 그 답이 <code>UpdateCheck.swift</code> 의 모양을
+  바꾼다. 저장소만 정해지면 notarytool 프로필 등록과 나머지는 순서대로 흐른다.
+</div>
+
+</main>
+</body>
+</html>
