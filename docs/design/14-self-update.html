@@ -38,6 +38,7 @@ h2 {
   border-top: 1px solid var(--sep); letter-spacing: -.01em;
 }
 h3 { font-size: 15px; margin: 26px 0 8px; }
+h4 { font-size: 13.5px; margin: 20px 0 6px; color: var(--ink); }
 p { margin: 0 0 12px; max-width: 76ch; }
 p.lede { color: var(--ink-2); font-size: 15px; max-width: 74ch; }
 ul, ol { margin: 0 0 12px; padding-left: 22px; max-width: 76ch; }
@@ -146,8 +147,14 @@ tr:last-child td { border-bottom: 0; }
   clf 는 지금 저장소를 받아 <code>./scripts/install-app.sh</code> 를 다시 돌려야
   새 버전이 된다. 쓰는 사람이 저장소를 계속 들여다볼 이유는 없으니 앱이 스스로
   릴리즈를 보고 갈아타게 만든다. 뼈대는
-  <code>flutterApps/github_client</code> 의 <code>lib/src/update/</code> 를 옮기되
-  clf 는 창이 없는 메뉴바 앱이고 배포처가 공개 저장소라서 절반은 덜어낸다.
+  <code>flutterApps/github_client</code> (yonagit) 의 <code>lib/src/update/</code> 를
+  옮기되 clf 는 창이 없는 메뉴바 앱이고 배포처가 공개 저장소라서 절반은 덜어낸다.
+</p>
+<p class="lede">
+  두 번 고쳤다. 처음에는 임시 서명에 zip 배포를 전제로 썼고, 공증과 DMG 로
+  가면서 한 번 고쳤다. 이번에는 yonagit 의 <b>릴리즈 스크립트</b>까지 읽고
+  고친다. 클라이언트 코드만 봤을 때는 안 보이던 것들이 거기 있었다.
+  잘 풀렸을 때의 순서가 아니라 <b>안 풀렸을 때 무엇이 남는가</b> 가 그것이다.
 </p>
 
 <h2>1. 가져올 것과 버릴 것</h2>
@@ -247,48 +254,80 @@ tr:last-child td { border-bottom: 0; }
 <ul>
   <li><code>--options runtime</code>: hardened runtime. 없으면 공증이 거절된다</li>
   <li><code>--timestamp</code>: 보안 타임스탬프. 인증서가 만료된 뒤에도 서명이 유효하다</li>
-  <li>인증서 이름은 스크립트에 박지 않고 <code>CLF_SIGN_IDENTITY</code> 환경 변수로 받는다.
-      값이 없으면 지금처럼 임시 서명으로 떨어져 로컬 빌드가 계속 돌아간다</li>
+  <li>인증서 이름은 스크립트에 박지 않는다. 키체인에서 찾고, 못 찾으면 임시
+      서명으로 떨어져 로컬 빌드가 계속 돌아간다. <code>CLF_SIGN_IDENTITY</code> 로
+      덮어쓸 수 있다</li>
 </ul>
+<pre><code># 인증서를 키체인에서 찾는다. 릴리즈 때마다 긴 이름을 손으로 넘길 이유가 없다
+IDENTITY="${CLF_SIGN_IDENTITY:-$(security find-identity -v -p codesigning \
+  | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.+)"$/\1/')}"</code></pre>
+<div class="note">
+  <b>clf 에는 없는 문제 하나.</b> yonagit 의 릴리즈 스크립트는 프레임워크와
+  standalone dylib 을 안에서 바깥으로 하나씩 다시 서명한다. Flutter 빌드가
+  마지막 단계에서 실행 파일을 타임스탬프 없이 다시 서명해 버려서 공증이
+  거절되기 때문이다. clf 는 실행 파일 하나짜리 번들이라 그 단계가 통째로
+  없다. 중첩 서명이 없다는 것이 이 앱의 이점이고, 나중에 의존성이 번들 안에
+  들어오면 그때 같은 처리가 필요해진다.
+</div>
 
-<h3>릴리즈 절차</h3>
+<h3>릴리즈 절차. 짓는 것과 내보내는 것을 가른다</h3>
 <p>
   <b>공증은 앱과 DMG 두 번 받는다.</b> DMG 만 스테이플하면 사용자가 앱을 꺼낸
   뒤에는 티켓이 따라오지 않는다. 우리 업데이트 경로는 DMG 에서 <code>.app</code> 을
   꺼내 쓰므로 앱에 붙은 티켓이 정작 중요한 쪽이다.
 </p>
-<pre><code># scripts/release.sh v0.4.0
-set -euo pipefail
-TAG=$1
-
-git tag "$TAG"
-CLF_SIGN_IDENTITY="$CLF_SIGN_IDENTITY" ./scripts/make-app.sh release
-
-# 1. 앱 공증. notarytool 은 폴더를 안 받으므로 zip 으로 싸서 올린다.
+<p>
+  <b>내보내기는 별도 플래그다.</b> 처음 설계는 태그부터 GitHub 릴리즈까지
+  한 명령에 묶었는데, 실제로 공증만 해 보려니 그 명령을 쓸 수가 없었다.
+  공증은 되돌릴 수 있고 태그 push 와 릴리즈 생성은 아니다. 되돌릴 수 없는
+  쪽만 <code>--publish</code> 뒤로 옮긴다. yonagit 이 같은 모양이고, 그쪽은
+  <code>--skip-notarize</code> 까지 둬서 포장 경로만 몇 초에 시험한다.
+</p>
+<pre><code>scripts/release.sh v0.1.0                   # 짓고 공증하고 스테이플까지
+scripts/release.sh v0.1.0 --publish         # 거기에 태그 push + 릴리즈 생성
+scripts/release.sh v0.1.0 --skip-notarize   # 공증 없이 포장만. 몇 초</code></pre>
+<pre><code># 1. 앱 공증. notarytool 은 폴더를 안 받으므로 zip 으로 싸서 올린다.
 #    올리는 용도일 뿐이고 이 zip 은 릴리즈에 안 붙는다
 ditto -c -k --keepParent .build/clf.app .build/notarize.zip
-xcrun notarytool submit .build/notarize.zip \
-      --keychain-profile clf-notary --wait
+
+# 보내기 전에 서명을 먼저 본다. 공증은 왕복에 몇 분이 걸리는데
+# 여기서 걸릴 문제를 거기까지 들고 갈 이유가 없다
+codesign --verify --deep --strict --verbose=2 .build/clf.app
+
+OUT=$(xcrun notarytool submit .build/notarize.zip \
+        --keychain-profile "$PROFILE" --wait 2>&1) || true
+# notarytool 은 Invalid 로 끝나도 종료 코드가 0 일 수 있다. 출력을 본다
+grep -q "status: Accepted" &lt;&lt;&lt;"$OUT" || { xcrun notarytool log ...; exit 1; }
 xcrun stapler staple .build/clf.app
 
 # 2. 스테이플한 앱으로 DMG 를 만든다. /Applications 심볼릭 링크는 넣지 않는다.
 #    clf 는 ~/Applications 에 사는 앱이고 창에 뜬 링크가 그쪽으로 유도한다
-DMG=".build/clf-$TAG.dmg"
-rm -rf .build/dmgroot && mkdir -p .build/dmgroot
-cp -R .build/clf.app .build/dmgroot/
-hdiutil create -volname "clf $TAG" -srcfolder .build/dmgroot \
-        -ov -format UDZO "$DMG"
+STAGE=$(mktemp -d); trap 'rm -rf "$STAGE"' EXIT
+ditto .build/clf.app "$STAGE/clf.app"      # cp -R 은 서명과 심볼릭 링크를 흘린다
+hdiutil create -volname "clf $TAG" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
 
 # 3. DMG 도 공증한다. 브라우저로 직접 받아 여는 사람이 이 티켓을 본다
-xcrun notarytool submit "$DMG" --keychain-profile clf-notary --wait
-xcrun stapler staple "$DMG"
+#    (같은 제출 함수를 다시 쓴다)
 
-gh release create "$TAG" "$DMG" --generate-notes</code></pre>
+# 4. --publish 일 때만. 여기서부터 되돌릴 수 없다
+git tag -a "$TAG" -m "clf $TAG"            # 주석 태그. 누가 언제 냈는지 남는다
+git push origin main "$TAG"
+gh release create "$TAG" --repo github.com/doortts/clf \
+   --title "clf $TAG" --generate-notes "$DMG"</code></pre>
 <div class="note">
   <code>ditto -c -k --keepParent</code> 를 쓰는 이유는 <code>zip</code> 명령이
   심볼릭 링크와 확장 속성을 흘려서 서명이 깨지기 때문이다. 공증 업로드용
   zip 에서 서명이 깨지면 거절 사유가 <b>서명 없음</b> 으로 나와서 원인을 찾는 데
-  오래 걸린다.
+  오래 걸린다. 같은 이유로 DMG staging 도 <code>cp -R</code> 이 아니라
+  <code>ditto</code> 다.
+</div>
+<div class="note warn">
+  <b><code>--repo</code> 를 반드시 적는다.</b> 첫 릴리즈를 시도하다 걸렸다.
+  이 기계의 <code>gh</code> 는 사내 GHE 호스트에만 로그인되어 있어서
+  <code>github.com</code> 은 인증된 호스트 목록에 아예 없었다. <code>--repo</code>
+  없이 부르면 <code>gh</code> 가 어느 호스트로 갈지 스스로 고르는데, 그 판단이
+  우리가 원한 곳과 다를 수 있다. 저장소를 명시하면 그 애매함이 사라진다.
+  yonagit 도 GHE 를 명시한다.
 </div>
 
 <h2>3. 언제 확인하나</h2>
@@ -476,15 +515,18 @@ gh release create "$TAG" "$DMG" --generate-notes</code></pre>
         <span class="cb"></span>
         <span>새 버전을 하루에 한 번 확인</span>
       </div>
-      <p class="hint ind err">받지 못했습니다. 네트워크를 확인하세요 (408)</p>
+      <p class="hint ind err">DMG 마운트 실패. 받은 파일이 온전하지 않습니다</p>
       <div class="row" style="margin-top:7px">
         <span class="btn">다시 시도</span>
+        <span class="btn link">받은 파일 열기</span>
         <span class="btn link">직접 받기</span>
       </div>
     </div>
     <p class="cap">
-      <b>직접 받기</b> 가 마지막 문이다. 릴리즈 페이지를 열어 주고 그 뒤는
-      사람이 한다. 자동 설치가 막히는 경우에 앱 안에서 길이 끊기면 안 된다
+      <b>어디서 멈췄는지</b> 를 적는다. <code>error</code> 한 마디로 뭉뚱그리면
+      사용자가 할 수 있는 일이 없다. 문은 둘이다. <b>받은 파일 열기</b> 는 이미
+      손에 있는 DMG 를 Finder 로 띄우고, <b>직접 받기</b> 는 릴리즈 페이지를
+      연다. 자동 설치가 막혀도 앱 안에서 길이 끊기면 안 된다
     </p>
   </div>
 </div>
@@ -510,6 +552,7 @@ gh release create "$TAG" "$DMG" --generate-notes</code></pre>
         |
 2. 자산 DMG 를 URLSession 으로 받는다
    ~/Library/Caches/clf/update/v0.5.0/clf-v0.5.0.dmg
+   30초 동안 새 조각이 안 오면 끊는다
         |
 3. hdiutil attach -nobrowse -readonly
            -mountpoint .../v0.5.0/.mount
@@ -523,6 +566,7 @@ gh release create "$TAG" "$DMG" --generate-notes</code></pre>
    아니면 여기서 멈춘다
         |
 6. helper 스크립트를 임시 폴더에 쓰고
+   로그 경로를 남긴 뒤
    Process detached 로 띄운다  ------------>  7. 부모가 죽기를 기다린다
         |                                       (0.5초씩 최대 15초)
 8. NSApp.terminate                                    |
@@ -588,6 +632,59 @@ gh release create "$TAG" "$DMG" --generate-notes</code></pre>
   <code>source=Notarized Developer ID</code> 가 아니면 멈춘다.
 </div>
 
+<h3>yonagit 을 읽고 더한 것</h3>
+<p>
+  위 순서는 잘 풀렸을 때의 이야기다. yonagit 의 업데이트 코드에서 정작 배울
+  것은 <b>안 풀렸을 때 무엇이 남느냐</b> 쪽이었다. 네 가지를 가져온다.
+</p>
+
+<h4>멈춘 다운로드와 끝나지 않는 것을 구별한다</h4>
+<p>
+  yonagit 은 응답 스트림에 30초 <b>무활동</b> 타임아웃을 건다. 요청 전체에 거는
+  타임아웃과 다르다. 사내망이나 프록시가 연결은 열어 둔 채 조각을 안 보내면
+  전체 타임아웃만으로는 영영 기다리게 되고, 화면에는 진행 막대가 멈춘 채로
+  남는다. 마지막 조각이 온 뒤 30초가 지나면 끊고 error 로 간다.
+  마운트와 복사에도 각각 60초를 건다. <code>hdiutil</code> 이 걸리면 사용자는
+  이유를 알 길이 없다.
+</p>
+
+<h4>helper 는 로그를 남긴다</h4>
+<p>
+  <b>이것이 가장 큰 배움이다.</b> helper 는 앱이 죽은 뒤에 돈다. 그 시점에는
+  화면도 없고 우리 프로세스도 없다. 교체가 실패하면 사용자에게는 <b>앱이
+  다시 안 뜬다</b> 는 사실만 남고 왜인지 알 방법이 없다. yonagit 은 스크립트
+  첫 줄에서 출력을 통째로 파일에 돌린다.
+</p>
+<pre><code>#!/bin/bash
+set -e
+exec &gt;&gt;"$LOG" 2&gt;&1
+echo "[$(date)] installer start"</code></pre>
+<p>
+  그리고 앱은 helper 를 띄우기 <b>전에</b> 그 경로를 로그로 남긴다. 다시 뜬 앱이
+  이전 교체가 실패한 것을 발견하면 설정에 그 경로를 보여준다. 로그는 임시
+  폴더가 아니라 <code>~/Library/Logs/clf/update-&lt;tag&gt;.log</code> 에 둔다.
+  임시 폴더는 재부팅에 지워지고, 교체 실패는 재부팅으로 조사하는 종류의 일이다.
+</p>
+
+<h4>실패해도 받은 것은 지우지 않는다</h4>
+<p>
+  성공하면 캐시 폴더를 지운다. <b>실패하면 남긴다.</b> 4MB 를 다시 받는 것이
+  아까워서가 아니라, 자동 설치가 막힌 사람에게 <b>이미 손에 있는 DMG</b> 가
+  가장 짧은 탈출구이기 때문이다. error 상태에 <code>받은 파일 열기</code> 를 둔다.
+  누르면 Finder 가 그 DMG 를 띄우고, 그다음은 사람이 끌어다 놓으면 끝난다.
+  yonagit 은 이 자리를 아예 기본 동선으로 쓴다. 우리는 자동 교체를 기본으로
+  두되 그 문을 닫지는 않는다.
+</p>
+
+<h4>단계마다 사람이 읽을 이유를 남긴다</h4>
+<p>
+  yonagit 의 DMG staging 은 실패할 수 있는 자리마다 문장을 하나씩 남긴다.
+  <code>DMG 마운트 실패 (exit 1)</code>, <code>DMG 안에 앱이 없습니다</code>,
+  <code>.app 복사 실패</code>. 그래야 스낵바에 그대로 띄울 수 있다. 우리도
+  <code>error</code> 하나로 뭉뚱그리지 않고 어디서 멈췄는지 문장으로 남긴다.
+  설정 칸은 좁으니 한 줄로 자르고, 전문은 로그 파일에 있다.
+</p>
+
 <h2>6. 위험과 대비</h2>
 <table>
   <tr><th style="width:26%">위험</th><th>왜 생기나</th><th>대비</th></tr>
@@ -625,6 +722,23 @@ gh release create "$TAG" "$DMG" --generate-notes</code></pre>
         15초 안에 안 죽으면 교체를 포기하고 로그만 남긴다</td>
   </tr>
   <tr>
+    <td>교체가 실패했는데 이유를 아무도 모른다</td>
+    <td>helper 는 앱이 죽은 뒤에 돈다. 화면도 없고 우리 프로세스도 없다.
+        실패하면 사용자에게는 앱이 다시 안 뜬다는 사실만 남는다</td>
+    <td>helper 가 출력을 통째로
+        <code>~/Library/Logs/clf/update-&lt;tag&gt;.log</code> 로 돌린다.
+        다시 뜬 앱이 이전 교체의 흔적을 발견하면 설정에 그 경로를 보여준다.
+        yonagit 에서 가져온 것 중 가장 값이 나가는 한 줄이다</td>
+  </tr>
+  <tr>
+    <td>설치가 두 번 돈다</td>
+    <td>이미 받아 둔 상태에서 단추를 다시 누르면 내려받기 단계를 건너뛰는데,
+        그 단계 끝에 붙어 있던 후속 동작이 한 번 더 불릴 수 있다.
+        yonagit 은 이것을 <code>wasAlreadyReady</code> 로 막는다</td>
+    <td>상태 기계가 막는다. <code>downloading</code> 과 <code>ready</code>
+        에서는 설치 단추가 다시 눌리지 않고, helper 는 한 번만 띄운다</td>
+  </tr>
+  <tr>
     <td>같은 릴리즈를 계속 권한다</td>
     <td>사용자가 지금은 안 바꾸고 싶은데 열 때마다 점이 뜬다</td>
     <td>점은 <b>확인한 뒤 새 버전이 있을 때</b> 뜨고 그 태그의 설정 칸을 한 번
@@ -652,10 +766,12 @@ public var seenReleaseTag: String?  = nil     // 점을 지운 태그</code></pr
   UpdateInstaller.swift helper 스크립트 본문을 문자열로 만든다
                         경로를 넣어 쉘 인용까지 여기서 끝낸다
                         spctl 출력을 읽어 accepted 인지 판정하는 함수도 여기
+                        로그 경로를 정하는 것도 여기 (테스트가 잠근다)
 
 Sources/ClfApp/
   UpdateModel.swift     @MainActor. 상태 기계, URLSession 호출, 진행률
                         DMG 마운트와 detach 도 여기서 부른다
+                        단계마다 실패 이유를 문장으로 남긴다
   Views.swift           SettingsPane 에 업데이트 칸 한 덩이
 </code></pre>
 <p>
@@ -680,6 +796,8 @@ Sources/ClfApp/
   <li>자산이 하나도 안 맞으면 nil 이고 error 로 가지 않는다.
       릴리즈 페이지로 보내면 된다</li>
   <li>helper 스크립트에 공백과 인용부호가 든 경로를 넣어도 문법이 깨지지 않는다</li>
+  <li>helper 스크립트가 로그 경로로 출력을 돌리는 줄을 담고 있다.
+      그 줄이 빠지면 실패했을 때 아무것도 안 남으므로 테스트가 잠근다</li>
   <li>spctl 판정: <code>source=Notarized Developer ID</code> 만 통과한다.
       <code>source=Developer ID</code> (공증 없음),
       <code>rejected</code>, 빈 출력은 모두 막는다</li>
@@ -695,17 +813,29 @@ Sources/ClfApp/
 </p>
 
 <h2>10. 단계</h2>
+<div class="note">
+  <b>1단계는 절반 끝났다.</b> <code>make-app.sh</code> 의 Developer ID 서명과
+  <code>release.sh</code> 는 있고, 앱 공증도 한 번 통과시켜 확인했다
+  (<code>status: Accepted</code>, 스테이플, <code>spctl</code> 이
+  <code>source=Notarized Developer ID</code>). 격리 딱지를 강제로 붙인 사본도
+  통과해서, <code>xattr</code> 을 버린 판단이 맞았다는 것까지 봤다.
+  남은 것은 첫 태그 릴리즈고 notarytool 키체인 프로필이 사라진 상태라
+  다시 등록해야 한다.
+</div>
 <ol>
   <li><b>서명과 공증 파이프라인.</b> <code>make-app.sh</code> 에 Developer ID
       서명과 hardened runtime, <code>scripts/release.sh</code> 에 notarytool 과
-      stapler. 여기까지 끝내고 <code>v0.4.0</code> 을 첫 릴리즈로 올린다.
-      비교 대상이 없으면 아래 전부가 검증되지 않는다</li>
+      stapler. 여기에 <code>--publish</code> 와 <code>--skip-notarize</code> 를
+      더하고 <code>--repo</code> 를 명시한다. 그다음 <code>v0.1.0</code> 을 첫
+      릴리즈로 올린다. 비교 대상이 없으면 아래 전부가 검증되지 않는다</li>
   <li><b>확인까지.</b> <code>UpdateCheck.swift</code> 와 테스트, 설정에
       <b>지금 확인</b> 단추와 결과 한 줄. 여기까지만으로도 사용자는 릴리즈
       페이지에서 DMG 를 받아 갈 수 있다</li>
   <li><b>자동 확인.</b> 24시간 규칙, ETag, 톱니의 점</li>
   <li><b>제자리 교체.</b> DMG 마운트와 spctl 평가, helper 스크립트,
-      <b>설치하고 다시 시작</b>. 쓰기 권한과 평가에서 막히는 경로를 먼저 만든다</li>
+      <b>설치하고 다시 시작</b>. 쓰기 권한과 평가에서 막히는 경로를 먼저 만든다.
+      로그 파일과 <b>받은 파일 열기</b> 도 이때 같이 넣는다. 실패했을 때
+      아무것도 안 남는 상태로 4단계를 내보내면 안 된다</li>
 </ol>
 <p>
   1단계가 제일 무겁고 나머지의 전제다. 공증 없이 2단계부터 손대면 사용자가
