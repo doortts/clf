@@ -99,8 +99,10 @@ clfctl desktop usage --json     기계가 읽을 형태로
 clfctl desktop usage --active   활성 계정만
 ```
 
-`scripts/desktop-usage.py` 는 먼저 만든 원형이다. 두 구현이 같은 숫자를 내는 것을
-확인했으므로 Swift 쪽을 정본으로 삼고, Python 은 대조용으로 남긴다.
+`scripts/desktop-usage.py` 가 먼저 만든 원형이었다. 두 구현이 같은 숫자를 내는
+것을 확인한 뒤 한동안 대조용으로 두었는데, **지금은 지웠다.** Swift 쪽에 세션
+폴백과 별도 창 토큰 병합이 들어가면서 원형이 뒤처졌고, 틀린 답을 내는 대조본은
+대조가 아니다.
 
 ### 무엇을 테스트로 잠갔나
 

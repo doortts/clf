@@ -62,12 +62,14 @@ IV   = 0x20 * 16
 복호화한 뒤 같은 절차로 다시 암호화하니 **원본과 바이트 단위로 일치**했다.
 쓰기가 가능하다는 증명이다.
 
-`scripts/desktop-org.py` 가 이 절차를 구현한다.
+`scripts/desktop-org.py` 가 이 절차를 구현했다. **지금은 지웠다.** 읽기 쪽
+(`status`, `list`)은 `clfctl desktop orgs` 가 하고, 쓰기 쪽(`switch`)은 앱을
+죽였다 켜야 해서 이 앱이 안 쓰기로 한 방식이다. 아래 절차만 기록으로 남긴다.
 
 ```
-desktop-org.py status            지금 활성 계정
-desktop-org.py list              로그인된 계정 목록
-desktop-org.py switch <이름>      종료 -> 쿠키 쓰기 -> 실행
+활성 계정 읽기   lastActiveOrg 쿠키를 복호화한다
+계정 목록       sessionKey 로 claude.ai/api/organizations
+계정 바꾸기      앱 종료 -> 쿠키에 uuid 쓰기 -> 앱 실행
 ```
 
 ### 앱이 도는 중에 쓰면 어떻게 되나
@@ -174,10 +176,6 @@ fuse 가 막는 항목이 아닌데도 그렇다. Electron 이 패키지 앱에�
 | 계정 바꾸기 | **된다.** 종료 -> 쿠키 쓰기 -> 실행 |
 | 재시작 없이 바꾸기 | 좌표 클릭뿐. CDP 는 막혔다 |
 
-```bash
-scripts/desktop-org.py switch NAVER_TEAM_52
-```
-
 ### 대가는 재시작 하나뿐이다
 
 열려 있던 대화 창이 닫힌다. 그것 말고는 없다.
@@ -228,8 +226,8 @@ scripts/desktop-org.py switch NAVER_TEAM_52
 지금 그것을 알 방법이 없다는 것이 문제의 본질이다. 앱은 활성 계정 하나의
 사용량만 보여주고, 나머지 계정이 얼마나 남았는지는 일일이 전환해 봐야 안다.
 
-`scripts/desktop-org.py switch` 는 남겨 둔다. 사용자가 명시적으로 부를 때만
-동작하는 도구지 자동 전환의 부품이 아니다.
+전환 도구도 안 남긴다. 계정마다 별도 창을 띄우는 쪽([13 문서](13-multi-instance.md))이
+같은 일을 재시작 없이 하므로, 앱을 죽였다 켜는 도구를 둘 이유가 없어졌다.
 
 ### 터미널 CLI 는 다르다
 
