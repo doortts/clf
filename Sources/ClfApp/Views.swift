@@ -104,14 +104,9 @@ struct OrgCard: View {
                 // 읽힌다. 점을 뺀 8pt 와 간격 8pt 가 이름으로 돌아간다.
                 // docs/design/primary-badge-mockup.html 1안
                 if slot == .primary { badge(slot.label, tint: .secondary) }
-                // 주의 구간만 배지를 켠다.
-                //
-                // **소진은 빼 뒀다.** 다 쓴 창은 게이지가 빨갛고 숫자가 100% 라
-                // 이미 세 군데서 말하고 있다. 배지까지 붙이면 같은 말이 넷이 된다.
-                // 주의는 아직 색만 노랑이라 한 번 더 말할 값이 있다
-                if org.binding?.band == .low {
-                    badge(UsageBand.low.label, tint: UsageBand.low.fillColor)
-                }
+                // 등급 배지는 없다. 주의든 소진이든 게이지 색과 숫자가 이미
+                // 말한다. 이름 줄에는 게이지가 못 말하는 것만 남긴다.
+                // 종류(플랜)와 기본 창 여부와 창이 떠 있는지다
                 // 창이 떠 있다는 상태. 동작은 오른쪽 단추가 맡는다
                 if let state = slot.badgeLabel { runningDot(state) }
                 Spacer(minLength: 8)
