@@ -93,6 +93,8 @@ struct HandoffView: View {
             box(Color.red) {
                 wrapped(failure)
             }
+        } else if let note = model.shareNote {
+            box(Color.green) { wrapped(note) }
         } else if let advice = model.advice {
             box(Color.green) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -149,7 +151,16 @@ struct HandoffView: View {
     private var footer: some View {
         HStack(spacing: 8) {
             Spacer()
-            Button(model.advice == nil ? "취소" : "닫기") { NSApp.keyWindow?.close() }
+            Button(model.advice == nil && model.shareNote == nil ? "취소" : "닫기") {
+                NSApp.keyWindow?.close()
+            }
+            // 끊기는 이미 공유해 둔 것을 골랐을 때만 나온다. 늘 두면 단추가
+            // 넷이고 대개는 쓸 일이 없다
+            if model.canUnshare {
+                Button("공유 끊기") { model.unshare() }
+            }
+            Button("양쪽에 두기") { model.share() }
+                .disabled(!model.canMove)
             Button(model.picked.isEmpty ? "옮기기" : "\(model.picked.count)개 옮기기") {
                 model.move()
             }

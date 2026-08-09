@@ -292,6 +292,27 @@ public struct HandoffPlan: Sendable, Equatable {
     }
 }
 
+/// 양쪽에 두고 나서 하는 말.
+///
+/// 옮기기와 달리 보낸 쪽이 아무것도 잃지 않아서 재시작 권고가 필요 없다.
+/// 대신 **동시에 쓰면 안 된다는 것**을 여기서 한 번 말해 둔다. 공유의 전제라서
+/// 모르고 쓰면 기록이 섞인다. docs/design/14-shared-session.md
+public enum ShareNote {
+    public static func after(shared: Int, target: (name: String, slot: InstanceSlot)) -> String {
+        var say = "\(shared)개를 양쪽에 두었습니다. "
+        switch target.slot {
+        case .primary:  say += "\(target.name) 기본 창을 재시작하면 목록에 나타납니다. "
+        case .running:  say += "\(target.name) 창은 아래 단추로 다시 띄워 주세요. "
+        case .opening, .none, .unavailable: say += "\(target.name) 창을 띄우면 보입니다. "
+        }
+        return say + "두 창에서 같은 대화를 동시에 이어가지는 마세요."
+    }
+
+    public static func afterUnshare(_ count: Int, from name: String) -> String {
+        "\(count)개의 공유를 끊었습니다. \(name) 목록에서는 재시작 뒤에 빠집니다."
+    }
+}
+
 /// 옮긴 뒤에 남는 일.
 ///
 /// 데스크톱 앱은 세션 목록을 메모리에 들고 있다. 레코드 파일만 바꾸면 화면은

@@ -35,6 +35,10 @@ final class HandoffModel: ObservableObject {
     @Published private(set) var advice: HandoffAdvice?
     @Published private(set) var failure: String?
     @Published private(set) var working = false
+    /// 양쪽에 두거나 공유를 끊은 결과. 옮기기 안내와 뜻이 달라 따로 둔다.
+    @Published private(set) var shareNote: String?
+    /// 일부러 공유해 둔 대화. 공유 끊기 단추를 여기 있는 것에만 연다.
+    @Published private(set) var sharedIDs: Set<String> = []
 
     private let primary: URL
     private let launcher: AltLauncher
@@ -67,10 +71,20 @@ final class HandoffModel: ObservableObject {
         !working && !picked.isEmpty && SessionHandoff.canMove(from: source, to: target)
     }
 
+    /// 이미 공유해 둔 것을 고른 때만 끊을 수 있다.
+    var canUnshare: Bool {
+        !working && picked.contains { name in
+            guard let id = sessions.first(where: { $0.fileName == name })?.cliSessionID
+            else { return false }
+            return sharedIDs.contains(id)
+        }
+    }
+
     /// 창을 열 때. 원본은 기본 앱이 지금 쓰는 계정으로 맞춘다.
     func open() {
         advice = nil
         failure = nil
+        shareNote = nil
         picked = []
         let all = accounts
         if account(source) == nil {
@@ -85,13 +99,16 @@ final class HandoffModel: ObservableObject {
     /// 원본 계정이 가진 세션. 제목은 트랜스크립트 양끝에서 읽는다.
     func reload() {
         picked = []
+        sharedIDs = Set((try? SharedSessions())?.all().keys ?? [:].keys)
         guard let account = account(source), let stores = stores(for: account) else {
             sessions = []
             return
         }
-        // 11절 규칙을 어긴 대화를 미리 찾는다. 목록에서 그 줄에 표시한다
+        // 11절 규칙을 어긴 대화를 미리 찾는다. 목록에서 그 줄에 표시한다.
+        // 일부러 공유해 둔 것은 뺀다. 정상 상태를 경고로 적으면 진짜 경고가 묻힌다
         let shared = Set(SessionDuplicate.scan(stores: SessionDuplicate.stores(inside: primary))
             .map(\.transcriptID))
+            .subtracting(sharedIDs)
 
         // 같은 세션이 자리마다 있다. 파일 이름으로 하나로 친다
         var seen = Set<String>()
@@ -141,6 +158,71 @@ final class HandoffModel: ObservableObject {
             advice = .after(moved: moved, source: (from.name, from.slot),
                             target: (to.name, to.slot))
         }
+        reload()
+    }
+
+    /// 고른 것을 양쪽에 둔다. **옮기기에서 삭제만 뺀 것이다.**
+    ///
+    /// 갓 넣은 사본은 원본과 `lastActivityAt` 이 같아서 그대로 두면 두 계정이
+    /// 같이 쓰는 것으로 보인다. 우리가 넣은 값이라고 장부에 적어 둔다.
+    /// docs/design/14-shared-session.md
+    func share() {
+        guard canMove, let from = account(source), let to = account(target),
+              let src = stores(for: from), let dst = stores(for: to)
+        else { return }
+        working = true
+        failure = nil
+        advice = nil
+        shareNote = nil
+
+        let ledger = try? SharedSessions()
+        var done = 0
+        var stuck: [String] = []
+        for name in picked.sorted() {
+            guard let session = sessions.first(where: { $0.fileName == name }) else { continue }
+            do {
+                try SessionHandoff.share(name, from: src, to: dst)
+                done += 1
+                ledger?.share(session.cliSessionID, accounts: [from.uuid, to.uuid])
+                if let at = session.lastActivityAt {
+                    ledger?.noteMirror(session.cliSessionID, account: to.uuid, activityAt: at)
+                }
+            } catch {
+                stuck.append("\(error)")
+            }
+        }
+        working = false
+        failure = stuck.isEmpty ? nil : stuck.joined(separator: "\n")
+        if done > 0 { shareNote = ShareNote.after(shared: done, target: (to.name, to.slot)) }
+        reload()
+    }
+
+    /// 공유를 끊는다. 원본 계정만 남기고 대상 계정의 레코드를 지운다.
+    func unshare() {
+        guard canUnshare, let to = account(target), let dst = stores(for: to) else { return }
+        working = true
+        failure = nil
+        advice = nil
+        shareNote = nil
+
+        let fm = FileManager.default
+        let ledger = try? SharedSessions()
+        var done = 0
+        for name in picked.sorted() {
+            guard let id = sessions.first(where: { $0.fileName == name })?.cliSessionID,
+                  sharedIDs.contains(id) else { continue }
+            // 파일 이름은 계정마다 다르다. 대상 폴더에서 그 대화를 가리키는
+            // 레코드를 찾아 지운다
+            for store in dst {
+                for record in store.records() where record.transcriptID == id {
+                    try? fm.removeItem(at: store.root.appendingPathComponent(record.fileName))
+                }
+            }
+            ledger?.forget(id)
+            done += 1
+        }
+        working = false
+        if done > 0 { shareNote = ShareNote.afterUnshare(done, from: to.name) }
         reload()
     }
 

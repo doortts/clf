@@ -213,6 +213,27 @@ final class HandoffSiteTests: XCTestCase {
         XCTAssertEqual(from[0].fileNames(), ["local_x.json"])
     }
 
+    // MARK: 양쪽에 두고 나서 하는 말
+
+    /// 공유의 전제는 동시에 안 쓰는 것이다. 그 말을 안 하면 모르고 쓴다.
+    func test_shareNoteWarnsAboutWorkingAtOnce() {
+        let say = ShareNote.after(shared: 2, target: ("B", .none))
+        XCTAssertTrue(say.hasPrefix("2개를 양쪽에 두었습니다."))
+        XCTAssertTrue(say.contains("동시에 이어가지는 마세요"))
+    }
+
+    /// 목록에 언제 나타나는지는 대상 창이 무엇이냐로 갈린다. 옮기기와 같은 사정이다.
+    func test_shareNoteTellsHowToSeeIt() {
+        XCTAssertTrue(ShareNote.after(shared: 1, target: ("B", .primary)).contains("재시작"))
+        XCTAssertTrue(ShareNote.after(shared: 1, target: ("B", .running)).contains("다시 띄워"))
+        XCTAssertTrue(ShareNote.after(shared: 1, target: ("B", .none)).contains("띄우면"))
+    }
+
+    func test_unshareNoteNamesTheAccountThatLosesIt() {
+        XCTAssertEqual(ShareNote.afterUnshare(1, from: "B"),
+                       "1개의 공유를 끊었습니다. B 목록에서는 재시작 뒤에 빠집니다.")
+    }
+
     // MARK: 양쪽에 두기
 
     /// 공유는 옮기기에서 삭제만 뺀 것이다. 원본이 남는 것이 전부다.

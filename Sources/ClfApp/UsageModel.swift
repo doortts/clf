@@ -133,6 +133,7 @@ final class UsageModel: ObservableObject {
                 }
                 await self?.applyActiveOrg(uuid)
                 await self?.mirrorBackAll()
+                await self?.syncShared()
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
             }
         }
@@ -157,6 +158,9 @@ final class UsageModel: ObservableObject {
         let uuid = org.uuid
         let name = org.name
         Task { [weak self] in
+            // 띄우기 전에 그 계정 폴더를 맞춘다. 앱은 시작할 때 목록을 읽으므로
+            // 이 순서라야 우리 쓰기와 앱의 읽기가 안 겹친다
+            await self?.syncShared(alsoUp: [uuid])
             do {
                 _ = try await Task.detached(priority: .userInitiated) {
                     try launcher.launch(name: name, uuid: uuid)
@@ -203,6 +207,34 @@ final class UsageModel: ObservableObject {
         await Task.detached(priority: .utility) {
             for (uuid, name) in targets { launcher.mirrorBack(account: uuid, name: name) }
         }.value
+    }
+
+    /// 공유해 둔 대화의 레코드를 최신본으로 맞춘다.
+    ///
+    /// **창이 떠 있는 계정에만 쓴다.** 창이 없으면 그 목록을 읽을 프로세스가
+    /// 없어서 지금 맞출 이유가 없고, 그 문이 없으면 한 계정으로 일하는 내내
+    /// 턴마다 반대쪽 폴더에 쓴다. docs/design/14-shared-session.md 5절
+    ///
+    /// `alsoUp` 은 지금 띄우려는 계정이다. 창이 아직 없지만 곧 목록을 읽는다.
+    private func syncShared(alsoUp: [String] = []) async {
+        let stores = sharedStores()
+        guard !stores.isEmpty, let ledger = try? SharedSessions() else { return }
+        var up = windowedUUIDs
+        if let activeUUID { up.insert(activeUUID) }
+        up.formUnion(alsoUp)
+        await Task.detached(priority: .utility) {
+            _ = SharedSync.run(ledger, stores: stores, windowsUp: up)
+        }.value
+    }
+
+    /// 계정마다 레코드가 놓이는 자리. 기본 데이터 디렉토리와 별도 창 디렉토리다.
+    private func sharedStores() -> [String: [SessionStore]] {
+        let primary = DesktopReader.defaultSupportDirectory
+        guard let person = SessionStore.person(in: primary) else { return [:] }
+        return Dictionary(known.map { org in
+            (org.uuid, SessionHandoff.stores(account: org.uuid, name: org.name,
+                                             primary: primary, person: person))
+        }, uniquingKeysWith: { a, _ in a })
     }
 
     /// 팝오버를 열었을 때 곧바로 계정을 다시 본다.
