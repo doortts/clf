@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:clf}",
+            "name": "Debug clfctl",
+            "target": "clfctl",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug clfctl"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:clf}",
+            "name": "Release clfctl",
+            "target": "clfctl",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release clfctl"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:clf}",
+            "name": "Debug ClfApp",
+            "target": "ClfApp",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug ClfApp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:clf}",
+            "name": "Release ClfApp",
+            "target": "ClfApp",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release ClfApp"
+        }
+    ]
+}
