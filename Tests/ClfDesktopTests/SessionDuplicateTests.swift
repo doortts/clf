@@ -246,6 +246,50 @@ final class SessionDuplicateLiveTests: XCTestCase {
         XCTAssertEqual(live, [])
     }
 
+    // MARK: 동기화가 만든 활동
+
+    /// **우리가 써 넣은 활동은 그 계정의 일이 아니다.**
+    ///
+    /// 공유 대화는 최신 레코드를 반대쪽에 덮는데 그때 `lastActivityAt` 도 같이
+    /// 넘어간다. 그러면 손도 안 댄 계정이 "방금 썼다" 로 보이고 겹침 규칙이 그
+    /// 가짜 활동에 걸린다. 동기화가 경고를 만드는 자리다.
+    /// docs/design/14-shared-session.md 6절
+    func test_mirroredActivityIsNotTheAccountsOwn() {
+        let live = SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                          owner("B", "c1", activeAt: ago(60))],
+                                         now: now, mirrored: ["c1": ["B": ago(60)]],
+                                         spokeAt: { _ in self.ago(60) })
+        XCTAssertEqual(live, [])
+    }
+
+    /// **둘 다 진짜로 움직이면 경고는 떠야 한다.** 워터마크가 경고를 죽이면 안 된다.
+    func test_realWorkAfterAMirrorStillWarns() {
+        let live = SessionDuplicate.live([owner("A", "c1", activeAt: ago(30)),
+                                          owner("B", "c1", activeAt: ago(60))],
+                                         now: now, mirrored: ["c1": ["B": ago(300)]],
+                                         spokeAt: { _ in self.ago(30) })
+        XCTAssertEqual(live.count, 1)
+        XCTAssertEqual(live[0].owners.map(\.account), ["A", "B"])
+    }
+
+    /// 공유해 둔 대화면 말이 달라진다. 겹침 자체는 정상이고 **동시에 쓰는 것**만
+    /// 사고다. "한쪽 레코드를 지우세요" 라고 하면 공유를 깨라는 말이 된다.
+    func test_copyChangesForSharedConversations() {
+        XCTAssertTrue(SessionDuplicate.problem(shared: true).contains("공유"))
+        XCTAssertFalse(SessionDuplicate.problem(shared: false).contains("공유"))
+        XCTAssertTrue(SessionDuplicate.advice(shared: true).contains("손을 떼"))
+        XCTAssertTrue(SessionDuplicate.advice(shared: false).contains("닫으세요"))
+    }
+
+    /// 워터마크는 대화마다 계정마다 따로다. 다른 대화 것에 걸리면 안 된다.
+    func test_watermarkBelongsToOneConversation() {
+        let live = SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                          owner("B", "c1", activeAt: ago(60))],
+                                         now: now, mirrored: ["c2": ["B": ago(60)]],
+                                         spokeAt: { _ in self.ago(60) })
+        XCTAssertEqual(live.count, 1)
+    }
+
     /// 한 계정에 레코드가 둘이면 최근 시각 하나로 합친다. 계정은 한 줄이다.
     func test_oneSightingPerAccount() {
         let live = SessionDuplicate.live([owner("A", "c1", activeAt: ago(600)),

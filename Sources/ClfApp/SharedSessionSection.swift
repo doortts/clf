@@ -13,6 +13,11 @@ final class SharedSessionModel: ObservableObject {
     @Published private(set) var titles: [String: String] = [:]
     /// 훑은 시각. "몇 분 전" 은 이 시각 기준이라야 화면이 흔들리지 않는다.
     @Published private(set) var readAt = Date()
+    /// 일부러 공유해 둔 대화. 문구가 달라진다.
+    @Published private(set) var onPurpose: Set<String> = []
+
+    /// 지금 뜬 경고가 공유해 둔 대화의 것인가.
+    var isOnPurpose: Bool { shared.contains { onPurpose.contains($0.transcriptID) } }
 
     private let primary: URL
 
@@ -32,7 +37,12 @@ final class SharedSessionModel: ObservableObject {
         let stores = SessionDuplicate.stores(inside: primary)
         // 방금 넘긴 대화는 참는다. 넘기기가 만든 겹침은 사용자가 아는 일이다
         let muted = (try? HandoffGrace())?.muted(now: readAt) ?? []
-        shared = SessionDuplicate.scanLive(stores: stores, now: readAt, muted: muted)
+        // 공유해 둔 대화는 우리가 맞춰 준 활동을 뺀다. 안 빼면 동기화가
+        // 경고를 만든다. docs/design/14-shared-session.md 6절
+        let ledger = try? SharedSessions()
+        onPurpose = Set(ledger?.all().keys ?? [:].keys)
+        shared = SessionDuplicate.scanLive(stores: stores, now: readAt, muted: muted,
+                                           mirrored: ledger?.mirrorStamps() ?? [:])
         // 제목은 겹친 대화 것만 읽는다. 열 때 한 번, 많아야 한두 개다
         titles = Dictionary(uniqueKeysWithValues: shared.map {
             ($0.transcriptID,
@@ -70,11 +80,11 @@ struct SharedSessionSection: View {
                     }
                 }
                 // 경고만 있고 길이 없으면 사용자가 막힌다. 할 일을 같이 적는다
-                Text(SessionDuplicate.problem)
+                Text(SessionDuplicate.problem(shared: model.isOnPurpose))
                     .captionStyle().foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
-                Text(SessionDuplicate.advice)
+                Text(SessionDuplicate.advice(shared: model.isOnPurpose))
                     .captionStyle().foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

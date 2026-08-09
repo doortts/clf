@@ -142,9 +142,15 @@ extension SessionDuplicate {
     ///
     /// `muted` 는 방금 넘긴 대화들이다. 넘기면 옛 창이 레코드를 되살려
     /// 겹침이 반드시 생기는데, 사용자가 스스로 한 일이라 경고하지 않는다.
+    ///
+    /// `mirrored` 는 **공유 대화를 맞추면서 우리가 써 넣은 시각**이다. 대화마다
+    /// 계정마다 하나씩이고, 그 값과 같은 활동은 그 계정의 일이 아니라 우리
+    /// 쓰기다. 빼지 않으면 동기화가 경고를 만든다.
+    /// docs/design/14-shared-session.md 6절
     public static func live(_ owners: [Owner], now: Date,
                             within: TimeInterval = liveWindow,
                             muted: Set<String> = [],
+                            mirrored: [String: [String: Date]] = [:],
                             spokeAt: (String) -> Date?) -> [Live] {
         var byConversation: [String: [Owner]] = [:]
         for owner in owners
@@ -166,9 +172,14 @@ extension SessionDuplicate {
                     }
                 }
                 // 최근에 쓴 계정만 남긴다. 옛 레코드는 겹침이지 동시 사용이 아니다
+                let stamps = mirrored[id] ?? [:]
                 let sightings = latest
                     .compactMap { account, at -> Sighting? in
                         guard let at, now.timeIntervalSince(at) <= within else { return nil }
+                        // 우리가 써 넣은 값 그대로면 그 계정이 움직인 것이 아니다.
+                        // 레코드의 시각은 밀리초라 초 아래에서 어긋날 수 있다
+                        if let ours = stamps[account],
+                           abs(ours.timeIntervalSince(at)) < 1 { return nil }
                         return Sighting(account: account, lastActivityAt: at)
                     }
                     // 최근 것이 먼저. 같으면 이름순으로 고정한다
@@ -191,7 +202,8 @@ extension SessionDuplicate {
                                 projects: URL = FileManager.default.homeDirectoryForCurrentUser
                                     .appendingPathComponent(".claude/projects"),
                                 now: Date = Date(),
-                                muted: Set<String> = []) -> [Live] {
+                                muted: Set<String> = [],
+                                mirrored: [String: [String: Date]] = [:]) -> [Live] {
         let fm = FileManager.default
         var owners: [Owner] = []
         for store in stores {
@@ -206,7 +218,7 @@ extension SessionDuplicate {
                         .map { Date(timeIntervalSince1970: $0 / 1000) }))
             }
         }
-        return live(owners, now: now, muted: muted,
+        return live(owners, now: now, muted: muted, mirrored: mirrored,
                     spokeAt: { writtenAt($0, projects: projects, now: now) })
     }
 
@@ -280,9 +292,21 @@ extension SessionDuplicate {
     public static let untitled = "제목 없는 세션"
 
     /// 무엇이 문제인가.
-    public static let problem = "두 창이 한 대화에 같이 쓰면 기록이 섞일 수 있습니다."
+    ///
+    /// 공유해 둔 대화면 겹침 자체는 정상이고 **동시에 쓰는 것**만 사고다.
+    /// 그때 "한쪽 레코드를 지우세요" 라고 하면 공유를 깨라는 말이 된다.
+    public static func problem(shared: Bool) -> String {
+        shared
+            ? "공유해 둔 대화를 두 창이 같이 쓰고 있습니다."
+            : "두 창이 한 대화에 같이 쓰면 기록이 섞일 수 있습니다."
+    }
+
     /// 그래서 무엇을 하면 되는가. 경고만 있고 길이 없으면 사용자가 막힌다.
-    public static let advice = "한쪽 계정 창에서 이 세션을 닫으세요."
+    public static func advice(shared: Bool) -> String {
+        shared
+            ? "한쪽에서 손을 떼세요. 기록이 섞일 수 있습니다."
+            : "한쪽 계정 창에서 이 세션을 닫으세요."
+    }
 
     /// 계정 줄에 붙는 "어디서 언제까지" 설명. 목록만 있으면 사용자는 어느
     /// 창이 쓰는 중인지 알 수 없다.
