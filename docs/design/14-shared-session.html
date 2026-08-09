@@ -243,54 +243,92 @@
   <code>model</code>, <code>effort</code>, <code>permissionMode</code> 로 재개된다.</b>
 </p>
 
+<p>
+  레코드는 턴마다 바뀌는데 그 변화가 뜻을 가지는 순간은 계정을 바꿀 때뿐이다.
+  그래서 파일 변경을 좇지 않고 <b>볼 사람이 생기는 순간</b>에 맞춘다.
+</p>
+
 <figure>
-<svg viewBox="0 0 900 250" role="img" aria-label="동기화 흐름. 최신본을 반대쪽에 덮어쓴다">
+<svg viewBox="0 0 900 400" role="img" aria-label="동기화 흐름. 창이 떠 있는 계정에만 최신본을 덮어쓴다">
   <defs>
     <marker id="e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
             orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#98989d"/>
     </marker>
   </defs>
-  <rect x="0" y="16" width="176" height="48" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
-  <text x="16" y="38" fill="#f2f2f7" font-size="11.5">5초 루프</text>
-  <text x="16" y="56" fill="#98989d" font-size="10.5">syncShared()</text>
+  <rect x="0" y="16" width="200" height="44" rx="9" fill="rgba(64,200,255,.10)" stroke="#40c8ff"/>
+  <text x="16" y="36" fill="#40c8ff" font-size="11.5">계기 1. 띄우기 직전</text>
+  <text x="16" y="52" fill="#98989d" font-size="10.5">clf 가 순서를 쥔다</text>
 
-  <path d="M180 40 L 236 40" stroke="#98989d" marker-end="url(#e)"/>
-  <rect x="240" y="16" width="220" height="48" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
-  <text x="256" y="38" fill="#f2f2f7" font-size="11.5">공유 목록의 대화마다</text>
-  <text x="256" y="56" fill="#98989d" font-size="10.5">계정별 레코드를 읽는다</text>
+  <rect x="0" y="72" width="200" height="44" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="16" y="92" fill="#f2f2f7" font-size="11.5">계기 2. 5초 루프</text>
+  <text x="16" y="108" fill="#98989d" font-size="10.5">바닥. 놓친 것만</text>
 
-  <path d="M464 40 L 520 40" stroke="#98989d" marker-end="url(#e)"/>
-  <rect x="524" y="16" width="240" height="48" rx="9" fill="rgba(64,200,255,.10)" stroke="#40c8ff"/>
-  <text x="540" y="38" fill="#40c8ff" font-size="11.5">lastActivityAt 이 큰 것이 최신</text>
-  <text x="540" y="56" fill="#98989d" font-size="10.5">늦은 쪽이 진다</text>
+  <path d="M204 38 C 222 38 222 46 236 46" fill="none" stroke="#98989d" marker-end="url(#e)"/>
+  <path d="M204 94 C 222 94 222 54 236 54" fill="none" stroke="#98989d" marker-end="url(#e)"/>
 
-  <path d="M644 68 L 644 104" stroke="#98989d" marker-end="url(#e)"/>
+  <rect x="240" y="26" width="220" height="48" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="256" y="48" fill="#f2f2f7" font-size="11.5">공유 목록의 대화마다</text>
+  <text x="256" y="66" fill="#98989d" font-size="10.5">계정별 레코드를 읽는다</text>
 
-  <polygon points="524,140 644,108 764,140 644,172" fill="rgba(255,204,0,.10)" stroke="#ffcc00"/>
-  <text x="576" y="136" fill="#ffcc00" font-size="10.5">대상이 더 최신인가</text>
-  <text x="608" y="152" fill="#98989d" font-size="10.5">되돌림 방지</text>
+  <path d="M464 50 L 520 50" stroke="#98989d" marker-end="url(#e)"/>
+  <rect x="524" y="26" width="240" height="48" rx="9" fill="rgba(64,200,255,.10)" stroke="#40c8ff"/>
+  <text x="540" y="48" fill="#40c8ff" font-size="11.5">lastActivityAt 이 큰 것이 최신</text>
+  <text x="540" y="66" fill="#98989d" font-size="10.5">늦은 쪽이 진다</text>
 
-  <path d="M768 140 L 830 140" stroke="#98989d" marker-end="url(#e)"/>
-  <text x="774" y="132" fill="#ff6961" font-size="10.5">예</text>
-  <text x="836" y="144" fill="#ff6961" font-size="11">건너뛴다</text>
+  <path d="M644 78 L 644 98" stroke="#98989d" marker-end="url(#e)"/>
 
-  <path d="M644 174 L 644 200" stroke="#98989d" marker-end="url(#e)"/>
-  <text x="652" y="192" fill="#3ce16b" font-size="10.5">아니오</text>
+  <polygon points="524,130 644,100 764,130 644,160" fill="rgba(255,204,0,.10)" stroke="#ffcc00"/>
+  <text x="597" y="126" fill="#ffcc00" font-size="10.5">대상 창이 떠 있나</text>
+  <text x="597" y="142" fill="#98989d" font-size="10.5">쓰기 폭풍을 막는다</text>
 
-  <rect x="380" y="200" width="520" height="46" rx="9" fill="rgba(60,225,107,.10)" stroke="#3ce16b"/>
-  <text x="396" y="222" fill="#3ce16b" font-size="11.5">내용만 덮는다. 파일 이름은 대상 것을 지킨다</text>
-  <text x="396" y="240" fill="#98989d" font-size="10.5">그리고 mirrored[대상 계정] = 그 lastActivityAt 을 적는다</text>
+  <path d="M768 130 L 812 130" stroke="#98989d" marker-end="url(#e)"/>
+  <text x="772" y="122" fill="#ff6961" font-size="10.5">아니오</text>
+  <text x="818" y="134" fill="#ff6961" font-size="11">안 쓴다</text>
 
-  <rect x="0" y="96" width="360" height="150" rx="9" fill="rgba(255,105,97,.08)" stroke="#ff6961"/>
-  <text x="16" y="120" fill="#ff6961" font-size="12" font-weight="700">함정. 파일 이름</text>
-  <text x="16" y="144" fill="#f2f2f7" font-size="11">local_&lt;sessionId&gt;.json 의 sessionId 는</text>
-  <text x="16" y="162" fill="#f2f2f7" font-size="11">레코드 고유값이라 계정마다 다르다.</text>
-  <text x="16" y="186" fill="#98989d" font-size="11">공유의 열쇠는 cliSessionId 다. 그 cli 를</text>
-  <text x="16" y="204" fill="#98989d" font-size="11">가리키는 대상 레코드를 찾아 내용만 덮는다.</text>
-  <text x="16" y="228" fill="#ffcc00" font-size="11">이름까지 바꾸면 앱 목록에서 줄이 사라진다.</text>
+  <path d="M644 162 L 644 194" stroke="#98989d" marker-end="url(#e)"/>
+  <text x="652" y="184" fill="#3ce16b" font-size="10.5">예</text>
+
+  <polygon points="524,226 644,196 764,226 644,256" fill="rgba(255,204,0,.10)" stroke="#ffcc00"/>
+  <text x="592" y="222" fill="#ffcc00" font-size="10.5">대상이 더 최신인가</text>
+  <text x="610" y="238" fill="#98989d" font-size="10.5">되돌림 방지</text>
+
+  <path d="M768 226 L 812 226" stroke="#98989d" marker-end="url(#e)"/>
+  <text x="772" y="218" fill="#ff6961" font-size="10.5">예</text>
+  <text x="818" y="230" fill="#ff6961" font-size="11">건너뛴다</text>
+
+  <path d="M644 258 L 644 290" stroke="#98989d" marker-end="url(#e)"/>
+  <text x="652" y="280" fill="#3ce16b" font-size="10.5">아니오</text>
+
+  <rect x="380" y="290" width="520" height="46" rx="9" fill="rgba(60,225,107,.10)" stroke="#3ce16b"/>
+  <text x="396" y="312" fill="#3ce16b" font-size="11.5">내용만 덮는다. 파일 이름은 대상 것을 지킨다</text>
+  <text x="396" y="330" fill="#98989d" font-size="10.5">그리고 mirrored[대상 계정] = 그 lastActivityAt 을 적는다</text>
+
+  <rect x="0" y="150" width="360" height="150" rx="9" fill="rgba(255,105,97,.08)" stroke="#ff6961"/>
+  <text x="16" y="174" fill="#ff6961" font-size="12" font-weight="700">함정. 파일 이름</text>
+  <text x="16" y="198" fill="#f2f2f7" font-size="11">local_&lt;sessionId&gt;.json 의 sessionId 는</text>
+  <text x="16" y="216" fill="#f2f2f7" font-size="11">레코드 고유값이라 계정마다 다르다.</text>
+  <text x="16" y="240" fill="#98989d" font-size="11">공유의 열쇠는 cliSessionId 다. 그 cli 를</text>
+  <text x="16" y="258" fill="#98989d" font-size="11">가리키는 대상 레코드를 찾아 내용만 덮는다.</text>
+  <text x="16" y="282" fill="#ffcc00" font-size="11">이름까지 바꾸면 앱 목록에서 줄이 사라진다.</text>
 </svg>
+<figcaption>
+  게이트 둘이 쓰기를 정한다. 창 게이트가 없으면 한 계정으로 일하는 내내 턴마다
+  반대쪽 폴더에 쓴다. 최신 비교가 없으면 우리가 쓴 것을 다음 바퀴에 되받아 쓴다.
+</figcaption>
 </figure>
+
+<div class="callout">
+  <p><b>왜 FSEvents 로 파일을 감시하지 않나.</b></p>
+  <p>
+    변경은 턴마다 오는데 뜻이 있는 순간은 하루 몇 번이라 받은 것 대부분을 위 두
+    게이트에서 버린다. 이벤트를 받아도 게이트는 그대로 필요하다. 우리가 쓴 것이
+    다시 이벤트로 돌아오기 때문이다. 커널 버퍼가 넘치면
+    <code>MustScanSubDirs</code> 만 오고 clf 가 꺼져 있던 동안의 변경은 아예 안
+    오므로 바닥 스캔도 남는다. 트리거를 바꿔도 <code>SharedSync.run()</code> 은
+    안 바뀌게 짠다.
+  </p>
+</div>
 
 <h2>6. 가장 조심할 자리</h2>
 <div class="callout danger">
