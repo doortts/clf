@@ -164,27 +164,30 @@ final class SessionDuplicateLiveTests: XCTestCase {
 
     /// 한 계정만 가리키면 규칙대로다. 아무리 바빠도 경고가 아니다.
     func test_oneAccountIsNotLive() {
-        XCTAssertEqual(SessionDuplicate.live([owner("A", "c1")],
+        XCTAssertEqual(SessionDuplicate.live([owner("A", "c1", activeAt: ago(60))],
                                              now: now, spokeAt: { _ in self.ago(60) }), [])
     }
 
     /// 겹쳐 있어도 오래 안 쓴 대화는 조용히 둔다. doctor 가 다룰 일이다.
     func test_idleSharedConversationIsNotLive() {
         XCTAssertEqual(
-            SessionDuplicate.live([owner("A", "c1"), owner("B", "c1")], now: now,
+            SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                   owner("B", "c1", activeAt: ago(60))], now: now,
                                   spokeAt: { _ in self.ago(SessionDuplicate.liveWindow + 60) }),
             [])
     }
 
     /// 대화한 적이 없으면 쓰는 중이 아니다.
     func test_neverSpokeIsNotLive() {
-        XCTAssertEqual(SessionDuplicate.live([owner("A", "c1"), owner("B", "c1")],
+        XCTAssertEqual(SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                              owner("B", "c1", activeAt: ago(60))],
                                              now: now, spokeAt: { _ in nil }), [])
     }
 
     /// 한 계정 안의 레코드 둘은 계정 하나다.
     func test_twoRecordsInOneAccountAreNotLive() {
-        XCTAssertEqual(SessionDuplicate.live([owner("A", "c1"), owner("A", "c1")],
+        XCTAssertEqual(SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                              owner("A", "c1", activeAt: ago(120))],
                                              now: now, spokeAt: { _ in self.ago(60) }), [])
     }
 
@@ -197,16 +200,47 @@ final class SessionDuplicateLiveTests: XCTestCase {
         XCTAssertEqual(live[0].owners.map(\.lastActivityAt), [ago(60), ago(600)])
     }
 
-    /// 시각을 모르는 레코드는 뒤로 보낸다. 모르는 것이 앞에 서면 안 된다.
-    func test_unknownActivityGoesLast() {
-        let live = SessionDuplicate.live([owner("A", "c1"), owner("B", "c1", activeAt: ago(60))],
-                                         now: now, spokeAt: { _ in self.ago(60) })
-        XCTAssertEqual(live[0].owners.map(\.account), ["B", "A"])
+    /// **오래 전에 놓고 간 계정은 같이 쓰는 것이 아니다.**
+    ///
+    /// 한 계정이 지금 쓰고 있으면 대화 시각은 당연히 최근이다. 그때 다른 계정의
+    /// 옛 레코드까지 세면 나흘 전에 손 뗀 계정이 "지금 같이 쓰는 중" 으로 올라온다.
+    /// 실제로 5610분 전 계정이 경고에 떴다.
+    func test_staleAccountIsNotLive() {
+        XCTAssertEqual(
+            SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                   owner("B", "c1", activeAt: ago(5610 * 60))],
+                                  now: now, spokeAt: { _ in self.ago(60) }),
+            [])
+    }
+
+    /// 창 경계에서 갈린다. 안쪽이면 둘 다 쓰는 중이고 바깥이면 아니다.
+    func test_liveWindowBoundary() {
+        let inside = SessionDuplicate.live(
+            [owner("A", "c1", activeAt: ago(60)),
+             owner("B", "c1", activeAt: ago(SessionDuplicate.liveWindow))],
+            now: now, spokeAt: { _ in self.ago(60) })
+        XCTAssertEqual(inside.count, 1)
+
+        let outside = SessionDuplicate.live(
+            [owner("A", "c1", activeAt: ago(60)),
+             owner("B", "c1", activeAt: ago(SessionDuplicate.liveWindow + 1))],
+            now: now, spokeAt: { _ in self.ago(60) })
+        XCTAssertEqual(outside, [])
+    }
+
+    /// 시각을 모르는 레코드는 최근으로 안 본다. 지금 쓰는 중이라고 말하려면
+    /// 언제 썼는지를 댈 수 있어야 하고, 화면도 그 시각을 적는다.
+    func test_unknownActivityIsNotLive() {
+        XCTAssertEqual(
+            SessionDuplicate.live([owner("A", "c1"), owner("B", "c1", activeAt: ago(60))],
+                                  now: now, spokeAt: { _ in self.ago(60) }),
+            [])
     }
 
     /// 방금 넘긴 대화는 겹쳐 보여도 참는다. 사용자가 스스로 한 일이다.
     func test_mutedConversationIsNotReported() {
-        let live = SessionDuplicate.live([owner("A", "c1"), owner("B", "c1")],
+        let live = SessionDuplicate.live([owner("A", "c1", activeAt: ago(60)),
+                                          owner("B", "c1", activeAt: ago(60))],
                                          now: now, muted: ["c1"],
                                          spokeAt: { _ in self.ago(60) })
         XCTAssertEqual(live, [])
@@ -354,8 +388,8 @@ final class SessionDuplicateLiveScanTests: XCTestCase {
     /// 있으면 놀고 있는 세션에도 last-prompt, ai-title 줄을 계속 덧붙인다.
     /// 실측에서 대화가 00:59 에 끝난 세션의 mtime 이 03:44 였다.
     func test_appendedMetadataDoesNotMakeItLive() throws {
-        try put("A", cli: "c1")
-        try put("B", cli: "c1")
+        try put("A", cli: "c1", activeAt: Date().addingTimeInterval(-60))
+        try put("B", cli: "c1", activeAt: Date().addingTimeInterval(-60))
         try transcript("c1", lines: [
             #"{"type":"assistant","timestamp":"\#(iso(secondsAgo: 3 * 3600))"}"#,
             #"{"type":"last-prompt","lastPrompt":"선을 없애줘"}"#,
@@ -366,8 +400,8 @@ final class SessionDuplicateLiveScanTests: XCTestCase {
 
     /// 초 단위 timestamp 도 읽는다. CLI 가 소수점을 안 붙일 때가 있다.
     func test_readsWholeSecondTimestamps() throws {
-        try put("A", cli: "c1")
-        try put("B", cli: "c1")
+        try put("A", cli: "c1", activeAt: Date().addingTimeInterval(-60))
+        try put("B", cli: "c1", activeAt: Date().addingTimeInterval(-60))
         let f = ISO8601DateFormatter()
         try transcript("c1", lines: [
             #"{"type":"user","timestamp":"\#(f.string(from: Date().addingTimeInterval(-60)))"}"#,

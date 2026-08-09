@@ -94,6 +94,11 @@ extension SessionDuplicate {
     ///
     /// 겹친 레코드 자체는 doctor 가 다룬다. 팝오버는 그중 **지금 움직이는
     /// 대화**만 말해야 한다. 오래된 겹침까지 말하면 경고가 뜻을 잃는다.
+    ///
+    /// **계정마다 따로 잰다.** 대화가 최근에 움직였다는 것만으로는 모자란다.
+    /// 한 계정이 지금 쓰고 있으면 대화 시각은 당연히 최근인데, 그때 다른
+    /// 계정이 나흘 전에 놓고 간 레코드까지 "같이 쓰는 중" 으로 세면 거짓이다.
+    /// 실제로 5610분 전 계정이 경고에 올라왔다.
     public static let liveWindow: TimeInterval = 15 * 60
 
     /// 한 계정이 이 대화를 언제까지 썼나. 화면의 한 줄이다.
@@ -107,8 +112,8 @@ extension SessionDuplicate {
         }
     }
 
-    /// 여러 계정이 가리키는데 최근에 대화까지 있는 것. 두 창이 한 대화에
-    /// 같이 쓸 수 있는 상태다.
+    /// **두 계정 이상이 최근에 쓴** 대화. 두 창이 한 대화에 같이 쓰고 있는
+    /// 상태다.
     public struct Live: Sendable, Equatable, Identifiable {
         public let transcriptID: String
         /// 계정마다 한 줄. 최근에 쓴 계정이 먼저다.
@@ -121,11 +126,19 @@ extension SessionDuplicate {
         }
     }
 
-    /// 겹친 대화 중 최근에 대화한 것만.
+    /// 겹친 대화 중 **여러 계정이 지금 같이 쓰고 있는 것**만.
     ///
-    /// `spokeAt` 은 트랜스크립트의 마지막 대화 시각이다. 레코드의
-    /// `lastActivityAt` 으로 거르지 않는 이유는 그 값이 뒤처지기 때문이다.
-    /// 실측에서 22:51 로 적혔는데 세션은 22:58 에 일하고 있었다.
+    /// 문은 둘이다. 대화 자체가 최근에 움직였어야 하고(`spokeAt`), 그 대화를
+    /// 가리키는 계정 중 **최근에 쓴 것이 둘 이상**이어야 한다. 앞의 문만 두면
+    /// 한 계정이 지금 쓰는 대화에 다른 계정의 옛 레코드가 얹혀 경고가 된다.
+    ///
+    /// `spokeAt` 은 트랜스크립트의 마지막 대화 시각이고, 계정별 시각은 레코드의
+    /// `lastActivityAt` 이다. 레코드 값은 몇 분 뒤처진다. 실측에서 22:51 로
+    /// 적혔는데 세션은 22:58 에 일하고 있었다. 창이 15분이라 그 정도 지연은
+    /// 삼킨다.
+    ///
+    /// 시각을 모르는 레코드는 최근으로 안 본다. 지금 쓰는 중이라고 말하려면
+    /// 언제 썼는지를 댈 수 있어야 하고, 화면도 그 시각을 적는다.
     ///
     /// `muted` 는 방금 넘긴 대화들이다. 넘기면 옛 창이 레코드를 되살려
     /// 겹침이 반드시 생기는데, 사용자가 스스로 한 일이라 경고하지 않는다.
@@ -152,17 +165,20 @@ extension SessionDuplicate {
                         latest[owner.account] = owner.lastActivityAt ?? known
                     }
                 }
+                // 최근에 쓴 계정만 남긴다. 옛 레코드는 겹침이지 동시 사용이 아니다
                 let sightings = latest
-                    .map { Sighting(account: $0.key, lastActivityAt: $0.value) }
+                    .compactMap { account, at -> Sighting? in
+                        guard let at, now.timeIntervalSince(at) <= within else { return nil }
+                        return Sighting(account: account, lastActivityAt: at)
+                    }
+                    // 최근 것이 먼저. 같으면 이름순으로 고정한다
                     .sorted {
-                        // 최근 것이 먼저, 시각을 모르는 것은 뒤로
                         switch ($0.lastActivityAt, $1.lastActivityAt) {
                         case let (a?, b?) where a != b: return a > b
-                        case (_?, nil): return true
-                        case (nil, _?): return false
                         default: return $0.account < $1.account
                         }
                     }
+                guard sightings.count >= 2 else { return nil }
                 return Live(transcriptID: id, owners: sightings)
             }
             // 같은 상태가 늘 같게 보여야 한다. 순서를 고정한다
