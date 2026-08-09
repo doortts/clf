@@ -200,6 +200,27 @@ extension SessionHandoff {
     /// 자리를 다 옮긴다. 하나라도 막히면 아무것도 안 바꾼다.
     public static func move(_ fileName: String,
                             from source: [SessionStore], to target: [SessionStore]) throws {
+        try place(fileName, from: source, into: target)
+        let fm = FileManager.default
+        for store in source {
+            try? fm.removeItem(at: store.root.appendingPathComponent(fileName))
+        }
+    }
+
+    /// 양쪽에 둔다. **옮기기에서 삭제만 뺀 것이다.**
+    ///
+    /// 대화 본문은 계정 폴더 바깥에 하나뿐이라 레코드가 둘이어도 같은 파일을
+    /// 가리킨다. 지우지 않는 것이 곧 공유다. docs/design/14-shared-session.md
+    public static func share(_ fileName: String,
+                             from source: [SessionStore], to target: [SessionStore]) throws {
+        try place(fileName, from: source, into: target)
+    }
+
+    /// 옮기기와 공유가 같이 쓰는 몸통. 대상 자리에 다 넣는다.
+    ///
+    /// 먼저 넣고 지우는 것은 부르는 쪽이다. 중간에 죽어도 대화를 잃지 않는다.
+    private static func place(_ fileName: String,
+                              from source: [SessionStore], into target: [SessionStore]) throws {
         let fm = FileManager.default
         guard let data = source.lazy
             .map({ $0.root.appendingPathComponent(fileName) })
@@ -207,12 +228,10 @@ extension SessionHandoff {
             .flatMap({ fm.contents(atPath: $0.path) })
         else { throw Failure.missing(fileName) }
 
-        if let hit = target.first(where: { collides(fileName, in: $0.fileNames()) }) {
-            _ = hit
+        guard !target.contains(where: { collides(fileName, in: $0.fileNames()) }) else {
             throw Failure.collision(fileName)
         }
 
-        // 먼저 넣고 나중에 지운다. 중간에 죽어도 대화를 잃지 않는다
         for store in target {
             do {
                 try fm.createDirectory(at: store.root, withIntermediateDirectories: true,
@@ -221,9 +240,6 @@ extension SessionHandoff {
             } catch {
                 throw Failure.io("\(fileName) 을 넣지 못했다. \(error.localizedDescription)")
             }
-        }
-        for store in source {
-            try? fm.removeItem(at: store.root.appendingPathComponent(fileName))
         }
     }
 }

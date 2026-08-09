@@ -212,6 +212,58 @@ final class HandoffSiteTests: XCTestCase {
         XCTAssertThrowsError(try SessionHandoff.move("local_x.json", from: from, to: to))
         XCTAssertEqual(from[0].fileNames(), ["local_x.json"])
     }
+
+    // MARK: 양쪽에 두기
+
+    /// 공유는 옮기기에서 삭제만 뺀 것이다. 원본이 남는 것이 전부다.
+    /// docs/design/14-shared-session.md
+    func test_shareKeepsTheSource() throws {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try put(from[0], "local_x.json")
+
+        try SessionHandoff.share("local_x.json", from: from, to: to)
+
+        XCTAssertEqual(from[0].fileNames(), ["local_x.json"])
+        XCTAssertEqual(to[0].fileNames(), ["local_x.json"])
+    }
+
+    /// 자리마다 다 넣는다. 한 군데만 넣으면 남은 창이 그 대화를 못 본다.
+    func test_shareFillsEverySite() throws {
+        let altB = home.appendingPathComponent(AltInstance.prefix + "B")
+        try FileManager.default.createDirectory(at: altB, withIntermediateDirectories: true)
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try put(from[0], "local_x.json")
+
+        try SessionHandoff.share("local_x.json", from: from, to: to)
+
+        XCTAssertEqual(to.count, 2)
+        XCTAssertEqual(to.flatMap { $0.fileNames() }, ["local_x.json", "local_x.json"])
+    }
+
+    /// 이름이 부딪히면 공유도 막힌다. 저쪽이 먼저 쓰던 것을 덮으면 안 된다.
+    func test_shareRefusesToOverwrite() throws {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try put(from[0], "local_x.json")
+        try put(to[0], "local_x.json")
+        XCTAssertThrowsError(try SessionHandoff.share("local_x.json", from: from, to: to))
+    }
+
+    func test_shareNeedsASource() {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        XCTAssertThrowsError(try SessionHandoff.share("local_없다.json", from: from, to: to))
+    }
 }
 
 /// 옮기기 전에 무슨 말을 해줘야 하나.
