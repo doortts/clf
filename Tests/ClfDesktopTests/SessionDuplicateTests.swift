@@ -364,6 +364,29 @@ final class SharedRecordWarningTests: XCTestCase {
                        SessionSummary.noTranscript)
     }
 
+    /// **폴더 이름은 경고가 있어도 계속 보여준다.**
+    ///
+    /// 폴더는 어느 워크트리에서 하던 일인지 말하고 경고는 지금 상태를 말한다.
+    /// 다른 정보라서 하나가 다른 하나를 밀어낼 이유가 없다.
+    /// docs/design/handoff-list-mockup.html
+    func test_detailKeepsTheFolderBesideTheWarning() {
+        XCTAssertEqual(summary(shared: true).detail,
+                       "repo - 두 계정에서 동시에 열려 있는 세션")
+    }
+
+    /// 폴더를 모르면 경고만 적는다. 빈 이름 앞에 구분선이 남으면 안 된다.
+    func test_detailWithoutAFolderIsJustTheWarning() {
+        let noFolder = SessionSummary(fileName: "local_x.json", cliSessionID: "c1", title: "t",
+                                      folder: "", lastActivityAt: nil, hasTranscript: true,
+                                      sharedRecord: true)
+        XCTAssertEqual(noFolder.detail, SessionSummary.sharedByAccounts)
+    }
+
+    /// 경고가 없으면 폴더 이름만이다. 지금과 같다.
+    func test_detailWithoutAWarningIsJustTheFolder() {
+        XCTAssertEqual(summary().detail, "repo")
+    }
+
     func test_nothingSharedNothingSaid() {
         XCTAssertNil(summary().warning)
     }

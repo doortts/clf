@@ -23,7 +23,10 @@ struct HandoffView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             route
-            list
+            VStack(alignment: .leading, spacing: 5) {
+                count
+                list
+            }
             note
             Spacer(minLength: 0)
             footer
@@ -48,6 +51,17 @@ struct HandoffView: View {
                    pick: { selection.wrappedValue = $0 })
     }
 
+    /// 목록에 몇 개가 있는지. 화면에 셋만 보이면 그게 전부인지 알 수 없다.
+    ///
+    /// 고른 개수는 안 적는다. 아래 단추가 이미 "2개 옮기기" 라고 말한다.
+    @ViewBuilder private var count: some View {
+        if !model.sessions.isEmpty {
+            Text("세션 \(model.sessions.count)개")
+                .font(.system(size: 10)).foregroundStyle(.secondary)
+                .padding(.horizontal, 2)
+        }
+    }
+
     private var list: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
@@ -56,10 +70,9 @@ struct HandoffView: View {
                     row(session)
                 }
             }
+            // 넘칠 때는 막대를 계속 보여준다
+            .background(AlwaysVisibleScrollers())
         }
-        // 넘칠 때는 막대를 계속 보여준다. 겹쳐 뜨는 기본 동작은 마우스를
-        // 움직여야 나타나서, 목록이 더 있다는 것을 알 방법이 없다
-        .scrollIndicators(.visible)
         .frame(height: Self.listHeight)
         // 검정 덮기 대신 라벨색 퍼센트. 라이트에서도 같은 만큼 가라앉는다
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
@@ -85,9 +98,9 @@ struct HandoffView: View {
                     .font(.system(size: 13))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(session.display).font(.system(size: 12)).lineLimit(1)
-                    Text(session.warning ?? session.folder)
+                    // 폴더와 경고를 한 줄에 같이 적는다. 경고만 색을 준다
+                    detailLine(session)
                         .font(.system(size: 10))
-                        .foregroundStyle(session.warning == nil ? Color.secondary : warnInk)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6)
@@ -143,6 +156,16 @@ struct HandoffView: View {
         }
     }
 
+    /// 제목 아래 한 줄. 폴더는 늘 보조색이고 경고 부분만 주의색이다.
+    /// 문자열을 합쳐 색 하나로 칠하면 폴더까지 노래진다.
+    private func detailLine(_ session: SessionSummary) -> Text {
+        let folder = Text(session.folder).foregroundColor(.secondary)
+        guard let warning = session.warning else { return folder }
+        let warn = Text(warning).foregroundColor(warnInk)
+        guard !session.folder.isEmpty else { return warn }
+        return folder + Text(" - ").foregroundColor(.secondary) + warn
+    }
+
     /// 안내는 접어서 다 보여준다. 한 줄로 자르면 뒷말이 사라진다.
     private func wrapped(_ text: String) -> some View {
         Text(text)
@@ -185,6 +208,29 @@ struct HandoffView: View {
     }
 }
 
+
+/// 목록이 넘치면 스크롤 막대를 계속 보여준다.
+///
+/// `.scrollIndicators(.visible)` 로는 안 된다. 시스템 설정의 "스크롤 막대
+/// 보기" 기본값이 "스크롤할 때" 라서 SwiftUI 의 요청보다 앞선다. 이 창
+/// 하나에서만 뒤집으려면 감싸는 `NSScrollView` 를 찾아 legacy 로 바꾼다.
+/// legacy 막대는 겹치지 않고 자리를 차지하므로 안 넘칠 때는 안 보인다.
+private struct AlwaysVisibleScrollers: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let probe = NSView()
+        // 뷰 계층은 makeNSView 시점에 아직 안 붙어 있다. 다음 사이클에 찾는다
+        DispatchQueue.main.async {
+            var view: NSView? = probe
+            while let v = view, !(v is NSScrollView) { view = v.superview }
+            guard let scroll = view as? NSScrollView else { return }
+            scroll.scrollerStyle = .legacy
+            scroll.autohidesScrollers = true
+        }
+        return probe
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
 
 /// 계정 상자. 이름 아래 지금 어떤 창을 갖고 있는지 붙는다.
 ///

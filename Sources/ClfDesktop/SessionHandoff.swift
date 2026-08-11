@@ -127,7 +127,7 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
 
     public static let noTranscript = "기록이 없어 옮겨도 빈 세션이 됩니다"
     public static let noFolder = "작업 폴더가 없어 그 자리에서 일할 수 없습니다"
-    public static let sharedByAccounts = "두 계정이 함께 가리키고 있습니다"
+    public static let sharedByAccounts = "두 계정에서 동시에 열려 있는 세션"
 
     /// 넘기기 전에 알아야 할 것. 없으면 `nil`.
     ///
@@ -140,6 +140,15 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
         if sharedRecord { return Self.sharedByAccounts }
         if !folderExists { return Self.noFolder }
         return nil
+    }
+
+    /// 제목 아래 한 줄. 폴더 이름과 경고를 같이 적는다.
+    ///
+    /// **경고가 폴더를 밀어내지 않는다.** 폴더는 어느 워크트리에서 하던 일인지
+    /// 말하고 경고는 지금 상태를 말한다. 다른 정보다.
+    /// docs/design/handoff-list-mockup.html
+    public var detail: String {
+        [folder.isEmpty ? nil : folder, warning].compactMap { $0 }.joined(separator: " - ")
     }
 }
 
