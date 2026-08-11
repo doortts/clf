@@ -35,8 +35,10 @@ final class SharedSessionModel: ObservableObject {
     func refresh() {
         readAt = Date()
         let stores = SessionDuplicate.stores(inside: primary)
-        // 방금 넘긴 대화는 참는다. 넘기기가 만든 겹침은 사용자가 아는 일이다
-        let muted = (try? HandoffGrace())?.muted(now: readAt) ?? []
+        // 방금 넘긴 대화는 참는다. 넘기기가 만든 겹침은 사용자가 아는 일이다.
+        // 옮긴 장부의 대화도 참는다. 그 겹침은 청소부가 정리할 시체다
+        var muted = (try? HandoffGrace())?.muted(now: readAt) ?? []
+        muted.formUnion((try? MovedSessions())?.all().keys ?? [:].keys)
         // 공유해 둔 대화는 우리가 맞춰 준 활동을 뺀다. 안 빼면 동기화가
         // 경고를 만든다. docs/design/14-shared-session.md 6절
         let ledger = try? SharedSessions()

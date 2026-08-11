@@ -359,16 +359,19 @@ final class HandoffPlanTextTests: XCTestCase {
     }
 
     /// 기본 창에서 보내면 재시작을 권한다. 이것이 이 안내의 요점이다.
-    func test_primarySourceRecommendsARestart() {
+    /// 남은 줄은 clf 가 정리한다. 재시작을 시키는 대신 그대로 둬도 된다고
+    /// 말한다. docs/design/15-move-janitor.html 11절
+    func test_primarySourceSaysWeClean() {
         let note = plan(.primary, .none).sourceNote
         XCTAssertNotNil(note)
-        XCTAssertTrue(note!.contains("재시작"))
-        XCTAssertTrue(note!.contains("목록에 남"))
+        XCTAssertTrue(note!.contains("재시작 전까지 남아"))
+        XCTAssertTrue(note!.contains("clf 가 정리"))
     }
 
-    /// 왜 재시작해야 하는지도 말한다. 이유 없는 권고는 안 지켜진다.
-    func test_saysWhyTheRestartMatters() {
-        XCTAssertTrue(plan(.primary, .none).sourceNote!.contains("추천하지 않습니다"))
+    /// 물러남 규칙을 사용자 말로 노출한다. 옛 창에서 다시 열어 작업하면
+    /// 청소부가 물러나는데, 그 규칙을 숨기면 물러났을 때 놀란다.
+    func test_saysReopeningCancelsTheMove() {
+        XCTAssertTrue(plan(.primary, .none).sourceNote!.contains("이동이 취소"))
     }
 
     /// 별도 창은 우리가 다시 띄운다. 사용자가 할 일이 없다.

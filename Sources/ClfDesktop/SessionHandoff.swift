@@ -281,12 +281,17 @@ public struct HandoffPlan: Sendable, Equatable {
                     targetNote: arriving(target))
     }
 
-    /// 보낸 쪽. 기본 창은 사용자가 닫아야 하고 별도 창은 우리가 닫는다.
+    /// 보낸 쪽. 남은 줄은 청소부가 정리하므로 재시작을 시키지 않는다.
+    ///
+    /// 과장하면 안 된다. 옛 창의 화면 목록에는 줄이 남는다. 우리가 지우는
+    /// 것은 디스크지 앱 메모리가 아니다. 마지막 문장은 청소부의 물러남
+    /// 규칙을 사용자 말로 옮긴 것이다. docs/design/15-move-janitor.html 11절
     private static func leaving(_ a: (name: String, slot: InstanceSlot)) -> String? {
         switch a.slot {
         case .primary:
-            return "옮긴 뒤 \(a.name) 기본 창을 재시작해 주세요. \n재시작 전까지 해당 세션 대화가 목록에"
-                + " 남습니다. \n동시에 서로 다른 창에서 같은 세션 대화를 진행하는 건 추천하지 않습니다."
+            return "\(a.name) 창 목록에는 재시작 전까지 남아 보일 수 있습니다. "
+                + "남은 항목은 clf 가 정리하니 그대로 두면 됩니다. \n"
+                + "옛 창에서 그 세션을 다시 열어 작업하면 이동이 취소된 것으로 봅니다."
         case .running:
             return "\(a.name) 창은 옮긴 뒤 다시 띄워 드립니다. 그러면 목록에서 빠집니다."
         case .opening, .none, .unavailable:

@@ -54,6 +54,8 @@ final class UsageModel: ObservableObject {
     private var recovery = RecoveryWatch()
     private var appearanceWatch: (any NSObjectProtocol)?
     private var spaceWatch: (any NSObjectProtocol)?
+    /// 청소부가 마지막으로 본 폴더 mtime. 조용한 폴더는 stat 에서 끝난다.
+    private var movedSeen: [String: Date] = [:]
     /// 마지막으로 구울 때의 메뉴바 밝기. 바뀌면 다시 굽는다.
     private var barWasDark: Bool?
     private var activeUUID: String?
@@ -134,6 +136,7 @@ final class UsageModel: ObservableObject {
                 await self?.applyActiveOrg(uuid)
                 await self?.mirrorBackAll()
                 await self?.syncShared()
+                await self?.sweepMoved()
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
             }
         }
@@ -224,6 +227,25 @@ final class UsageModel: ObservableObject {
         up.formUnion(alsoUp)
         await Task.detached(priority: .utility) {
             _ = SharedSync.run(ledger, stores: stores, windowsUp: up)
+        }.value
+    }
+
+    /// 옮긴 자리의 시체를 치운다. 장부가 비어 있으면 아무것도 안 한다.
+    ///
+    /// **창이 없는 계정에서만 지운다.** 창이 떠 있으면 화면에 효과가 없고
+    /// 앱의 쓰기와 얽혀 결과를 예측할 수 없다. 활성 계정은 기본 창이 쥐고
+    /// 있는 것으로 친다. docs/design/15-move-janitor.html
+    private func sweepMoved() async {
+        guard let ledger = try? MovedSessions(), !ledger.all().isEmpty else { return }
+        let stores = sharedStores()
+        guard !stores.isEmpty else { return }
+        let sharedIDs = Set((try? SharedSessions())?.all().keys ?? [:].keys)
+        var up = windowedUUIDs
+        if let activeUUID { up.insert(activeUUID) }
+        let seen = movedSeen
+        movedSeen = await Task.detached(priority: .utility) {
+            MoveJanitor.sweep(ledger: ledger, sharedIDs: sharedIDs, stores: stores,
+                              windowsUp: up, lastSeen: seen)
         }.value
     }
 

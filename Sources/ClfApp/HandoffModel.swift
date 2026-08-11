@@ -105,10 +105,13 @@ final class HandoffModel: ObservableObject {
             return
         }
         // 11절 규칙을 어긴 대화를 미리 찾는다. 목록에서 그 줄에 표시한다.
-        // 일부러 공유해 둔 것은 뺀다. 정상 상태를 경고로 적으면 진짜 경고가 묻힌다
+        // 일부러 공유해 둔 것과 옮긴 것(청소부가 정리할 시체)은 뺀다.
+        // 정상 상태를 경고로 적으면 진짜 경고가 묻힌다
+        let movedIDs = Set((try? MovedSessions())?.all().keys ?? [:].keys)
         let shared = Set(SessionDuplicate.scan(stores: SessionDuplicate.stores(inside: primary))
             .map(\.transcriptID))
             .subtracting(sharedIDs)
+            .subtracting(movedIDs)
 
         // 같은 세션이 자리마다 있다. 파일 이름으로 하나로 친다
         var seen = Set<String>()
@@ -141,12 +144,18 @@ final class HandoffModel: ObservableObject {
         // 넘긴 직후에는 옛 창이 레코드를 되살려 겹침이 반드시 생긴다.
         // 방금 넘긴 대화는 장부에 적어 팝오버가 15분 동안 참게 한다
         let grace = try? HandoffGrace()
+        // 옮긴 의도도 적는다. 앱이 종료하며 레코드를 되살리면 청소부가 이
+        // 장부의 워터마크와 비교해 시체만 다시 지운다. 15 문서
+        let ledger = try? MovedSessions()
         for name in picked.sorted() {
+            guard let session = sessions.first(where: { $0.fileName == name }) else { continue }
             do {
                 try SessionHandoff.move(name, from: src, to: dst)
                 moved += 1
-                if let id = sessions.first(where: { $0.fileName == name })?.cliSessionID {
-                    grace?.note(id)
+                grace?.note(session.cliSessionID)
+                // 시각을 모르면 안 적는다. 워터마크 없는 항목은 판정을 못 한다
+                if let at = session.lastActivityAt {
+                    ledger?.note(session.cliSessionID, from: from.uuid, watermark: at)
                 }
             } catch {
                 stuck.append("\(error)")
@@ -176,6 +185,7 @@ final class HandoffModel: ObservableObject {
         shareNote = nil
 
         let ledger = try? SharedSessions()
+        let moved = try? MovedSessions()
         var done = 0
         var stuck: [String] = []
         for name in picked.sorted() {
@@ -187,6 +197,9 @@ final class HandoffModel: ObservableObject {
                 if let at = session.lastActivityAt {
                     ledger?.noteMirror(session.cliSessionID, account: to.uuid, activityAt: at)
                 }
+                // 공유가 옮김 의도를 이긴다. 항목이 남으면 청소부가 방금 넣은
+                // 공유 사본을 시체로 오판할 수 있다
+                moved?.forget(session.cliSessionID)
             } catch {
                 stuck.append("\(error)")
             }
