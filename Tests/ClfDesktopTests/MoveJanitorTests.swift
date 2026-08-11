@@ -84,3 +84,142 @@ final class MoveJanitorJudgeTests: XCTestCase {
         XCTAssertEqual(judge(otherSideHasRecord: false, windowUp: true), .dropEntry)
     }
 }
+
+/// 청소부가 실제로 디스크를 쓸어내는 쪽.
+final class MoveJanitorSweepTests: XCTestCase {
+    private var root: URL!
+    private var ledger: MovedSessions!
+    private let mark = Date(timeIntervalSince1970: 1_700_000_000)
+
+    override func setUpWithError() throws {
+        root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("janitor-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        ledger = try MovedSessions(directory: root)
+    }
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: root) }
+
+    private func store(_ account: String, dir: String = "primary") -> SessionStore {
+        SessionStore(dataDirectory: root.appendingPathComponent(dir), person: "p",
+                     account: account)
+    }
+
+    @discardableResult
+    private func put(_ store: SessionStore, cli: String = "c1", at: Date?,
+                     name: String = "local_z.json") throws -> URL {
+        try FileManager.default.createDirectory(at: store.root, withIntermediateDirectories: true)
+        let stamp = at.map { "\($0.timeIntervalSince1970 * 1000)" } ?? "null"
+        let url = store.root.appendingPathComponent(name)
+        try Data(#"{"sessionId":"\#(name.dropLast(5))","cliSessionId":"\#(cli)","lastActivityAt":\#(stamp)}"#
+            .utf8).write(to: url)
+        return url
+    }
+
+    private func sweep(windowsUp: Set<String> = [], sharedIDs: Set<String> = [],
+                       stores: [String: [SessionStore]],
+                       lastSeen: [String: Date] = [:]) -> [String: Date] {
+        MoveJanitor.sweep(ledger: ledger, sharedIDs: sharedIDs, stores: stores,
+                          windowsUp: windowsUp, lastSeen: lastSeen)
+    }
+
+    /// 시체는 자리마다 지우고 무덤을 세운다. 항목은 남고 안전핀이 오른다.
+    func test_cleansTheZombieEverywhere() throws {
+        let a = store("a"), altA = store("a", dir: "alt"), b = store("b")
+        let z1 = try put(a, at: mark)
+        let z2 = try put(altA, at: mark)
+        try put(b, at: mark, name: "local_b.json")
+        ledger.note("c1", from: "a", watermark: mark)
+
+        sweep(stores: ["a": [a, altA], "b": [b]])
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: z1.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: z2.path))
+        XCTAssertTrue(FileManager.default
+            .fileExists(atPath: a.root.appendingPathComponent("deleted_c1").path))
+        XCTAssertTrue(FileManager.default
+            .fileExists(atPath: a.root.appendingPathComponent("deleted_z").path))
+        XCTAssertEqual(ledger.all()["c1"]?.cleaned, 1)
+    }
+
+    /// 더 최신 활동이면 물러난다. 파일은 남고 항목이 빠진다.
+    func test_realWorkSurvives() throws {
+        let a = store("a"), b = store("b")
+        let z = try put(a, at: mark.addingTimeInterval(60))
+        try put(b, at: mark, name: "local_b.json")
+        ledger.note("c1", from: "a", watermark: mark)
+
+        sweep(stores: ["a": [a], "b": [b]])
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: z.path))
+        XCTAssertTrue(ledger.all().isEmpty)
+    }
+
+    /// 창이 떠 있으면 손대지 않는다. 항목도 파일도 그대로다.
+    func test_openWindowLeavesEverything() throws {
+        let a = store("a"), b = store("b")
+        let z = try put(a, at: mark)
+        try put(b, at: mark, name: "local_b.json")
+        ledger.note("c1", from: "a", watermark: mark)
+
+        sweep(windowsUp: ["a"], stores: ["a": [a], "b": [b]])
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: z.path))
+        XCTAssertEqual(ledger.all()["c1"]?.cleaned, 0)
+    }
+
+    /// 공유해 둔 대화는 항목만 빠진다. 파일은 공유의 것이다.
+    func test_sharedConversationIsReleased() throws {
+        let a = store("a"), b = store("b")
+        let z = try put(a, at: mark)
+        try put(b, at: mark, name: "local_b.json")
+        ledger.note("c1", from: "a", watermark: mark)
+
+        sweep(sharedIDs: ["c1"], stores: ["a": [a], "b": [b]])
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: z.path))
+        XCTAssertTrue(ledger.all().isEmpty)
+    }
+
+    /// 어느 계정에도 레코드가 없으면 옮김이 무효다. 항목만 빠진다.
+    func test_vanishedMoveIsReleased() throws {
+        let a = store("a"), b = store("b")
+        try put(a, at: mark)
+        try FileManager.default.createDirectory(at: b.root, withIntermediateDirectories: true)
+        ledger.note("c1", from: "a", watermark: mark)
+
+        sweep(stores: ["a": [a], "b": [b]])
+
+        XCTAssertTrue(ledger.all().isEmpty)
+    }
+
+    /// **폴더가 안 변했으면 아무것도 안 읽는다.** 지난 바퀴의 mtime 을 주면
+    /// 시체가 있어도 이번 바퀴는 지나간다. 빈 기억으로 다시 돌면 잡는다.
+    func test_quietFolderIsSkipped() throws {
+        let a = store("a"), b = store("b")
+        let z = try put(a, at: mark)
+        try put(b, at: mark, name: "local_b.json")
+        ledger.note("c1", from: "a", watermark: mark)
+
+        let seen = MoveJanitor.folderMarks(stores: ["a": [a], "b": [b]])
+        sweep(stores: ["a": [a], "b": [b]], lastSeen: seen)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: z.path))
+
+        sweep(stores: ["a": [a], "b": [b]])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: z.path))
+    }
+
+    /// 돌려받은 기억을 다음 바퀴에 그대로 주면 조용한 폴더는 계속 건너뛴다.
+    func test_returnedMarksKeepTheGateClosed() throws {
+        let a = store("a"), b = store("b")
+        try put(a, at: mark)
+        try put(b, at: mark, name: "local_b.json")
+        ledger.note("c1", from: "a", watermark: mark)
+
+        let first = sweep(stores: ["a": [a], "b": [b]])
+        XCTAssertFalse(first.isEmpty)
+        // 우리 삭제가 mtime 을 움직였으므로 한 바퀴 더 돌아야 잠잠해진다
+        let second = sweep(stores: ["a": [a], "b": [b]], lastSeen: first)
+        let third = sweep(stores: ["a": [a], "b": [b]], lastSeen: second)
+        XCTAssertEqual(second, third)
+    }
+}
