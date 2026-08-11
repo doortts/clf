@@ -470,6 +470,61 @@
   </p>
 </div>
 
+<h3>번들에서 확인한 쓰기 타이밍</h3>
+<p>
+  앱이 레코드를 언제 디스크로 보내는지 <code>app.asar</code> 에서 확인했다.
+  쓰기는 전부 디바운스 저장기 하나를 거친다.
+</p>
+<table>
+  <tr><th>계기</th><th>디스크 반영</th><th>근거</th></tr>
+  <tr><td>상태 변화 전부. 메시지 송수신, 턴 종료, 제목, 보관, 권한 결정 등
+          (<code>saveSession</code> 호출부 68곳)</td>
+      <td>노는 세션 1초, 턴 도는 세션 3초 뒤</td>
+      <td><code>SAVE_SESSION_DEBOUNCE_MS=1000</code> /
+          <code>SAVE_SESSION_ACTIVE_DEBOUNCE_MS=3000</code></td></tr>
+  <tr><td>중요 전환 (clear 등)</td><td>즉시</td>
+      <td><code>saveSessionPromptly</code> = save + flush</td></tr>
+  <tr><td>삭제</td><td>즉시. flush 뒤 레코드 rm + 무덤 2개</td>
+      <td>4절</td></tr>
+  <tr><td><b>종료</b></td>
+      <td>종료 훅이 대기 중인 저장을 전부 쓴다. <b>좀비가 태어나는 자리</b></td>
+      <td><code>local-session-flush</code> -&gt; <code>flushPendingSaves()</code></td></tr>
+</table>
+<p>같이 확인한 규칙들.</p>
+<ul style="max-width:820px">
+  <li><code>lastActivityAt</code> 은 메시지 전송, 권한 결정, clear/rewind, 그리고
+      CLI 메시지 중 <code>assistant / user / result / stream_event / tool_progress /
+      tool_use_summary / task_*</code> 에서만 갱신된다. 그 밖의 메타데이터 줄은
+      활동이 아니다</li>
+  <li><code>completedTurns</code> 는 턴의 result 가 성공일 때만 +1. 소비처는
+      텔레메트리뿐이다</li>
+  <li><b>대화 내용은 레코드에 없다.</b> 세션을 열 때마다 트랜스크립트를 뒤쪽부터
+      다시 읽는다. 레코드가 낡아도 대화는 안 잃는다</li>
+  <li>낡은 레코드를 트랜스크립트로 고치는 화해 로직은 없다. 어긋남의 실제 비용은
+      목록 정렬, 시간 필터 검색, 재개 시 model/effort/permissionMode 뿐이다</li>
+</ul>
+
+<h3>이 타이밍이 설계에 준 것</h3>
+<table>
+  <tr><th>사실</th><th>반영</th></tr>
+  <tr><td>좀비는 종료 훅의 flush 가 만든다. 창이 닫히는 그 순간이다</td>
+      <td>청소 지연의 상한이 정해진다. <b>창 닫힘 + 다음 5초 바퀴.</b>
+          "언젠가 정리된다" 가 아니라 닫히면 몇 초 안이다</td></tr>
+  <tr><td>대기 중인 저장이 없는 세션은 종료 때 안 쓴다</td>
+      <td>옮긴 뒤 옛 창에서 그 세션을 건드리지 않았으면 좀비 자체가 없다.
+          청소부가 도는 대부분의 바퀴는 mtime 게이트에서 끝난다</td></tr>
+  <tr><td>턴 도는 동안 레코드는 3초마다 최신이다</td>
+      <td>워터마크와 <code>lastActivityAt</code> 비교가 기대보다 신선하다.
+          14 문서 동기화의 최신본 판정도 같다</td></tr>
+  <tr><td>백그라운드 작업 알림(task_*)도 활동으로 친다</td>
+      <td>옮긴 뒤 옛 창의 백그라운드 작업이 활동을 올리면 청소부는 물러나고
+          겹침 경고가 말한다. <b>그게 정답이다.</b> 그 작업은 공유
+          트랜스크립트에 실제로 쓰는 중이다</td></tr>
+  <tr><td>무덤은 sessionId 와 cliSessionId 두 개다</td>
+      <td>우리도 둘 다 남긴다. 앱과 같은 모양이라야 복구 스캔이 둘 중
+          무엇으로 조회해도 걸린다</td></tr>
+</table>
+
 <h2>10. 비용</h2>
 <p>
   5초마다 장부의 대화 수만큼 일하면 안 된다. <b>옛 계정 폴더의 mtime</b> 을 먼저
@@ -533,7 +588,7 @@
   <tr><td>cleaned 가 3을 넘으면 포기한다</td><td>수동 복원 안전핀</td></tr>
   <tr><td>장부의 대화는 겹침 경고에 안 뜬다</td><td>5초 틈에 새는 경고</td></tr>
   <tr><td>창이 떠 있으면 안 지운다</td><td>줄다리기 금지. 3절의 문</td></tr>
-  <tr><td>move 와 청소가 무덤을 남긴다</td><td>수동 가져오기가 옮긴 대화를 되살리는 것. 9절</td></tr>
+  <tr><td>move 와 청소가 무덤을 두 id 로 남긴다</td><td>수동 가져오기가 옮긴 대화를 되살리는 것. 9절</td></tr>
   <tr><td>share 와 move 가 대상의 무덤을 걷는다</td><td>넣은 레코드가 지운 것으로 오해받는 것</td></tr>
   <tr><td>깨진 장부는 빈 것으로 친다</td><td>장부 하나 때문에 앱이 멎으면 안 된다</td></tr>
 </table>
