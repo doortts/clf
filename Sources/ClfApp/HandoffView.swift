@@ -4,9 +4,21 @@ import ClfDesktop
 /// 세션 넘기기 창. docs/design/handoff-mockup.html
 struct HandoffView: View {
     @ObservedObject var model: HandoffModel
+    @Environment(\.colorScheme) private var scheme
 
     static let width: CGFloat = 460
     static let listHeight: CGFloat = 180
+
+    /// 주의 글자색.
+    ///
+    /// 시스템 노랑(#ffcc00)은 어두운 배경에서만 읽힌다. 목록 배경이 흰색에
+    /// 가까운 라이트 테마에서는 대비가 1.3 밖에 안 나와 글자가 사라진다.
+    /// 라이트에서는 같은 색조를 어둡게 내려 대비 5 를 맞춘다.
+    private var warnInk: Color {
+        scheme == .dark
+            ? Color(red: 1, green: 0.8, blue: 0)
+            : Color(red: 0.54, green: 0.32, blue: 0)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -45,6 +57,9 @@ struct HandoffView: View {
                 }
             }
         }
+        // 넘칠 때는 막대를 계속 보여준다. 겹쳐 뜨는 기본 동작은 마우스를
+        // 움직여야 나타나서, 목록이 더 있다는 것을 알 방법이 없다
+        .scrollIndicators(.visible)
         .frame(height: Self.listHeight)
         // 검정 덮기 대신 라벨색 퍼센트. 라이트에서도 같은 만큼 가라앉는다
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
@@ -72,7 +87,7 @@ struct HandoffView: View {
                     Text(session.display).font(.system(size: 12)).lineLimit(1)
                     Text(session.warning ?? session.folder)
                         .font(.system(size: 10))
-                        .foregroundStyle(session.warning == nil ? Color.secondary : Color.yellow)
+                        .foregroundStyle(session.warning == nil ? Color.secondary : warnInk)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6)
@@ -116,7 +131,7 @@ struct HandoffView: View {
             }
         } else if let plan = model.plan {
             // 보낸 쪽에 할 일이 남으면 노란 띠를 세운다. 그냥 설명이 아니라 권고다
-            box(plan.sourceNote == nil ? nil : Color.yellow) {
+            box(plan.sourceNote == nil ? nil : warnInk) {
                 VStack(alignment: .leading, spacing: 5) {
                     ForEach(plan.lines, id: \.self) { wrapped($0) }
                 }
