@@ -74,22 +74,10 @@ public enum SessionHandoff {
         }
     }
 
-    /// 레코드 하나를 옮긴다. 원자적으로 옮기고 실패하면 아무것도 안 바꾼다.
+    /// 레코드 하나를 옮긴다. 자리가 하나씩일 때의 줄임말이다.
     public static func move(_ fileName: String,
                             from source: SessionStore, to target: SessionStore) throws {
-        let fm = FileManager.default
-        let src = source.root.appendingPathComponent(fileName)
-        guard fm.fileExists(atPath: src.path) else { throw Failure.missing(fileName) }
-        guard !collides(fileName, in: target.fileNames()) else {
-            throw Failure.collision(fileName)
-        }
-        do {
-            try fm.createDirectory(at: target.root, withIntermediateDirectories: true,
-                                   attributes: [.posixPermissions: 0o700])
-            try fm.moveItem(at: src, to: target.root.appendingPathComponent(fileName))
-        } catch {
-            throw Failure.io("\(fileName) 을 옮기지 못했다. \(error.localizedDescription)")
-        }
+        try move(fileName, from: [source], to: [target])
     }
 }
 
@@ -207,12 +195,19 @@ extension SessionHandoff {
     }
 
     /// 자리를 다 옮긴다. 하나라도 막히면 아무것도 안 바꾼다.
+    ///
+    /// 지운 자리에는 **무덤을 남긴다.** 앱의 수동 "CLI 세션 가져오기" 는
+    /// 트랜스크립트를 전수로 훑어 모르는 대화를 재수입하는데, 옮긴 대화는
+    /// 옛 계정 인스턴스에게 모르는 대화라 무덤 없이는 가져오기 한 번에
+    /// 좀비로 돌아온다. docs/design/15-move-janitor.html 4절
     public static func move(_ fileName: String,
                             from source: [SessionStore], to target: [SessionStore]) throws {
-        try place(fileName, from: source, into: target)
+        let data = try place(fileName, from: source, into: target)
         let fm = FileManager.default
+        let ids = Tombstones.ids(of: data)
         for store in source {
             try? fm.removeItem(at: store.root.appendingPathComponent(fileName))
+            Tombstones.leave(ids, in: store)
         }
     }
 
@@ -228,8 +223,13 @@ extension SessionHandoff {
     /// 옮기기와 공유가 같이 쓰는 몸통. 대상 자리에 다 넣는다.
     ///
     /// 먼저 넣고 지우는 것은 부르는 쪽이다. 중간에 죽어도 대화를 잃지 않는다.
+    ///
+    /// 넣으면서 대상의 **무덤을 걷는다.** 옛 무덤이 남아 있으면 방금 넣은
+    /// 대화가 그 계정에서 지운 것으로 남는다.
+    @discardableResult
     private static func place(_ fileName: String,
-                              from source: [SessionStore], into target: [SessionStore]) throws {
+                              from source: [SessionStore], into target: [SessionStore])
+        throws -> Data {
         let fm = FileManager.default
         guard let data = source.lazy
             .map({ $0.root.appendingPathComponent(fileName) })
@@ -241,6 +241,7 @@ extension SessionHandoff {
             throw Failure.collision(fileName)
         }
 
+        let ids = Tombstones.ids(of: data)
         for store in target {
             do {
                 try fm.createDirectory(at: store.root, withIntermediateDirectories: true,
@@ -249,7 +250,9 @@ extension SessionHandoff {
             } catch {
                 throw Failure.io("\(fileName) 을 넣지 못했다. \(error.localizedDescription)")
             }
+            Tombstones.clear(ids, in: store)
         }
+        return data
     }
 }
 

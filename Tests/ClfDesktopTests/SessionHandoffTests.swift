@@ -285,6 +285,64 @@ final class HandoffSiteTests: XCTestCase {
                                        primary: primary, person: "p", home: home)
         XCTAssertThrowsError(try SessionHandoff.share("local_없다.json", from: from, to: to))
     }
+
+    // MARK: 무덤
+
+    /// **옮기면 옛 자리에 무덤을 남긴다.** 레코드가 아는 id 전부다.
+    ///
+    /// 무덤은 앱의 수동 "CLI 세션 가져오기" 가 옮긴 대화를 옛 계정으로
+    /// 되가져오는 것을 막는 표식이다. docs/design/15-move-janitor.html 4절
+    func test_moveLeavesTombstonesAtTheSource() throws {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try FileManager.default.createDirectory(at: from[0].root,
+                                                withIntermediateDirectories: true)
+        try Data(#"{"sessionId":"local_s1","cliSessionId":"c1","unarchivedCliSessionId":"c0"}"#
+            .utf8).write(to: from[0].root.appendingPathComponent("local_s1.json"))
+
+        try SessionHandoff.move("local_s1.json", from: from, to: to)
+
+        let left = try FileManager.default.contentsOfDirectory(atPath: from[0].root.path)
+        XCTAssertEqual(Set(left), ["deleted_s1", "deleted_c1", "deleted_c0"])
+        // 무덤 내용은 삭제 시각(ms)이다. 앱과 같은 모양
+        let stamp = try XCTUnwrap(FileManager.default
+            .contents(atPath: from[0].root.appendingPathComponent("deleted_c1").path))
+        XCTAssertNotNil(Double(String(decoding: stamp, as: UTF8.self)))
+    }
+
+    /// **넣는 쪽은 무덤을 걷는다.** 옛 무덤이 남아 있으면 이 대화가 지운
+    /// 것으로 남아, 언젠가 가져오기가 이 계정만 건너뛴다.
+    func test_placeClearsTombstonesAtTheTarget() throws {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try put(from[0], "local_s1.json")   // cliSessionId c1
+        try FileManager.default.createDirectory(at: to[0].root,
+                                                withIntermediateDirectories: true)
+        try Data("123".utf8).write(to: to[0].root.appendingPathComponent("deleted_c1"))
+
+        try SessionHandoff.share("local_s1.json", from: from, to: to)
+
+        XCTAssertFalse(FileManager.default
+            .fileExists(atPath: to[0].root.appendingPathComponent("deleted_c1").path))
+    }
+
+    /// 공유는 원본을 남기므로 옛 자리에 무덤을 안 남긴다.
+    func test_shareLeavesNoTombstones() throws {
+        let from = SessionHandoff.stores(account: "u1", name: "A",
+                                         primary: primary, person: "p", home: home)
+        let to = SessionHandoff.stores(account: "u2", name: "B",
+                                       primary: primary, person: "p", home: home)
+        try put(from[0], "local_s1.json")
+
+        try SessionHandoff.share("local_s1.json", from: from, to: to)
+
+        let left = try FileManager.default.contentsOfDirectory(atPath: from[0].root.path)
+        XCTAssertEqual(left, ["local_s1.json"])
+    }
 }
 
 /// 옮기기 전에 무슨 말을 해줘야 하나.
