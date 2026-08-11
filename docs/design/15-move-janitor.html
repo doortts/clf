@@ -1,0 +1,391 @@
+<meta charset="utf-8">
+<title>옮긴 자리 청소</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12);
+          --g:#3ce16b; --b:#40c8ff; --y:#ffcc00; --r:#ff6961; --p:#c08cff; }
+  body { margin:0; padding:32px 32px 80px; color:var(--ink); background:#1c1c1e;
+         font:13px/1.65 -apple-system,"SF Pro Text",system-ui,sans-serif; }
+  .wrap { max-width:960px; }
+  h1 { font-size:22px; line-height:28px; margin:0 0 4px; }
+  h2 { font-size:16px; line-height:22px; margin:34px 0 6px;
+       padding-top:14px; border-top:1px solid var(--line); }
+  h3 { font-size:13px; line-height:18px; color:var(--dim); font-weight:600; margin:18px 0 6px; }
+  p { margin:0 0 10px; max-width:820px; }
+  p.sub { color:var(--dim); margin-top:0; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11.5px;
+         background:rgba(255,255,255,.07); padding:1px 5px; border-radius:4px; }
+  pre { font-family:"SF Mono",ui-monospace,monospace; font-size:11.5px; line-height:1.55;
+        background:rgba(255,255,255,.05); border:1px solid var(--line);
+        padding:12px 14px; border-radius:8px; max-width:790px; overflow-x:auto; }
+  b { color:#fff; }
+  figure { margin:14px 0 18px; }
+  figcaption { color:var(--dim); font-size:12px; line-height:17px; margin-top:6px;
+               max-width:820px; }
+  svg { display:block; max-width:100%; height:auto; }
+  table { border-collapse:collapse; font-size:12.5px; line-height:17px; margin:8px 0 14px;
+          width:100%; max-width:880px; }
+  th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; background:rgba(255,255,255,.03); }
+  .callout { border-left:3px solid var(--y); background:rgba(255,204,0,.07);
+             padding:10px 14px; border-radius:0 8px 8px 0; margin:14px 0; max-width:820px; }
+  .callout.danger { border-color:var(--r); background:rgba(255,105,97,.08); }
+  .callout.ok { border-color:var(--g); background:rgba(60,225,107,.07); }
+  .callout p:last-child { margin-bottom:0; }
+  .steps { counter-reset:s; list-style:none; padding:0; margin:8px 0 14px; max-width:820px; }
+  .steps li { counter-increment:s; position:relative; padding:6px 0 6px 34px; }
+  .steps li::before { content:counter(s); position:absolute; left:0; top:6px;
+                      width:22px; height:22px; border-radius:11px; background:rgba(64,200,255,.16);
+                      color:var(--b); font-size:11px; font-weight:700; display:grid;
+                      place-items:center; }
+  text { font-family:"SF Mono",ui-monospace,monospace; }
+</style>
+
+<div class="wrap">
+<h1>옮긴 자리 청소</h1>
+<p class="sub">
+  옮기기가 지운 레코드를 앱이 되살린다. 의도를 장부에 적어 두고 되살아나면
+  다시 지운다. <a href="14-shared-session.html" style="color:#40c8ff">14 세션 공유</a>
+  의 다음 이야기다.
+</p>
+
+<h2>1. 문제</h2>
+<p>
+  옮기기 자체는 잘 동작한다. 넣고 지운다. 그 뒤에 옛 계정의 앱 창이 메모리에
+  쥔 세션 목록을 디스크에 다시 쓰면서 <b>지운 레코드를 되살린다.</b> 사용자
+  눈에는 "옮겼는데 양쪽에 있다" 로 보이고, 옮기기가 고장 난 것으로 읽힌다.
+</p>
+
+<figure>
+<svg viewBox="0 0 900 210" role="img" aria-label="되살림 실측 타임라인">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+            orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#98989d"/>
+    </marker>
+  </defs>
+  <line x1="30" y1="150" x2="870" y2="150" stroke="#98989d" marker-end="url(#a)"/>
+
+  <line x1="80" y1="150" x2="80" y2="100" stroke="rgba(255,255,255,.3)"/>
+  <rect x="20" y="56" width="180" height="44" rx="8" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="32" y="76" fill="#f2f2f7" font-size="11">08-10 03:38</text>
+  <text x="32" y="92" fill="#98989d" font-size="10.5">T40 에서 마지막 작업</text>
+  <text x="56" y="170" fill="#98989d" font-size="10.5">act</text>
+
+  <line x1="300" y1="150" x2="300" y2="100" stroke="rgba(255,255,255,.3)"/>
+  <rect x="230" y="56" width="180" height="44" rx="8" fill="rgba(64,200,255,.10)" stroke="#40c8ff"/>
+  <text x="242" y="76" fill="#40c8ff" font-size="11">옮기기 T40 -&gt; T52</text>
+  <text x="242" y="92" fill="#98989d" font-size="10.5">T40 레코드 삭제</text>
+
+  <line x1="560" y1="150" x2="560" y2="100" stroke="rgba(255,255,255,.3)"/>
+  <rect x="470" y="56" width="220" height="44" rx="8" fill="rgba(255,105,97,.10)" stroke="#ff6961"/>
+  <text x="482" y="76" fill="#ff6961" font-size="11">08-11 01:21 앱이 되살림</text>
+  <text x="482" y="92" fill="#98989d" font-size="10.5">act 는 03:38 그대로다</text>
+  <text x="500" y="170" fill="#ff6961" font-size="10.5">옮기고 22시간 뒤</text>
+
+  <line x1="790" y1="150" x2="790" y2="100" stroke="rgba(255,255,255,.3)"/>
+  <rect x="720" y="56" width="150" height="44" rx="8" fill="rgba(60,225,107,.10)" stroke="#3ce16b"/>
+  <text x="732" y="76" fill="#3ce16b" font-size="11">5초 안에 청소</text>
+  <text x="732" y="92" fill="#98989d" font-size="10.5">이 문서가 더하는 것</text>
+
+  <rect x="20" y="8" width="430" height="30" rx="6" fill="none"/>
+  <text x="24" y="28" fill="#98989d" font-size="11">실측. 되살아난 레코드 셋 다 옛 act 를 그대로 갖고 있었다</text>
+</svg>
+<figcaption>
+  15분 grace 는 옮긴 직후만 덮는다. 되살림은 22시간 뒤에도 왔다. 시간으로는
+  못 막고 의도를 기억해야 한다.
+</figcaption>
+</figure>
+
+<h2>2. 왜 옮기기를 없애지 않나</h2>
+<p>공유만 남기자는 안도 검토했다. 잃는 것이 더 많다.</p>
+<table>
+  <tr><th>잃는 것</th><th>왜 문제인가</th></tr>
+  <tr><td>한 계정만 가리킨다는 안전 기본값</td>
+      <td>공유는 "동시에 안 쓴다" 는 규율이 전제다. 옮기기는 그 규율이 필요 없다</td></tr>
+  <tr><td>목록 정리</td>
+      <td>옮기는 이유의 절반은 옛 계정 목록에서 치우는 것이다. 공유는 영원히 양쪽에 남는다</td></tr>
+  <tr><td>의도 구분</td>
+      <td>전부 공유가 되면 겹침 경고가 뜻을 잃는다. 진짜 사고를 골라낼 기준이 사라진다</td></tr>
+</table>
+<p>
+  그리고 공유도 같은 되살림을 당한다. 공유 끊기가 지운 레코드도 앱이 되살린다.
+  옮기기를 없애도 문제는 안 없어진다. <b>지우는 동작이 있는 한 청소부가 필요하다.</b>
+</p>
+
+<h2>3. 설계 한 줄</h2>
+<div class="callout ok">
+  <p>
+    옮길 때 <b>무엇을 어디서 지웠고 그때 활동 시각이 몇이었는지</b> 장부에 적는다.
+    옛 자리에 레코드가 다시 생기면 활동 시각을 워터마크와 비교해서, 그대로면
+    되살아난 것이니 다시 지우고, 더 최신이면 사용자가 진짜 이어간 것이니
+    항목을 빼고 물러난다.
+  </p>
+</div>
+<p>
+  <code>shared-sessions.json</code> 과 같은 수법이다. 디스크만 보면 의도를 모르니
+  의도를 따로 적는다. 지우는 쪽이 아니라 <b>지운 것을 지켜보는 쪽</b>을 고친다.
+</p>
+
+<h2>4. 새 조각</h2>
+
+<figure>
+<svg viewBox="0 0 900 300" role="img" aria-label="조각 지도">
+  <defs>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+            orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#98989d"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="20" width="230" height="64" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="16" y="44" fill="#f2f2f7" font-size="11.5">HandoffModel.move()</text>
+  <text x="16" y="62" fill="#98989d" font-size="10.5">옮기면서 장부에 적는다</text>
+  <text x="16" y="76" fill="#98989d" font-size="10.5">share() 는 항목을 지운다</text>
+
+  <rect x="0" y="140" width="230" height="64" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="16" y="164" fill="#f2f2f7" font-size="11.5">UsageModel 5초 루프</text>
+  <text x="16" y="182" fill="#98989d" font-size="10.5">mirrorBackAll, syncShared</text>
+  <text x="16" y="196" fill="#98989d" font-size="10.5">옆에 sweepMoved() 추가</text>
+
+  <path d="M234 52 C 280 52 280 96 320 100" fill="none" stroke="#98989d" marker-end="url(#b)"/>
+  <path d="M234 172 C 280 172 280 130 320 122" fill="none" stroke="#98989d" marker-end="url(#b)"/>
+
+  <rect x="324" y="76" width="250" height="68" rx="9" fill="rgba(64,200,255,.10)" stroke="#40c8ff"/>
+  <text x="340" y="100" fill="#40c8ff" font-size="11.5">MovedSessions (ClfDesktop)</text>
+  <text x="340" y="118" fill="#98989d" font-size="10.5">moved-sessions.json 장부</text>
+  <text x="340" y="134" fill="#98989d" font-size="10.5">적기, 빼기, 재삭제 세기</text>
+
+  <rect x="324" y="190" width="250" height="64" rx="9" fill="rgba(60,225,107,.10)" stroke="#3ce16b"/>
+  <text x="340" y="214" fill="#3ce16b" font-size="11.5">MoveJanitor (ClfDesktop)</text>
+  <text x="340" y="232" fill="#98989d" font-size="10.5">판정(plan)과 청소(run)</text>
+  <text x="340" y="246" fill="#98989d" font-size="10.5">되살아난 레코드만 지운다</text>
+
+  <path d="M449 148 L 449 186" stroke="#98989d" marker-end="url(#b)"/>
+
+  <rect x="650" y="76" width="230" height="68" rx="9" fill="rgba(192,140,255,.10)" stroke="#c08cff"/>
+  <text x="666" y="100" fill="#c08cff" font-size="11.5">SharedSessions</text>
+  <text x="666" y="118" fill="#98989d" font-size="10.5">공유 장부. 여기 있는 대화는</text>
+  <text x="666" y="134" fill="#98989d" font-size="10.5">청소부가 아예 안 본다</text>
+
+  <path d="M578 222 C 640 222 640 148 660 148" fill="none" stroke="#98989d" marker-end="url(#b)"/>
+  <text x="608" y="196" fill="#98989d" font-size="10.5">먼저 확인</text>
+
+  <rect x="650" y="190" width="230" height="64" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="666" y="214" fill="#f2f2f7" font-size="11.5">SessionDuplicate.live</text>
+  <text x="666" y="232" fill="#98989d" font-size="10.5">장부의 대화는 경고에서 뺀다</text>
+  <text x="666" y="246" fill="#98989d" font-size="10.5">5초 틈에 새는 경고 방지</text>
+</svg>
+</figure>
+
+<table>
+  <tr><th>이름</th><th>자리</th><th>하는 일</th></tr>
+  <tr><td><code>MovedSessions</code></td><td>ClfDesktop</td>
+      <td>옮긴 대화의 장부. 어느 계정에서 지웠고 그때 활동 시각이 몇이었는지</td></tr>
+  <tr><td><code>MoveJanitor</code></td><td>ClfDesktop</td>
+      <td>장부의 대화만 본다. 되살아난 레코드를 판정하고 지운다</td></tr>
+  <tr><td><code>sweepMoved()</code></td><td>ClfApp</td>
+      <td>5초 루프에서 청소부를 부른다. 주기를 새로 만들지 않는다</td></tr>
+</table>
+
+<h2>5. 장부</h2>
+<p>
+  <code>~/Library/Application Support/clf/moved-sessions.json</code>.
+  <code>HandoffGrace</code>, <code>SharedSessions</code> 와 같은 자리, 같은 방식이다.
+</p>
+<pre>{
+  "cb99a8ae-...": {
+    "from": "2a063dae-...",        옛 계정. 여기서 지웠다
+    "watermark": 1786288336445,    지울 때 레코드의 lastActivityAt
+    "cleaned": 0                   다시 지운 횟수. 안전핀이 센다
+  }
+}</pre>
+<p>항목이 빠지는 조건. 하나라도 맞으면 그 대화는 더 안 본다.</p>
+<table>
+  <tr><th>조건</th><th>이유</th></tr>
+  <tr><td>옛 자리에 <b>더 최신</b> 활동이 나타남</td>
+      <td>사용자가 진짜 거기서 이어갔다. 지우면 데이터 손실이다. 겹침 경고에 맡긴다</td></tr>
+  <tr><td>같은 대화를 다시 옮기거나 공유함</td>
+      <td>새 의도가 옛 의도를 덮는다. move() 와 share() 가 시작할 때 지운다</td></tr>
+  <tr><td>받은 쪽 레코드가 사라짐</td>
+      <td>옮김 자체가 무효가 됐다. 지킬 것이 없다</td></tr>
+  <tr><td><code>cleaned</code> 가 3을 넘음</td>
+      <td>안전핀. 수동 복원을 우리가 계속 먹고 있다는 뜻일 수 있다. 포기한다</td></tr>
+</table>
+<p>
+  나이로는 안 지운다. 되살림이 22시간 뒤에도 왔으니 나이로 자르면 구멍이 다시
+  열린다. 위 조건이 안 걸리는 항목은 남지만, 8절의 mtime 게이트 덕에 남아 있는
+  비용이 0 에 가깝다.
+</p>
+
+<h2>6. 청소 판정</h2>
+
+<figure>
+<svg viewBox="0 0 900 470" role="img" aria-label="청소부 판정 흐름도">
+  <defs>
+    <marker id="c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7"
+            orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#98989d"/>
+    </marker>
+  </defs>
+
+  <rect x="20" y="10" width="240" height="44" rx="9" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.18)"/>
+  <text x="36" y="30" fill="#f2f2f7" font-size="11.5">장부의 대화마다</text>
+  <text x="36" y="46" fill="#98989d" font-size="10.5">5초 루프, sweepMoved()</text>
+
+  <path d="M140 58 L 140 84" stroke="#98989d" marker-end="url(#c)"/>
+
+  <polygon points="20,116 140,86 260,116 140,146" fill="rgba(192,140,255,.10)" stroke="#c08cff"/>
+  <text x="86" y="112" fill="#c08cff" font-size="10.5">공유 장부에 있나</text>
+  <text x="96" y="128" fill="#98989d" font-size="10.5">공유가 우선이다</text>
+  <path d="M264 116 L 330 116" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="270" y="108" fill="#ff6961" font-size="10.5">예</text>
+  <text x="336" y="120" fill="#ff6961" font-size="11">항목만 지운다</text>
+
+  <path d="M140 148 L 140 176" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="148" y="168" fill="#3ce16b" font-size="10.5">아니오</text>
+
+  <polygon points="20,208 140,178 260,208 140,238" fill="rgba(255,204,0,.10)" stroke="#ffcc00"/>
+  <text x="66" y="204" fill="#ffcc00" font-size="10.5">받은 쪽 레코드가 있나</text>
+  <text x="92" y="220" fill="#98989d" font-size="10.5">옮김이 유효한가</text>
+  <path d="M264 208 L 330 208" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="270" y="200" fill="#ff6961" font-size="10.5">아니오</text>
+  <text x="336" y="212" fill="#ff6961" font-size="11">항목만 지운다</text>
+
+  <path d="M140 240 L 140 268" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="148" y="260" fill="#3ce16b" font-size="10.5">예</text>
+
+  <polygon points="20,300 140,270 260,300 140,330" fill="rgba(255,204,0,.10)" stroke="#ffcc00"/>
+  <text x="52" y="296" fill="#ffcc00" font-size="10.5">옛 자리에 레코드가 다시 있나</text>
+  <text x="250" y="296" fill="#98989d" font-size="10.5"></text>
+  <path d="M264 300 L 330 300" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="270" y="292" fill="#3ce16b" font-size="10.5">아니오</text>
+  <text x="336" y="304" fill="#3ce16b" font-size="11">정상. 다음 대화로</text>
+
+  <path d="M140 332 L 140 360" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="148" y="352" fill="#ffcc00" font-size="10.5">예. 되살아났다</text>
+
+  <polygon points="20,392 140,362 260,392 140,422" fill="rgba(64,200,255,.10)" stroke="#40c8ff"/>
+  <text x="42" y="388" fill="#40c8ff" font-size="10.5">act &gt; watermark 인가</text>
+  <text x="52" y="404" fill="#98989d" font-size="10.5">진짜 작업이 있었나</text>
+
+  <path d="M264 392 L 330 392" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="270" y="384" fill="#ff6961" font-size="10.5">예</text>
+  <rect x="334" y="368" width="280" height="48" rx="9" fill="rgba(255,105,97,.08)" stroke="#ff6961"/>
+  <text x="350" y="388" fill="#ff6961" font-size="11">물러난다. 항목을 지운다</text>
+  <text x="350" y="406" fill="#98989d" font-size="10.5">사용자의 일이다. 겹침 경고가 말한다</text>
+
+  <path d="M140 424 L 140 448" stroke="#98989d" marker-end="url(#c)"/>
+  <text x="148" y="442" fill="#3ce16b" font-size="10.5">아니오. 같거나 옛것</text>
+
+  <rect x="20" y="448" width="594" height="0" fill="none"/>
+  <rect x="240" y="430" width="374" height="36" rx="9" fill="rgba(60,225,107,.10)" stroke="#3ce16b"/>
+  <text x="256" y="452" fill="#3ce16b" font-size="11">되살아난 시체다. 다시 지운다. cleaned += 1</text>
+
+  <rect x="650" y="86" width="230" height="150" rx="9" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.14)"/>
+  <text x="666" y="110" fill="#f2f2f7" font-size="11.5" font-weight="700">판정의 방향</text>
+  <text x="666" y="134" fill="#98989d" font-size="10.5">헷갈리면 안 지운다.</text>
+  <text x="666" y="150" fill="#98989d" font-size="10.5">틀려서 안 지우면 겹침 표시가</text>
+  <text x="666" y="166" fill="#98989d" font-size="10.5">남을 뿐이고, 틀려서 지우면</text>
+  <text x="666" y="182" fill="#98989d" font-size="10.5">사용자 상태를 잃는다.</text>
+  <text x="666" y="206" fill="#ffcc00" font-size="10.5">지우는 것은 레코드 하나다.</text>
+  <text x="666" y="222" fill="#ffcc00" font-size="10.5">대화 본문은 애초에 못 건드린다.</text>
+</svg>
+<figcaption>
+  cleaned 가 3을 넘으면 4번째 지우기 대신 항목을 빼고 포기한다. 수동 복원을
+  계속 먹는 것보다 겹침 표시가 남는 쪽이 낫다.
+</figcaption>
+</figure>
+
+<h2>7. 우려와 대책</h2>
+<p>이 설계를 검토하며 나온 우려들이고 각각 어디서 막는지다.</p>
+<table>
+  <tr><th>우려</th><th>방향</th><th>대책</th></tr>
+  <tr><td>공유 사본을 시체로 오판해 지운다</td><td class="q">데이터 손실</td>
+      <td>공유 장부 확인이 판정의 첫 문이다. share() 와 move() 는 시작할 때
+          상대 장부의 항목을 지운다. 테스트로 잠근다</td></tr>
+  <tr><td>사용자가 수동으로 복원한 레코드를 먹는다</td><td class="q">데이터 손실</td>
+      <td>cleaned 안전핀. 3번 넘게 되살아나면 의도로 보고 포기한다</td></tr>
+  <tr><td>앱이 살아 있는 동안 쓰고 지우기를 반복한다</td><td class="q">낭비</td>
+      <td>수용한다. 420바이트짜리 파일이고 앱을 재시작하면 끝난다</td></tr>
+  <tr><td>앱이 작업 없이 act 를 올려 쓰면 청소가 멈춘다</td><td class="q">기능 무력화</td>
+      <td>fail-open 으로 둔다. 실측 셋 다 옛 시각 그대로였다. doctor 에
+          장부 상태를 노출해 관찰 가능하게 한다</td></tr>
+  <tr><td>장부가 안 줄어든다</td><td class="q">성능</td>
+      <td>8절의 폴더 mtime 게이트. 안 걸린 항목의 유지 비용이 0 에 가깝다</td></tr>
+  <tr><td>되살아나고 청소까지 5초 틈에 경고가 샌다</td><td class="q">UX</td>
+      <td>장부의 대화는 겹침 판정에서도 뺀다</td></tr>
+</table>
+
+<h2>8. 비용</h2>
+<p>
+  5초마다 장부의 대화 수만큼 일하면 안 된다. <b>옛 계정 폴더의 mtime</b> 을 먼저
+  본다. 레코드가 되살아나면 폴더에 파일이 생기므로 mtime 이 반드시 움직인다.
+  안 움직였으면 그 바퀴는 파일 하나 안 연다.
+</p>
+<pre>sweepMoved():
+  for 옛 계정 폴더 in 장부가 가리키는 폴더들:      // 계정 수만큼, 보통 1-2개
+    if 폴더 mtime 그대로: continue                 // stat 한 번. 대부분 여기서 끝
+    폴더 안 레코드를 읽어 장부의 대화와 대조       // 되살아났을 때만</pre>
+<p>
+  같은 루프가 이미 프로세스 목록 전수 스캔(<code>scanInstances</code>)을 돌고
+  있다. <code>stat</code> 한두 번은 그 옆에서 안 보인다.
+</p>
+
+<h2>9. 문구</h2>
+<p>
+  청소부가 생겨도 <b>옛 창의 화면 목록에는 줄이 남는다.</b> 우리가 지우는 것은
+  디스크지 앱 메모리가 아니다. 문구가 과장하면 안 된다.
+</p>
+<table>
+  <tr><th></th><th>문구</th></tr>
+  <tr><td>지금</td>
+      <td>옮긴 뒤 NAVER_TEAM_40 기본 창을 재시작해 주세요. 재시작 전까지 해당
+          세션 대화가 목록에 남습니다. 동시에 서로 다른 창에서 같은 세션 대화를
+          진행하는 건 추천하지 않습니다.</td></tr>
+  <tr><td>바꿈</td>
+      <td>NAVER_TEAM_40 창 목록에는 재시작 전까지 남아 보일 수 있습니다.
+          남은 항목은 clf 가 정리하니 그대로 두면 됩니다. 옛 창에서 그 세션을
+          다시 열어 작업하면 이동이 취소된 것으로 봅니다.</td></tr>
+</table>
+<p>
+  마지막 문장이 4절의 "더 최신이면 물러난다" 규칙을 사용자 말로 옮긴 것이다.
+  규칙을 숨기지 않아야 물러났을 때 놀라지 않는다.
+</p>
+
+<h2>10. 단계</h2>
+<ol class="steps">
+  <li><code>MovedSessions</code> 장부. 적기, 빼기, cleaned 세기, 파일 왕복. TDD</li>
+  <li><code>MoveJanitor.plan</code> 판정. 파일 안 건드리는 순수 함수. 6절 흐름도 그대로. TDD</li>
+  <li><code>MoveJanitor.run</code> 청소. 실제 삭제와 장부 갱신. move()/share() 의 항목 정리. TDD</li>
+  <li>5초 루프 연결, mtime 게이트, 겹침 판정 제외, 문구 교체</li>
+</ol>
+
+<h2>11. 테스트로 잠글 것</h2>
+<table>
+  <tr><th>테스트</th><th>잡는 것</th></tr>
+  <tr><td>move 가 장부에 적는다</td><td>워터마크가 지울 때의 act 값이다</td></tr>
+  <tr><td>옛 시각으로 되살아나면 지운다</td><td>핵심 동작</td></tr>
+  <tr><td>같은 시각도 지운다</td><td>실측한 되살림의 모양이다</td></tr>
+  <tr><td>더 최신이면 안 지우고 항목을 뺀다</td><td>진짜 작업 보호. 지우면 데이터 손실</td></tr>
+  <tr><td>공유 장부에 있으면 손대지 않는다</td><td>공유 사본 오살. 우려 1번</td></tr>
+  <tr><td>share 가 move 항목을 지운다</td><td>옮겼다가 공유하는 순서</td></tr>
+  <tr><td>다시 옮기면 항목을 덮는다</td><td>새 의도가 옛 의도를 이긴다</td></tr>
+  <tr><td>받은 쪽 레코드가 사라지면 항목을 뺀다</td><td>무효가 된 옮김</td></tr>
+  <tr><td>cleaned 가 3을 넘으면 포기한다</td><td>수동 복원 안전핀</td></tr>
+  <tr><td>장부의 대화는 겹침 경고에 안 뜬다</td><td>5초 틈에 새는 경고</td></tr>
+  <tr><td>깨진 장부는 빈 것으로 친다</td><td>장부 하나 때문에 앱이 멎으면 안 된다</td></tr>
+</table>
+
+<h2>12. 안 하는 것</h2>
+<table>
+  <tr><th>안 하는 것</th><th>이유</th></tr>
+  <tr><td>앱 메모리의 목록 정리</td>
+      <td>남의 프로세스다. 재시작만이 지운다. 문구가 그 사실을 말한다</td></tr>
+  <tr><td>나이 기반 장부 정리</td>
+      <td>되살림이 22시간 뒤에도 왔다. 나이로 자르면 구멍이 다시 열린다</td></tr>
+  <tr><td>트랜스크립트 삭제</td>
+      <td>청소부가 지우는 것은 레코드 하나뿐이다. 대화 본문은 어떤 경우에도 안 건드린다</td></tr>
+  <tr><td>FSEvents 감시</td>
+      <td>14 문서 5절과 같은 이유다. 5초 루프와 mtime 게이트면 충분하다</td></tr>
+</table>
+</div>
