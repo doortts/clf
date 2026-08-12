@@ -19,7 +19,7 @@ struct EscapeToClose: ViewModifier {
                 guard monitor == nil else { return }
                 monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                     guard event.keyCode == Self.escape else { return event }
-                    NSApp.keyWindow?.close()
+                    AppFocus.dismissPopover()
                     // 삼킨다. 흘려보내면 뒤에 있던 창까지 같이 닫힌다
                     return nil
                 }
@@ -39,6 +39,20 @@ extension View {
 ///
 /// 배경 앱에서 실행하면 창이 뒤에 뜬다. 사용자는 안 뜬 줄 알고 또 누른다.
 enum AppFocus {
+    /// 팝오버를 닫고 **활성 상태까지 내려놓는다.**
+    ///
+    /// 팝오버를 열면 우리가 활성 앱이 된다. 창만 닫으면 우리가 계속 활성이라
+    /// 사용자가 방금까지 쓰던 앱으로 안 돌아간다. 밖을 눌러서 닫을 때는 그
+    /// 클릭이 다른 앱을 활성으로 만들지만 esc 에는 그런 클릭이 없다.
+    ///
+    /// `LSUIElement` 앱이라 창을 다 닫으면 내려놓을 것이 활성 상태뿐이다.
+    /// 어느 앱으로 갈지는 시스템이 정한다. 우리가 pid 를 골라 활성화하면
+    /// 그 사이에 사용자가 손으로 바꾼 앱을 덮어쓸 수 있다.
+    static func dismissPopover() {
+        NSApp.keyWindow?.close()
+        NSApp.deactivate()
+    }
+
     static func bringToFront(pid: Int32) {
         guard let app = NSRunningApplication(processIdentifier: pid) else { return }
         app.activate(options: [.activateAllWindows])
