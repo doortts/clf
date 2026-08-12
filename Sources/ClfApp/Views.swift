@@ -604,6 +604,9 @@ struct PopoverView: View {
                 Color.white
             }
         }
+        // esc 로 닫는다. 메뉴는 esc 로 닫히는데 이 창은 안 닫혀서
+        // 사용자가 밖을 눌러야 한다
+        .escapeToClose()
         .task {
             // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
             model.clearNotice()
