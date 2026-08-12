@@ -216,7 +216,7 @@ enum BarImage {
     }
 
     /// 상태 항목이 사는 창. 공개 타입이 아니라 이름으로 찾는다.
-    private static var statusBarWindow: NSWindow? {
+    static var statusBarWindow: NSWindow? {
         NSApp.windows.first { String(describing: type(of: $0)) == "NSStatusBarWindow" }
     }
 

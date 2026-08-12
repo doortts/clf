@@ -38,19 +38,42 @@ extension View {
 /// 우리가 띄운 인스턴스를 앞으로 꺼낸다.
 ///
 /// 배경 앱에서 실행하면 창이 뒤에 뜬다. 사용자는 안 뜬 줄 알고 또 누른다.
+@MainActor
 enum AppFocus {
-    /// 팝오버를 닫고 **활성 상태까지 내려놓는다.**
+    /// 팝오버를 닫고 **막대의 눌린 표시와 활성 상태까지 내려놓는다.**
     ///
-    /// 팝오버를 열면 우리가 활성 앱이 된다. 창만 닫으면 우리가 계속 활성이라
-    /// 사용자가 방금까지 쓰던 앱으로 안 돌아간다. 밖을 눌러서 닫을 때는 그
-    /// 클릭이 다른 앱을 활성으로 만들지만 esc 에는 그런 클릭이 없다.
+    /// 창을 직접 닫으면 `MenuBarExtra` 가 그 사실을 모른다. 눌린 표시는
+    /// 상태 항목 단추의 상태라 창과 따로 남는다. 그래서 창을 닫는 대신
+    /// **그 단추를 우리가 누른다.** 사용자가 아이콘을 다시 눌러 닫는 것과
+    /// 같은 길이라 표시와 내부 상태가 같이 풀린다.
     ///
-    /// `LSUIElement` 앱이라 창을 다 닫으면 내려놓을 것이 활성 상태뿐이다.
-    /// 어느 앱으로 갈지는 시스템이 정한다. 우리가 pid 를 골라 활성화하면
-    /// 그 사이에 사용자가 손으로 바꾼 앱을 덮어쓸 수 있다.
-    static func dismissPopover() {
-        NSApp.keyWindow?.close()
-        NSApp.deactivate()
+    /// 단추를 못 찾으면 창을 닫는 옛 길로 간다. 표시는 남을 수 있지만
+    /// esc 가 아무 일도 안 하는 것보다 낫다.
+    ///
+    /// `yieldFocus` 면 활성 상태도 내려놓는다. 팝오버를 열면 우리가 활성 앱이
+    /// 되는데, 밖을 눌러 닫을 때는 그 클릭이 다른 앱을 활성으로 만들지만
+    /// esc 에는 그런 클릭이 없다. 어느 앱으로 갈지는 시스템이 정한다. 우리가
+    /// pid 를 골라 활성화하면 그 사이에 사용자가 손으로 바꾼 앱을 덮어쓸 수
+    /// 있다. 넘기기 창을 여는 길에서는 우리가 계속 활성이어야 해서 끈다.
+    static func dismissPopover(yieldFocus: Bool = true) {
+        if let button = statusItemButton, button.state == .on {
+            button.performClick(nil)
+        } else {
+            NSApp.keyWindow?.close()
+        }
+        if yieldFocus { NSApp.deactivate() }
+    }
+
+    /// 막대의 우리 아이콘. `NSStatusBarButton` 은 공개 타입이 아니지만
+    /// `NSButton` 이라서 그 창 안에서 단추를 찾으면 된다.
+    private static var statusItemButton: NSButton? {
+        guard let root = BarImage.statusBarWindow?.contentView else { return nil }
+        var stack = [root]
+        while let view = stack.popLast() {
+            if let button = view as? NSButton { return button }
+            stack.append(contentsOf: view.subviews)
+        }
+        return nil
     }
 
     static func bringToFront(pid: Int32) {

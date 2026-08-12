@@ -563,8 +563,9 @@ struct PopoverView: View {
                 // 쪽이 같은 무게로 올라선다
                 Button {
                     // 팝오버를 먼저 닫는다. 열린 채 두면 키 창 자리를 쥐고
-                    // 있어서 넘기기 창이 떠도 포커스를 못 받는다
-                    NSApp.keyWindow?.close()
+                    // 있어서 넘기기 창이 떠도 포커스를 못 받는다. 활성은
+                    // 그대로 쥔다. 넘기기 창이 바로 이어서 뜬다
+                    AppFocus.dismissPopover(yieldFocus: false)
                     HandoffWindow.open()
                 } label: {
                     Label("세션 작업 이전", systemImage: "arrow.left.arrow.right")
