@@ -9,7 +9,6 @@ struct HandoffView: View {
     @Environment(\.colorScheme) private var scheme
 
     static let width: CGFloat = 460
-    static let listHeight: CGFloat = 180
 
     /// 주의 글자색.
     ///
@@ -95,7 +94,7 @@ struct HandoffView: View {
             // 넘칠 때는 막대를 계속 보여준다
             .background(AlwaysVisibleScrollers())
         }
-        .frame(height: Self.listHeight)
+        .frame(height: Metrics.listHeight)
         // 검정 덮기 대신 라벨색 퍼센트. 라이트에서도 같은 만큼 가라앉는다
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10)))

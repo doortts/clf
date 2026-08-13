@@ -7,6 +7,9 @@ enum Metrics {
     static let popoverPadding: CGFloat = 14
     static let rowHeight: CGFloat = 28
     static let barHeight: CGFloat = 6
+    /// 세션 목록의 높이. **두 탭이 같은 값을 쓴다.** 높이가 다르면 탭을 바꿀 때
+    /// 창에 빈 자리가 생긴다. 창은 자기 크기를 유지한다.
+    static let listHeight: CGFloat = 180
 
     // MARK: macOS 27 UI Kit 실측값
     //

@@ -80,9 +80,7 @@ struct ResumeTab: View {
                 }
             }
         }
-        // 이전 탭과 같은 높이다. 두 탭의 높이가 비슷해야 탭을 바꿀 때 창에
-        // 빈 자리가 생기지 않는다. 창은 자기 크기를 유지한다
-        .frame(height: HandoffView.listHeight)
+        .frame(height: Metrics.listHeight)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10)))
         .overlay {
