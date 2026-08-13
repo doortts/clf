@@ -8,38 +8,67 @@
   h2 { font-size:15px; line-height:20px; margin:30px 0 8px; }
   h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 8px; }
   p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
-  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:8px 0 0; max-width:330px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:8px 0 0; max-width:460px; }
   .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
   code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
   .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
 
-  /* 팝오버 설정 구획 */
-  .pop { width:312px; border-radius:12px; padding:12px 14px; box-sizing:border-box;
-         background:#252527; }
-  .sect { font-size:11px; font-weight:600; margin:0 0 8px; }
-  .group { border-radius:8px; padding:10px 12px; background:rgba(255,255,255,.06);
-           box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
-  .chk { display:flex; align-items:center; gap:8px; min-height:20px; font-size:11px; }
+  /* 세션 작업 이전/재개 창. 실제 폭 460 */
+  .win { width:460px; box-sizing:border-box; border-radius:10px; padding:14px;
+         background:#2b2b2d; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+  .tabs { display:flex; gap:2px; padding:2px; border-radius:7px; margin:0 0 12px;
+          background:rgba(255,255,255,.08); }
+  .tab { flex:1; text-align:center; font-size:12px; line-height:20px; border-radius:5px;
+         color:var(--dim); }
+  .tab.on { background:rgba(255,255,255,.16); color:var(--ink); font-weight:600;
+            box-shadow:0 1px 2px rgba(0,0,0,.25); }
+
+  .head { display:flex; gap:10px; align-items:flex-start; }
+  .chk { display:flex; align-items:center; gap:8px; font-size:12px; min-height:20px; }
   .box { width:13px; height:13px; border-radius:3px; background:#0a84ff; color:#fff;
          font-size:10px; display:grid; place-items:center; flex:none; }
-  .box.off { background:rgba(255,255,255,.12); }
-  .hint { font-size:10px; line-height:13px; opacity:.5; margin:4px 0 0 21px; }
-  .row { display:flex; align-items:center; gap:8px; margin-top:8px; }
-  .row .lbl { width:44px; flex:none; font-size:11px; color:var(--dim); }
-  .menu { flex:1; min-width:0; display:flex; align-items:center; gap:6px; height:20px;
-          border-radius:5px; padding:0 6px; font-size:11px;
-          background:rgba(255,255,255,.10); box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
-  .menu span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .menu .chev { margin-left:auto; flex:none; width:11px; height:11px; border-radius:3px;
-                background:#0a84ff; color:#fff; font-size:8px; line-height:11px;
-                text-align:center; }
-  .field { flex:1; height:20px; border-radius:5px; padding:0 6px; font-size:11px;
-           display:flex; align-items:center; background:rgba(0,0,0,.25);
+  .box.off { background:rgba(255,255,255,.14); }
+  .radio { width:13px; height:13px; border-radius:7px; flex:none;
+           box-shadow:inset 0 0 0 1px rgba(255,255,255,.35); }
+  .radio.on { background:#0a84ff; box-shadow:none; position:relative; }
+  .radio.on::after { content:""; position:absolute; inset:4px; border-radius:3px; background:#fff; }
+  .hint { font-size:10px; line-height:13px; color:var(--dim); margin:4px 0 0 21px; }
+
+  /* 계정 상자. AccountBox 그대로 */
+  .acct { width:196px; flex:none; box-sizing:border-box; border-radius:6px; padding:5px 9px;
+          display:flex; align-items:center; gap:8px;
+          background:rgba(255,255,255,.08); box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); }
+  .acct .nm { font-size:12px; font-weight:600; }
+  .acct .wh { font-size:10px; color:var(--dim); }
+  .acct .chev { margin-left:auto; font-size:9px; color:var(--dim); }
+
+  .cnt { font-size:10px; color:var(--dim); margin:12px 0 5px 2px; }
+  .list { border-radius:8px; overflow:hidden; background:rgba(255,255,255,.06);
+          box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .list.h { height:148px; }
+  .item { display:flex; align-items:center; gap:10px; padding:7px 10px; font-size:12px; }
+  .item + .item { border-top:1px solid rgba(255,255,255,.07); }
+  .item.on { background:rgba(10,132,255,.18); }
+  .item .tt { min-width:0; }
+  .item .sub { font-size:10px; color:var(--dim); }
+  .item .ago { margin-left:auto; font-size:10px; color:var(--dim); flex:none; }
+
+  .prow { display:flex; align-items:center; gap:8px; margin-top:10px; }
+  .prow .lbl { font-size:11px; color:var(--dim); flex:none; }
+  .field { flex:1; height:22px; border-radius:5px; padding:0 7px; font-size:11px;
+           display:flex; align-items:center; background:rgba(0,0,0,.28);
            box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
-  .status { margin-top:10px; padding-top:8px; border-top:1px solid var(--line);
-            font-size:10px; line-height:14px; color:var(--dim); display:flex; gap:6px; }
-  .dot { width:6px; height:6px; border-radius:3px; margin-top:4px; flex:none; }
-  .faded { opacity:.35; }
+
+  /* 상태 상자. 이전 탭의 안내 상자와 같은 꼴 */
+  .note { display:flex; gap:8px; margin-top:10px; border-radius:6px; padding:8px 10px;
+          background:rgba(255,255,255,.05); font-size:11px; line-height:15px; }
+  .note .bar { width:2px; border-radius:1px; flex:none; }
+  .note b { font-weight:600; color:var(--ink); }
+  .note .dim { color:var(--dim); }
+  .foot { display:flex; justify-content:flex-end; margin-top:12px; }
+  .btn { font-size:12px; border-radius:6px; padding:3px 14px;
+         background:rgba(255,255,255,.14); box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .faded { opacity:.4; }
 
   /* macOS 알림 배너 */
   .banner { width:344px; border-radius:16px; padding:12px 14px; box-sizing:border-box;
@@ -49,12 +78,20 @@
           place-items:center; background:#2c2c2e; box-shadow:0 0 0 .5px rgba(255,255,255,.14); }
   .icon .bars { display:flex; flex-direction:column; gap:2px; }
   .icon .bars i { display:block; width:20px; height:4px; border-radius:1px; }
-  .body { min-width:0; flex:1; }
+  .bd { min-width:0; flex:1; }
   .ttl { font-size:13px; line-height:16px; font-weight:600; display:flex; }
   .ttl span:last-child { margin-left:auto; font-weight:400; opacity:.55; font-size:11px;
                          flex:none; padding-left:8px; }
   .txt { font-size:13px; line-height:16px; opacity:.85; margin-top:1px; }
   .txt b { font-weight:600; opacity:1; }
+
+  /* 팝오버 단추 한 줄 */
+  .pop { width:312px; box-sizing:border-box; border-radius:12px; padding:12px 14px;
+         background:#252527; }
+  .prow2 { display:flex; align-items:center; gap:8px; height:26px; border-radius:6px;
+           padding:0 9px; font-size:12px; background:rgba(255,255,255,.07);
+           box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .prow2 .ic { font-size:11px; color:var(--dim); }
 
   /* 흐름 */
   .flow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
@@ -67,136 +104,244 @@
           max-width:1010px; }
   th, td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
   th { color:var(--dim); font-weight:500; }
-  .note { margin-top:22px; color:var(--dim); max-width:920px; }
-  .note b { color:var(--ink); }
+  td.m { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .end { margin-top:22px; color:var(--dim); max-width:920px; }
+  .end b { color:var(--ink); }
 </style>
 
 <h1>자동 재개 시안</h1>
 <p class="lede">
   리밋 소진으로 멈춘 CLI 세션을 <b>창이 리셋되고 3분 뒤</b>에 자동으로 이어
-  돌린다. 실행 전에 5시간과 주간 전체 창의 잔여를 다시 읽어 <b>둘 다 30%
-  이상일 때만</b> 돌린다. 30% 는 게이지가 초록으로 바뀌는 그 경계다.
+  돌린다. 실행 직전에 사용량을 다시 읽어 5시간과 주간 전체 <b>둘 다 잔여 5%
+  이상일 때만</b> 돌린다. 5% 는 알림이 빨강을 예고하는 그 경계다.
   설계는 docs/design/16-auto-resume.md.
 </p>
-
-<h2>1. 설정 구획</h2>
 <p class="lede">
-  기존 설정 패널 맨 아래, 알림 칸 다음에 한 구획을 더한다. 켜면 계정, 세션,
-  프롬프트 세 줄이 아래로 열린다.
+  설정 패널에는 넣지 않는다. 켜면 계정과 세션과 프롬프트가 아래로 열려 패널이
+  길어지고, 그 패널은 이미 화면 하나를 다 쓴다. <b>세션을 다루는 창이 이미
+  있으므로</b> 거기에 탭으로 넣는다.
 </p>
+
+<h2>1. 들어가는 자리: 팝오버 단추 이름을 고친다</h2>
 <div class="cols">
   <div>
-    <h3>켠 상태</h3>
-    <div class="pop">
-      <div class="sect">자동 재개</div>
-      <div class="group">
-        <div class="chk"><span class="box">&#10003;</span>리밋 풀리면 세션 자동 재개</div>
-        <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 30% 이상일 때만 돕니다</div>
-        <div class="row">
-          <span class="lbl">계정</span>
-          <span class="menu"><span>NAVER_TEAM_52</span><span class="chev">&#8597;</span></span>
-        </div>
-        <div class="hint" style="margin-left:52px">CLI 가 이 계정으로 로그인돼 있어야 합니다</div>
-        <div class="row">
-          <span class="lbl">세션</span>
-          <span class="menu"><span>clf, Build 스크립트 작성</span><span class="chev">&#8597;</span></span>
-        </div>
-        <div class="row">
-          <span class="lbl">프롬프트</span>
-          <span class="field">이어서 진행해줘</span>
-        </div>
-        <div class="status">
-          <span class="dot" style="background:#3ce16b"></span>
-          <span>5시간, 주간 창을 지켜보는 중</span>
-        </div>
-      </div>
-    </div>
-    <p class="cap">
-      세션 메뉴는 <code>프로젝트, 세션 제목</code> 꼴로 최근 10개를 보여준다.
-      상태 줄은 지금 단계를 항상 말한다. 조용히 도는 기능은 도는지 안 도는지가
-      제일 궁금하다.
-    </p>
+    <h3>전</h3>
+    <div class="pop"><div class="prow2"><span class="ic">&#8646;</span>세션 작업 이전</div></div>
   </div>
   <div>
-    <h3>끈 상태 (기본값)</h3>
-    <div class="pop">
-      <div class="sect">자동 재개</div>
-      <div class="group">
-        <div class="chk"><span class="box off"></span>리밋 풀리면 세션 자동 재개</div>
-        <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 30% 이상일 때만 돕니다</div>
-      </div>
-    </div>
+    <h3>후</h3>
+    <div class="pop"><div class="prow2"><span class="ic">&#8646;</span>세션 작업 이전/재개</div></div>
     <p class="cap">
-      끄면 계정, 세션, 프롬프트 줄이 접힌다. 안 쓰는 기능이 자리를 먹지 않는다.
+      단추는 그대로 하나다. 창 안에서 탭으로 갈린다. 팝오버에 단추를 하나 더
+      두면 설정 패널을 늘리지 않으려 한 이유가 무의미해진다.
     </p>
-    <h3 style="margin-top:20px">CLI 를 못 찾은 상태</h3>
-    <div class="pop">
-      <div class="sect">자동 재개</div>
-      <div class="group">
-        <div class="chk faded"><span class="box off"></span>리밋 풀리면 세션 자동 재개</div>
-        <div class="hint" style="opacity:.8; color:#ffd60a">claude CLI 를 찾지 못했습니다. 설치해야 켤 수 있습니다</div>
-      </div>
-    </div>
   </div>
 </div>
 
-<h2>2. 상태 줄</h2>
+<h2>2. 자동 재개 탭</h2>
 <p class="lede">
-  구획 아래 한 줄이 단계를 따라 바뀐다. 색점은 메뉴바 게이지와 같은 어휘다:
-  초록은 평상, 노랑은 기다림, 빨강은 문제.
-</p>
-<table>
-  <tr><th>단계</th><th>표시</th><th>언제</th></tr>
-  <tr>
-    <td>대기</td>
-    <td><span class="good">&#9679;</span> 5시간, 주간 창을 지켜보는 중</td>
-    <td>소진된 창이 없다</td>
-  </tr>
-  <tr>
-    <td>예약</td>
-    <td><span class="warn">&#9679;</span> 5시간 창 소진. 오후 2:32 재개 예정</td>
-    <td>소진 감지. 리셋 + 3분에 타이머</td>
-  </tr>
-  <tr>
-    <td>실행</td>
-    <td><span class="warn">&#9679;</span> 재개 실행 중...</td>
-    <td>점검 통과, CLI 가 도는 중</td>
-  </tr>
-  <tr>
-    <td>실행 후</td>
-    <td><span class="good">&#9679;</span> 오후 2:32 재개함. 다시 지켜보는 중</td>
-    <td>마지막 결과를 남기고 대기로</td>
-  </tr>
-  <tr>
-    <td>보류</td>
-    <td><span class="bad">&#9679;</span> 주간 잔여 12%. 여유가 없어 재개 안 함</td>
-    <td>점검에서 30% 미만</td>
-  </tr>
-  <tr>
-    <td>실패</td>
-    <td><span class="bad">&#9679;</span> 재개 실패 (exit 1). 세션이 없습니다</td>
-    <td>CLI 가 비정상 종료</td>
-  </tr>
-</table>
-
-<h2>3. 알림</h2>
-<p class="lede">
-  결과만 알린다. 예약은 알리지 않는다. 소진 알림이 이미 갔고, 예약 사실은
-  설정의 상태 줄에 있다.
+  창 폭 460 을 그대로 쓴다. 위에서 아래로 <b>켜기와 계정</b>, <b>세션 목록</b>,
+  <b>프롬프트</b>, <b>상태</b> 순이다. 이전 탭과 같은 골격이라 부품을 다시 쓴다.
+  계정은 <code>AccountBox</code>, 목록은 같은 목록 틀, 상태는 같은 안내 상자다.
 </p>
 <div class="cols">
   <div>
-    <h3>재개했을 때</h3>
+    <h3>켠 상태. 지켜보는 중</h3>
+    <div class="win">
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
+      <div class="head">
+        <div style="flex:1; min-width:0">
+          <div class="chk"><span class="box">&#10003;</span>리밋 풀리면 자동으로 이어 돌리기</div>
+          <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 5% 이상일 때만 돕니다</div>
+        </div>
+        <div class="acct">
+          <span><span class="nm">NAVER_TEAM_52</span><br><span class="wh">한도를 지켜볼 계정</span></span>
+          <span class="chev">&#9660;</span>
+        </div>
+      </div>
+      <div class="cnt">CLI 세션 3개</div>
+      <div class="list h">
+        <div class="item on"><span class="radio on"></span>
+          <span class="tt">Build 스크립트 작성<br><span class="sub">~/repos/clf</span></span>
+          <span class="ago">2시간 전</span></div>
+        <div class="item"><span class="radio"></span>
+          <span class="tt">자동 재개 기능 설계<br><span class="sub">~/repos/clf</span></span>
+          <span class="ago">어제</span></div>
+        <div class="item"><span class="radio"></span>
+          <span class="tt">막대 눌린 표시 고치기<br><span class="sub">~/repos/yonalist</span></span>
+          <span class="ago">3일 전</span></div>
+      </div>
+      <div class="prow"><span class="lbl">프롬프트</span>
+        <span class="field">이어서 진행해줘</span></div>
+      <div class="note"><span class="bar" style="background:#3ce16b"></span>
+        <span>5시간, 주간 창을 지켜보는 중입니다.
+        <span class="dim">소진되면 리셋 3분 뒤에 이 세션을 이어 돌립니다.</span></span></div>
+      <div class="foot"><span class="btn">닫기</span></div>
+    </div>
+    <p class="cap">
+      계정 상자를 첫 줄 오른쪽에 올린다. 아래 목록이 CLI 세션이라 계정과 줄이
+      바뀌면 목록이 그 계정의 세션으로 읽힌다. 켜기 옆에 붙여 <b>한도를 지켜볼
+      계정</b>이라는 보조 문구를 함께 보여준다.
+    </p>
+    <p class="cap">
+      세션은 <b>하나만</b> 고르므로 라디오다. 이전 탭은 여러 개를 옮기니 체크박스다.
+      모양이 다르면 규칙이 다르다는 것이 눌러보기 전에 보인다.
+    </p>
+  </div>
+  <div>
+    <h3>끈 상태. 기본값</h3>
+    <div class="win">
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
+      <div class="head">
+        <div style="flex:1; min-width:0">
+          <div class="chk"><span class="box off"></span>리밋 풀리면 자동으로 이어 돌리기</div>
+          <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 5% 이상일 때만 돕니다</div>
+        </div>
+        <div class="acct faded">
+          <span><span class="nm">NAVER_TEAM_52</span><br><span class="wh">한도를 지켜볼 계정</span></span>
+          <span class="chev">&#9660;</span>
+        </div>
+      </div>
+      <div class="cnt">CLI 세션 3개</div>
+      <div class="list h">
+        <div class="item"><span class="radio"></span>
+          <span class="tt">Build 스크립트 작성<br><span class="sub">~/repos/clf</span></span>
+          <span class="ago">2시간 전</span></div>
+        <div class="item"><span class="radio"></span>
+          <span class="tt">자동 재개 기능 설계<br><span class="sub">~/repos/clf</span></span>
+          <span class="ago">어제</span></div>
+      </div>
+      <div class="prow"><span class="lbl">프롬프트</span>
+        <span class="field">이어서 진행해줘</span></div>
+      <div class="note"><span class="bar" style="background:transparent"></span>
+        <span class="dim">꺼져 있습니다. 켜면 고른 세션을 리셋 뒤에 이어 돌립니다.</span></div>
+      <div class="foot"><span class="btn">닫기</span></div>
+    </div>
+    <p class="cap">
+      끈 상태에서도 아래를 <b>흐리게 하지 않는다.</b> 흐린 채로 눌리는 줄은
+      거짓말이고, 실제로 여기서 세션을 고를 수 있다.
+    </p>
+    <p class="cap">
+      <b>고르는 것이 곧 켜는 것이다.</b> 꺼 둔 채로 고르면 아무 일도 안
+      일어나서 누른 것이 먹었는지 알 수 없다. 세션을 고르면 위 체크가 같이
+      켜진다. 놓을 때는 끄지 않는다. 다른 세션으로 갈아타는 중일 수 있다.
+    </p>
+  </div>
+</div>
+
+<h2>3. 상태 상자 여섯 가지</h2>
+<p class="lede">
+  창 아래 상자 하나가 단계를 말한다. 왼쪽 색 띠는 이전 탭의 안내 상자와 같은
+  어휘다. 초록은 평상, 노랑은 기다림, 빨강은 문제.
+</p>
+<div class="cols">
+  <div style="width:460px">
+    <div class="note"><span class="bar" style="background:#3ce16b"></span>
+      <span>5시간, 주간 창을 지켜보는 중입니다.
+      <span class="dim">소진되면 리셋 3분 뒤에 이 세션을 이어 돌립니다.</span></span></div>
+    <div class="note"><span class="bar" style="background:#ffd60a"></span>
+      <span>한도가 소진됐습니다. <b>2시간 14분 뒤</b>에 재개합니다.
+      <span class="dim">그때 잔여를 다시 확인합니다.</span></span></div>
+    <div class="note"><span class="bar" style="background:#ffd60a"></span>
+      <span>재개를 실행하는 중입니다.</span></div>
+    <div class="note"><span class="bar" style="background:#3ce16b"></span>
+      <span><b>5분 전</b>에 이어 돌렸습니다.
+      <span class="dim">다시 지켜보는 중입니다.</span></span></div>
+    <div class="note"><span class="bar" style="background:#ff6961"></span>
+      <span>주간 전체 잔여가 <b>3%</b> 라 이번 리셋에는 재개하지 않았습니다.
+      <span class="dim">다음 리셋에 다시 확인합니다.</span></span></div>
+    <div class="note"><span class="bar" style="background:#ff6961"></span>
+      <span>재개하지 못했습니다. claude 가 <b>exit 1</b> 로 끝났습니다.
+      <span class="dim">No conversation found with session ID</span></span></div>
+  </div>
+  <div>
+    <p class="cap" style="margin-top:0">
+      보류와 실패는 둘 다 빨강이지만 뜻이 다르다. <b>보류는 규칙대로 안 돈
+      것</b>이고 <b>실패는 돌리려다 깨진 것</b>이다. 문구가 그 차이를 말한다.
+      보류에는 다음에 다시 본다는 말을 붙이고, 실패에는 exit code 와 stderr
+      첫 줄을 그대로 적는다.
+    </p>
+    <p class="cap">
+      예약 상자에 <code>그때 잔여를 다시 확인합니다</code> 를 붙인다. 시각만
+      적으면 그 시각에 무조건 돈다고 읽힌다.
+    </p>
+    <p class="cap">
+      시각은 <b>상대값</b>으로 적는다. 주간 리셋은 며칠 뒤라 <code>오후 2:32</code>
+      만 적으면 오늘로 읽힌다. 남은 시간 표기는 막대가 쓰는 것을 그대로 쓴다.
+    </p>
+  </div>
+</div>
+
+<h2>4. 못 켜는 경우</h2>
+<div class="cols">
+  <div>
+    <h3>CLI 가 없다</h3>
+    <div class="win" style="padding-bottom:14px">
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
+      <div class="head">
+        <div style="flex:1; min-width:0">
+          <div class="chk faded"><span class="box off"></span>리밋 풀리면 자동으로 이어 돌리기</div>
+          <div class="hint" style="color:#ffd60a; opacity:.9">claude CLI 를 찾지 못했습니다. 설치해야 켤 수 있습니다</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:12px"><span class="bar" style="background:#ffd60a"></span>
+        <span class="dim">찾아본 곳: ~/.local/bin/claude, /opt/homebrew/bin/claude,
+        /usr/local/bin/claude</span></div>
+    </div>
+    <p class="cap">
+      켜기를 못 누르게 하고 <b>어디를 찾아봤는지</b> 적는다. 다른 데 설치한
+      사람은 그 목록을 보고 알 수 있다. 목록과 프롬프트 줄은 켤 수 없으니 뺀다.
+    </p>
+  </div>
+  <div>
+    <h3>CLI 세션이 없다</h3>
+    <div class="win" style="padding-bottom:14px">
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
+      <div class="head">
+        <div style="flex:1; min-width:0">
+          <div class="chk"><span class="box">&#10003;</span>리밋 풀리면 자동으로 이어 돌리기</div>
+          <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 5% 이상일 때만 돕니다</div>
+        </div>
+        <div class="acct">
+          <span><span class="nm">NAVER_TEAM_52</span><br><span class="wh">한도를 지켜볼 계정</span></span>
+          <span class="chev">&#9660;</span>
+        </div>
+      </div>
+      <div class="cnt">CLI 세션 0개</div>
+      <div class="list h" style="display:grid; place-items:center">
+        <span style="font-size:12px; color:var(--dim)">이어 돌릴 CLI 세션이 없습니다</span>
+      </div>
+      <div class="note"><span class="bar" style="background:transparent"></span>
+        <span class="dim">꺼져 있습니다. 켜면 고른 세션을 리셋 뒤에 이어 돌립니다.</span></div>
+    </div>
+    <p class="cap">
+      켜기는 열어 둔다. 목록이 비는 것은 고장이 아니라 상태다. 고를 것이 없으면
+      저장되는 것도 없으므로 상태는 <b>꺼진 것</b>이다. 켜기만 눌러 둔 상태를
+      저장하지 않는다. 무엇을 돌릴지 없는 예약이 남는다.
+    </p>
+  </div>
+</div>
+
+<h2>5. 알림</h2>
+<p class="lede">
+  결과만 알린다. 예약은 알리지 않는다. 소진 알림이 이미 갔고 예약은 창 안
+  상태에 있다. 창을 닫아 두고 지내는 기능이라 결과는 알림으로 와야 한다.
+</p>
+<div class="cols">
+  <div>
+    <h3>이어 돌렸을 때</h3>
     <div class="banner">
       <span class="icon"><span class="bars">
         <i style="background:#3ce16b"></i><i style="background:#3ce16b"></i>
         <i style="background:#66d4cf"></i></span></span>
-      <span class="body">
+      <span class="bd">
         <span class="ttl"><span>세션 자동 재개</span><span>지금</span></span>
-        <span class="txt">clf, Build 스크립트 작성 세션을 이어서 실행했습니다</span>
+        <span class="txt">Build 스크립트 작성 세션을 이어서 실행했습니다</span>
       </span>
     </div>
-    <p class="cap">본문에 세션 이름을 넣는다. 어느 작업이 다시 돌기 시작했는지가 알림의 전부다.</p>
+    <p class="cap" style="max-width:344px">
+      본문에 세션 이름을 넣는다. 어느 작업이 다시 돌기 시작했는지가 전부다.
+    </p>
   </div>
   <div>
     <h3>보류했을 때</h3>
@@ -204,12 +349,14 @@
       <span class="icon"><span class="bars">
         <i style="background:#ffd60a"></i><i style="background:#3ce16b"></i>
         <i style="background:#66d4cf"></i></span></span>
-      <span class="body">
+      <span class="bd">
         <span class="ttl"><span>자동 재개 보류</span><span>지금</span></span>
-        <span class="txt">주간 전체 잔여 <b>12%</b> 라 이번 리셋에는 재개하지 않습니다</span>
+        <span class="txt">주간 전체 잔여가 <b>3%</b> 라 이번 리셋에는 재개하지 않았습니다</span>
       </span>
     </div>
-    <p class="cap">왜 안 돌았는지를 말한다. 조용히 건너뛰면 고장으로 보인다.</p>
+    <p class="cap" style="max-width:344px">
+      왜 안 돌았는지를 말한다. 조용히 건너뛰면 고장으로 보인다.
+    </p>
   </div>
   <div>
     <h3>실패했을 때</h3>
@@ -217,33 +364,53 @@
       <span class="icon"><span class="bars">
         <i style="background:#ff4a3d"></i><i style="background:#3ce16b"></i>
         <i style="background:#66d4cf"></i></span></span>
-      <span class="body">
+      <span class="bd">
         <span class="ttl"><span>자동 재개 실패</span><span>지금</span></span>
-        <span class="txt">claude 가 exit 1 로 끝났습니다. No conversation found...</span>
+        <span class="txt">claude 가 exit 1 로 끝났습니다. No conversation found with...</span>
       </span>
     </div>
-    <p class="cap">exit code 와 stderr 첫 줄. 짐작을 덧붙이지 않는다.</p>
+    <p class="cap" style="max-width:344px">
+      exit code 와 stderr 첫 줄. 짐작을 덧붙이지 않는다.
+    </p>
   </div>
 </div>
 
-<h2>4. 흐름</h2>
+<h2>6. 흐름</h2>
 <div class="flow">
   <span class="step"><b>대기</b>고른 계정의 5시간,<br>주간 창을 지켜본다</span>
   <span class="arr">--&gt;</span>
   <span class="step"><b>예약</b>소진 감지.<br>리셋 + 3분에 타이머</span>
   <span class="arr">--&gt;</span>
-  <span class="step"><b>점검</b>사용량을 다시 읽어<br>두 창 잔여 30% 이상?</span>
+  <span class="step"><b>점검</b>사용량을 다시 읽어<br>두 창 잔여 5% 이상?</span>
   <span class="arr">--&gt;</span>
   <span class="step"><b>실행</b><code>claude --resume ID -p</code><br>결과를 알림으로</span>
 </div>
 <p class="cap" style="max-width:920px">
   점검에서 떨어지면 보류하고 대기로 돌아간다. 같은 리셋 시각으로는 두 번
-  예약하지 않는다. 토글이 켜져 있는 한 다음 소진에서 다시 돈다.
+  예약하지 않는다. 켜 둔 동안 다음 소진에서 다시 돈다.
 </p>
 
-<p class="note">
-  <b>세션 하나만 고른다.</b> 여러 세션 동시 재개는 필요하다는 말이 나오면
-  그때 늘린다. <b>주간 Fable 창은 안 본다.</b> 모델 하나에만 걸리는 창이라
-  재개를 막을 이유가 못 된다. <b>여유 기준은 30% 고정.</b> 노브는 조절하고
-  싶다는 말이 나올 때 단다.
+<h2>7. 두 탭이 보는 세션은 출처가 다르다</h2>
+<table>
+  <tr><th></th><th>작업 이전 탭</th><th>자동 재개 탭</th></tr>
+  <tr><td>목록의 출처</td>
+      <td class="m">~/Library/Application Support/Claude/</td>
+      <td class="m">~/.claude/projects/</td></tr>
+  <tr><td>무엇인가</td><td>데스크톱 앱의 대화 레코드</td><td>CLI 의 세션 기록</td></tr>
+  <tr><td>고르는 방식</td><td>여러 개 (체크박스)</td><td>하나 (라디오)</td></tr>
+  <tr><td>줄 아래 보조</td><td>계정 폴더, 겹침 경고</td><td>작업 디렉토리</td></tr>
+</table>
+<p class="cap" style="max-width:920px">
+  같은 창에 있어도 <b>섞지 않는다.</b> 자동 재개는 CLI 로 돌리므로 CLI 가
+  아는 세션만 이어 돌릴 수 있다. 목록을 합치면 못 돌리는 세션을 고를 수 있게
+  된다.
+</p>
+
+<p class="end">
+  <b>세션 하나만 고른다.</b> 여러 세션 동시 재개는 필요하다는 말이 나오면 그때
+  늘린다. <b>주간 Fable 창은 안 본다.</b> 모델 하나에만 걸리는 창이라 재개를
+  막을 이유가 못 된다. <b>잔여 기준은 5% 고정.</b> 노브는 조절하고 싶다는 말이
+  나올 때 단다. <b>실행 단추는 없다.</b> 지금 당장 돌리고 싶으면 터미널에서
+  <code>claude --continue</code> 를 치면 된다. 이 창은 자동으로 돌 조건을
+  정하는 자리다.
 </p>

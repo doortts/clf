@@ -568,12 +568,12 @@ struct PopoverView: View {
                     AppFocus.dismissPopover(yieldFocus: false)
                     HandoffWindow.open()
                 } label: {
-                    Label("세션 작업 이전", systemImage: "arrow.left.arrow.right")
+                    Label("세션 작업 이전/재개", systemImage: "arrow.left.arrow.right")
                         .calloutStyle(.medium)
                 }
                 .glassButton()
                 .hoverTip(Copy.handoffHelp)
-                .accessibilityLabel("세션 작업을 다른 계정으로 이전한다")
+                .accessibilityLabel("세션 작업을 다른 계정으로 이전하거나 리밋이 풀릴 때 이어 돌린다")
                 .accessibilityHint(Copy.handoffHelp)
                 Button { NSApplication.shared.terminate(nil) } label: {
                     // 빨강은 데이터가 사라지는 삭제의 색이다. 앱을 닫는 것은
@@ -633,7 +633,8 @@ struct PopoverView: View {
 
 /// 화면에 쓰는 긴 안내 문구. 툴팁과 접근성 힌트가 같은 말을 써야 한다.
 enum Copy {
-    static let handoffHelp = "다른 계정으로 세션을 이동시켜서 작업을 재개할 수 있도록 도와줍니다"
+    static let handoffHelp = "세션을 다른 계정으로 옮기거나,"
+        + " 리밋이 풀리면 CLI 로 이어 돌리도록 예약합니다"
 }
 
 /// 올려두면 곧바로 뜨는 툴팁.

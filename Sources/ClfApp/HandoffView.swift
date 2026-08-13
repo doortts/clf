@@ -22,6 +22,26 @@ struct HandoffView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // 세션을 다루는 두 일이다. 자동 재개를 설정 패널에 넣으면 켤 때마다
+            // 패널이 한 화면을 넘긴다. docs/design/16-auto-resume.md 7절
+            Picker("", selection: $model.tab) {
+                ForEach(HandoffModel.Tab.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            switch model.tab {
+            case .handoff: handoffTab
+            case .resume:  ResumeTab(model: model, warnInk: warnInk)
+            }
+        }
+        .padding(14)
+        .frame(width: Self.width)
+        .onAppear { model.open() }
+    }
+
+    private var handoffTab: some View {
+        VStack(alignment: .leading, spacing: 12) {
             route
             VStack(alignment: .leading, spacing: 5) {
                 count
@@ -31,9 +51,6 @@ struct HandoffView: View {
             Spacer(minLength: 0)
             footer
         }
-        .padding(14)
-        .frame(width: Self.width)
-        .onAppear { model.open() }
     }
 
     private var route: some View {
@@ -175,15 +192,9 @@ struct HandoffView: View {
             .multilineTextAlignment(.leading)
     }
 
-    private func box(_ accent: Color?, @ViewBuilder content: () -> some View) -> some View {
-        HStack(spacing: 8) {
-            if let accent { Rectangle().fill(accent).frame(width: 2) }
-            content()
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.05)))
+    private func box(_ accent: Color?,
+                     @ViewBuilder content: @escaping () -> some View) -> some View {
+        NoteBox(accent: accent, content: content)
     }
 
     private var footer: some View {
@@ -232,6 +243,38 @@ private struct AlwaysVisibleScrollers: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
+/// 창 아래에 붙는 안내 상자. 두 탭이 같은 꼴을 쓴다.
+///
+/// 왼쪽 색 띠는 눈길을 끌 이유가 있을 때만 세운다. 늘 세우면 색이 뜻을 잃는다.
+struct NoteBox<Content: View>: View {
+    let accent: Color?
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let accent { Rectangle().fill(accent).frame(width: 2) }
+            content()
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.05)))
+    }
+}
+
+/// 접어서 다 보여준다. 한 줄로 자르면 뒷말이 사라진다.
+struct WrappedCaption: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+    }
+}
+
 /// 계정 상자. 이름 아래 지금 어떤 창을 갖고 있는지 붙는다.
 ///
 /// `Menu` 를 쓰지 않는다. 메뉴 라벨은 뷰를 여럿 줘도 제목 한 줄로 눌려서
@@ -241,6 +284,12 @@ struct AccountBox: View {
     let chosen: HandoffModel.Account?
     let options: [HandoffModel.Account]
     let pick: (String) -> Void
+    /// 이름 아래 줄을 갈아 끼운다.
+    ///
+    /// 작업 이전 탭에서는 그 계정이 지금 어떤 창을 갖고 있는지가 판단 근거다.
+    /// 자동 재개 탭에서는 창과 무관하고 **그 계정이 무슨 역할인지**가 헷갈리는
+    /// 자리다. 바로 아래 목록이 CLI 세션이라 실행 계정으로 읽히기 쉽다.
+    var caption: String?
 
     @State private var anchor: NSView?
     @State private var relay = MenuRelay()
@@ -257,7 +306,7 @@ struct AccountBox: View {
                 Text(chosen?.name ?? "계정 없음")
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)
-                Text(chosen?.where_ ?? "")
+                Text(caption ?? chosen?.where_ ?? "")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

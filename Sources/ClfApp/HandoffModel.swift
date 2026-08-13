@@ -28,6 +28,25 @@ final class HandoffModel: ObservableObject {
         }
     }
 
+    /// 창 안에서 갈리는 두 일. 세션을 다루는 자리라 한 창에 둔다.
+    /// docs/design/16-auto-resume.md 7절
+    enum Tab: String, CaseIterable, Identifiable {
+        /// 계정에서 계정으로 옮긴다.
+        case handoff
+        /// 리밋이 풀리면 이어 돌린다.
+        case resume
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .handoff: return "작업 이전"
+            case .resume:  return "자동 재개"
+            }
+        }
+    }
+
+    @Published var tab = Tab.handoff
     @Published var source = ""
     @Published var target = ""
     @Published private(set) var sessions: [SessionSummary] = []
@@ -80,6 +99,96 @@ final class HandoffModel: ObservableObject {
         }
     }
 
+    // MARK: 자동 재개 탭
+
+    /// 이어 돌릴 후보. CLI 가 아는 세션이라 작업 이전 탭의 목록과 출처가 다르다.
+    @Published private(set) var cliSessions: [CliSession] = []
+    /// 켜기, 계정, 세션, 프롬프트의 초안.
+    ///
+    /// **저장된 것과 따로 든다.** 저장은 켜기와 세션이 둘 다 정해져야 성립하는데
+    /// 사용자는 켜기부터 누른다. 초안이 없으면 세션을 고르기 전에 누른 켜기가
+    /// 갈 곳이 없다.
+    @Published private(set) var resumeOn = false
+    @Published private(set) var resumeAccount = ""
+    @Published private(set) var resumeSession: String?
+    @Published private(set) var resumePrompt = AutoResumePlan.defaultPrompt
+
+    var canEditResume: Bool { usage.canAutoResume }
+    var resumeStatus: AutoResumeStatus { usage.resumeStatus }
+    var resumeSearchedPaths: [String] { ClaudeCLI.candidates() }
+
+    /// 저장된 것을 초안으로 옮긴다. 없으면 지금 쓰는 계정으로 시작한다.
+    private func loadResumeDraft() {
+        let saved = usage.autoResume
+        resumeOn = saved != nil
+        resumeSession = saved?.sessionID
+        resumePrompt = saved?.prompt ?? AutoResumePlan.defaultPrompt
+        resumeAccount = saved?.orgUUID
+            ?? accounts.first(where: { $0.slot == .primary })?.uuid
+            ?? accounts.first?.uuid ?? ""
+    }
+
+    /// 목록은 파일을 훑어야 안다. 창을 여는 길목을 막지 않는다.
+    private func loadCliSessions() {
+        Task { [weak self] in
+            let found = await Task.detached(priority: .userInitiated) {
+                CliSessions.scan()
+            }.value
+            self?.cliSessions = found
+        }
+    }
+
+    func setResumeOn(_ on: Bool) {
+        resumeOn = on
+        commitResume()
+    }
+
+    func setResumeAccount(_ uuid: String) {
+        resumeAccount = uuid
+        commitResume()
+    }
+
+    /// 하나만 고른다. 다시 누르면 고른 것을 놓는다.
+    ///
+    /// **고르는 것이 곧 켜는 것이다.** 꺼 둔 채로 고르면 아무 일도 안 일어나서
+    /// 누른 것이 먹었는지 알 수 없다. 놓을 때는 끄지 않는다. 다른 세션으로
+    /// 갈아타는 중일 수 있다.
+    func pickResumeSession(_ id: String) {
+        resumeSession = resumeSession == id ? nil : id
+        if resumeSession != nil { resumeOn = true }
+        commitResume()
+    }
+
+    func setResumePrompt(_ text: String) {
+        resumePrompt = text
+        commitResume()
+    }
+
+    /// 초안이 성립하면 저장하고, 아니면 끈 것으로 저장한다.
+    ///
+    /// 켜 두고 세션을 안 고른 상태는 저장하지 않는다. 그 상태로 저장하면 무엇을
+    /// 돌릴지 없는 예약이 남는다. 창은 초안을 그대로 보여주므로 켜기는 눌린
+    /// 채로 있고, 아래 상태 상자가 안 돈다는 사실을 말한다.
+    private func commitResume() {
+        guard resumeOn, let id = resumeSession,
+              let session = cliSessions.first(where: { $0.id == id }) ?? savedSession(id)
+        else {
+            usage.setAutoResume(nil)
+            return
+        }
+        usage.setAutoResume(AutoResumePlan(orgUUID: resumeAccount, sessionID: session.id,
+                                           cwd: session.cwd, title: session.title,
+                                           prompt: resumePrompt))
+    }
+
+    /// 목록에 없지만 이미 골라 둔 세션. 목록을 아직 못 읽었거나 밀려난 것이다.
+    /// 저장된 것을 잃지 않으려고 저장값에서 되살린다.
+    private func savedSession(_ id: String) -> CliSession? {
+        guard let saved = usage.autoResume, saved.sessionID == id else { return nil }
+        return CliSession(id: saved.sessionID, title: saved.title, cwd: saved.cwd,
+                          modifiedAt: .distantPast)
+    }
+
     /// 창을 열 때. 원본은 기본 앱이 지금 쓰는 계정으로 맞춘다.
     func open() {
         advice = nil
@@ -94,6 +203,8 @@ final class HandoffModel: ObservableObject {
             target = all.first(where: { $0.uuid != source })?.uuid ?? ""
         }
         reload()
+        loadResumeDraft()
+        loadCliSessions()
     }
 
     /// 원본 계정이 가진 세션. 제목은 트랜스크립트 양끝에서 읽는다.

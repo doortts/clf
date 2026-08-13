@@ -174,12 +174,16 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     public var resetLabel: ResetLabel
     /// 한도가 바닥나면 데스크톱 알림을 보낸다. docs/design/notify-mockup.html
     public var notify: Bool
+    /// 리밋이 풀리면 이어 돌릴 세션. nil 이면 꺼진 것이다.
+    /// docs/design/16-auto-resume.md
+    public var autoResume: AutoResumePlan?
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
                 barContent: BarContent = .chosen, barDetail: BarDetail = .full,
                 gaugeDirection: GaugeDirection = .used,
                 resetLabel: ResetLabel = .remaining,
-                notify: Bool = true) {
+                notify: Bool = true,
+                autoResume: AutoResumePlan? = nil) {
         self.version = version
         self.hidden = hidden
         self.order = order
@@ -188,6 +192,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         self.gaugeDirection = gaugeDirection
         self.resetLabel = resetLabel
         self.notify = notify
+        self.autoResume = autoResume
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -201,6 +206,7 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         gaugeDirection = try c.decodeIfPresent(GaugeDirection.self, forKey: .gaugeDirection) ?? .used
         resetLabel = try c.decodeIfPresent(ResetLabel.self, forKey: .resetLabel) ?? .remaining
         notify = try c.decodeIfPresent(Bool.self, forKey: .notify) ?? true
+        autoResume = try? c.decodeIfPresent(AutoResumePlan.self, forKey: .autoResume)
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }
