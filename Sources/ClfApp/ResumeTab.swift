@@ -7,6 +7,11 @@ import ClfDesktop
 /// 자동으로 돌 조건을 정하는 자리라 고른 즉시 저장되고, 아랫줄은 닫기 하나다.
 struct ResumeTab: View {
     @ObservedObject var draft: ResumeDraft
+    /// 상태 상자가 보는 쪽. 초안과 따로 본다.
+    ///
+    /// 상태는 초안이 아니라 읽기 주기와 실행 결과로 바뀐다. 초안을 통해 값만
+    /// 받아오면 창을 열어 둔 채 재개가 끝나도 상자가 안 바뀐다.
+    @ObservedObject var resume: AutoResumeDriver
     /// 라이트에서도 읽히는 주의색. 창이 쥐고 있는 것을 그대로 받는다.
     let warnInk: Color
 
@@ -137,7 +142,7 @@ struct ResumeTab: View {
     // MARK: 상태
 
     private var status: some View {
-        let state = draft.status
+        let state = resume.status
         return NoteBox(accent: ink(state.accent)) {
             WrappedCaption(text: state.text())
         }

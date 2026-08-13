@@ -641,8 +641,11 @@ final class UsageModel: ObservableObject {
     /// 지금 정해 둔 것. 없으면 꺼진 것이다.
     var autoResume: AutoResumePlan? { prefs.autoResume }
 
-    /// 자동 재개가 어느 단계인가. 창이 이 한 줄을 보여준다.
-    var resumeStatus: AutoResumeStatus { resume.status }
+    /// 자동 재개 상태를 들고 있는 쪽. 창이 이것을 직접 보고 그린다.
+    ///
+    /// 상태를 계산 프로퍼티로 옮겨 담지 않는다. 옮기면 값은 맞지만 이 모델이
+    /// 그 변화를 알리지 않아 창이 안 다시 그려진다.
+    var resumeDriver: AutoResumeDriver { resume }
 
     /// 무엇을 이어 돌릴지 정한다. nil 이면 끈다.
     ///

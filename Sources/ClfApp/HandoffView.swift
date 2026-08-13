@@ -33,7 +33,7 @@ struct HandoffView: View {
 
             switch model.tab {
             case .handoff: handoffTab
-            case .resume:  ResumeTab(draft: draft, warnInk: warnInk)
+            case .resume:  ResumeTab(draft: draft, resume: draft.driver, warnInk: warnInk)
             }
         }
         .padding(14)

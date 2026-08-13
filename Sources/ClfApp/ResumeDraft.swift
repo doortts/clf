@@ -33,7 +33,14 @@ final class ResumeDraft: ObservableObject {
 
     /// 켤 수 있나. CLI 가 없으면 고를 것도 없다.
     var canEdit: Bool { usage.canAutoResume }
-    var status: AutoResumeStatus { usage.resumeStatus }
+
+    /// 상태를 들고 있는 쪽. **탭이 이것을 직접 본다.**
+    ///
+    /// 여기서 계산 프로퍼티로 넘겨주면 값은 맞지만 창이 안 다시 그려진다.
+    /// 초안이 바뀔 때만 알림이 나가는데, 상태는 초안과 무관하게 읽기 주기와
+    /// 실행 결과로 바뀌기 때문이다. 창을 열어 둔 채 재개가 끝나면 상자가
+    /// `실행 중` 에서 멈춰 있었다.
+    var driver: AutoResumeDriver { usage.resumeDriver }
     var accounts: [HandoffModel.Account] { handoff.accounts }
     var chosenAccount: HandoffModel.Account? { handoff.account(accountUUID) }
 
