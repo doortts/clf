@@ -168,12 +168,12 @@ final class HandoffModel: ObservableObject {
     ///
     /// 켜 두고 세션을 안 고른 상태는 저장하지 않는다. 그 상태로 저장하면 무엇을
     /// 돌릴지 없는 예약이 남는다. 창은 초안을 그대로 보여주므로 켜기는 눌린
-    /// 채로 있고, 아래 상태 상자가 안 돈다는 사실을 말한다.
+    /// 채로 있고, 아래 상태 상자가 무엇이 빠졌는지 말한다.
     private func commitResume() {
         guard resumeOn, let id = resumeSession,
               let session = cliSessions.first(where: { $0.id == id }) ?? savedSession(id)
         else {
-            usage.setAutoResume(nil)
+            usage.setAutoResume(nil, pending: resumeOn)
             return
         }
         usage.setAutoResume(AutoResumePlan(orgUUID: resumeAccount, sessionID: session.id,

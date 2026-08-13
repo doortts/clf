@@ -50,6 +50,8 @@ final class UsageModel: ObservableObject {
     private var resumeWatch = AutoResumeWatch()
     /// 이미 한 판이 돌고 있으면 겹쳐 돌리지 않는다. 한 세션에 둘이 붙으면 안 된다.
     private var resuming = false
+    /// 켜 두고 세션을 아직 안 골랐다. 저장할 것이 없어 설정에는 안 남는다.
+    private var resumePending = false
     /// `claude` 실행 파일. 켤 때 한 번 찾는다.
     private let cli = ClaudeCLI.find()
     /// 자동 재개가 어느 단계인가. 창이 이 한 줄을 보여준다.
@@ -642,10 +644,22 @@ final class UsageModel: ObservableObject {
 
     /// 무엇을 이어 돌릴지 정한다. nil 이면 끈다.
     ///
+    /// `pending` 은 켜 두고 세션을 아직 안 고른 상태다. 저장할 것이 없어 `plan`
+    /// 은 nil 인데 화면의 체크는 켜져 있다. 상태가 그 사실을 말해야 체크와
+    /// 상자가 서로 다른 말을 하지 않는다.
+    ///
     /// 바뀌면 예약을 버린다. 다른 세션에 걸려 있던 예약을 새 세션이 물려받으면
     /// 사용자가 정한 적 없는 조합으로 돈다.
-    func setAutoResume(_ plan: AutoResumePlan?) {
-        guard plan != prefs.autoResume else { return }
+    func setAutoResume(_ plan: AutoResumePlan?, pending: Bool = false) {
+        resumePending = pending
+        guard plan != prefs.autoResume else {
+            // 저장값이 그대로여도 화면은 바뀌었을 수 있다. 세션 없이 켜기만 누른
+            // 순간이 그렇다. 걸려 있는 예약과 지난 결과는 지우지 않는다
+            if resumeWatch.scheduledAt == nil, !resumeStatus.isResult {
+                resumeStatus = idleResumeStatus()
+            }
+            return
+        }
         prefs.autoResume = plan
         // 막대와 무관한 설정이므로 그림을 다시 굽지 않는다. 프롬프트는 한 글자마다
         // 여기로 오는데 그때마다 굽는 것은 낭비다
@@ -657,7 +671,8 @@ final class UsageModel: ObservableObject {
     /// 예약도 결과도 없을 때의 상태.
     private func idleResumeStatus() -> AutoResumeStatus {
         guard cli != nil else { return .unavailable(ClaudeCLI.candidates()) }
-        return prefs.autoResume == nil ? .off : .watching
+        if prefs.autoResume != nil { return .watching }
+        return resumePending ? .needsSession : .off
     }
 
     /// 이번 읽기를 판정에 넘기고 결론을 따른다.

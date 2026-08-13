@@ -8,6 +8,8 @@ final class AutoResumeStatusTests: XCTestCase {
     func testAccents() {
         XCTAssertEqual(AutoResumeStatus.off.accent, .none)
         XCTAssertEqual(AutoResumeStatus.watching.accent, .good)
+        // 켰지만 아직 안 도는 상태다. 초록으로 두면 다 됐다고 읽힌다
+        XCTAssertEqual(AutoResumeStatus.needsSession.accent, .wait)
         XCTAssertEqual(AutoResumeStatus.ran(now).accent, .good)
         XCTAssertEqual(AutoResumeStatus.scheduled(now).accent, .wait)
         XCTAssertEqual(AutoResumeStatus.running.accent, .wait)
@@ -62,5 +64,13 @@ final class AutoResumeStatusTests: XCTestCase {
 
     func testOffExplainsWhatTurningItOnDoes() {
         XCTAssertTrue(AutoResumeStatus.off.text(now: now).contains("켜면"))
+    }
+
+    /// 체크는 켜져 있는데 상자가 꺼졌다고 말하면 둘이 서로 다른 말을 한다.
+    /// 무엇이 빠졌는지 짚어야 사용자가 다음에 무엇을 누를지 안다.
+    func testNeedsSessionAsksForTheMissingPiece() {
+        let text = AutoResumeStatus.needsSession.text(now: now)
+        XCTAssertTrue(text.contains("세션을 고르면"), text)
+        XCTAssertFalse(text.contains("꺼져"), text)
     }
 }

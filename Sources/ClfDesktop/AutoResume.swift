@@ -35,6 +35,11 @@ public struct AutoResumePlan: Codable, Sendable, Equatable {
 public enum AutoResumeStatus: Sendable, Equatable {
     /// 꺼져 있다. 세션을 안 골랐다.
     case off
+    /// 켜 두었지만 세션을 아직 안 골랐다.
+    ///
+    /// 저장된 것은 없다. 화면의 체크만 켜져 있다. 이 자리를 `.off` 로 두면
+    /// 체크는 켜졌는데 상자는 꺼져 있다고 말해서 둘이 서로 다른 말을 한다.
+    case needsSession
     /// CLI 가 없어 켤 수 없다.
     case unavailable([String])
     /// 켜져 있고 소진을 지켜보는 중.
@@ -71,7 +76,7 @@ public enum AutoResumeStatus: Sendable, Equatable {
         case .off:                    return .none
         case .watching, .ran:         return .good
         case .scheduled, .running:    return .wait
-        case .unavailable:            return .wait
+        case .unavailable, .needsSession: return .wait
         case .held, .failed:          return .bad
         }
     }
@@ -84,6 +89,8 @@ public enum AutoResumeStatus: Sendable, Equatable {
         switch self {
         case .off:
             return "꺼져 있습니다. 켜면 고른 세션을 리셋 뒤에 이어 돌립니다."
+        case .needsSession:
+            return "이어 돌릴 세션을 고르면 켜집니다."
         case .unavailable(let searched):
             return "claude CLI 를 찾지 못했습니다. 찾아본 곳: "
                 + searched.joined(separator: ", ")
