@@ -21,7 +21,7 @@ public final class AutoResumeDriver: ObservableObject {
     ///
     /// `Notifier` 를 여기서 직접 부르지 않는다. 알림은 AppKit 쪽 일이라 그것을
     /// 안으로 들이면 이 타입을 알림 없이 돌려볼 수 없다.
-    private let post: @MainActor (UsageAlert) async -> Void
+    private let post: @MainActor (UsageEvent) async -> Void
     private var watch = AutoResumeWatch()
     /// 지금 정해 둔 것. nil 이면 꺼진 것이다.
     private var plan: AutoResumePlan?
@@ -31,7 +31,7 @@ public final class AutoResumeDriver: ObservableObject {
     private var resuming = false
 
     public init(executable: URL? = ClaudeCLI.find(),
-                post: @escaping @MainActor (UsageAlert) async -> Void) {
+                post: @escaping @MainActor (UsageEvent) async -> Void) {
         self.executable = executable
         self.post = post
         status = idle()
@@ -112,7 +112,7 @@ public final class AutoResumeDriver: ObservableObject {
         let runner = ResumeRunner(executable: executable)
         Task { [weak self] in
             let status: AutoResumeStatus
-            let event: UsageAlert
+            let event: UsageEvent
             do {
                 let outcome = try await runner.run(plan)
                 if outcome.ok {

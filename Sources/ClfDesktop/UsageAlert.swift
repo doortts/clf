@@ -47,6 +47,22 @@ public struct UsageAlert: Sendable, Equatable, Identifiable {
     }
 }
 
+/// 한 번 지나가는 소식. **조건이 아니라 사건이다.**
+///
+/// `UsageAlert` 과 나눠 둔다. 그쪽은 지금 참인 조건이라 두 번 보내지 않으려고
+/// 열쇠를 달고 다니는데, 사건을 보내는 문(`Notifier.post`)은 그 장부를 아예
+/// 안 쓴다. 쓰이지 않을 열쇠를 지어내 넘기면 읽는 사람은 그 열쇠로 무언가
+/// 걸러진다고 읽는다.
+public struct UsageEvent: Sendable, Equatable {
+    public let title: String
+    public let body: String
+
+    public init(title: String, body: String) {
+        self.title = title
+        self.body = body
+    }
+}
+
 /// 사용량을 보고 보낼 알림을 정한다.
 ///
 /// **본문은 `리셋: 2시간 14분 뒤` 한 줄이 기본이다.** 알림을 받는 순간 궁금한

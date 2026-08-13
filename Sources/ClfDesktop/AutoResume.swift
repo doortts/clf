@@ -266,22 +266,20 @@ public struct AutoResumeWatch: Sendable, Equatable {
 /// 안 상태에 있다. 창을 닫아 두고 지내는 기능이라 결과는 알림으로 와야 한다.
 ///
 /// 셋 다 소리가 없다. 소리는 소진에만 붙는다(`Notifier`). 자동으로 돈 일에
-/// 소리를 붙이면 소진 알림과 같은 무게가 된다.
+/// 소리를 붙이면 소진 알림과 같은 무게가 된다. 사건에는 소리를 붙일 자리도
+/// 두 번 보내지 않으려는 열쇠도 없다.
 /// docs/design/auto-resume-mockup.html 5절
 public enum AutoResumeAlerts {
-    public static func ran(_ title: String) -> UsageAlert {
-        UsageAlert(key: "autoresume|ran", level: .recovered,
-                   title: "세션 자동 재개",
+    public static func ran(_ title: String) -> UsageEvent {
+        UsageEvent(title: "세션 자동 재개",
                    body: "\(title) 세션을 이어서 실행했습니다")
     }
 
-    public static func held(_ why: String) -> UsageAlert {
-        UsageAlert(key: "autoresume|held", level: .warning,
-                   title: "자동 재개 보류", body: why)
+    public static func held(_ why: String) -> UsageEvent {
+        UsageEvent(title: "자동 재개 보류", body: why)
     }
 
-    public static func failed(_ detail: String) -> UsageAlert {
-        UsageAlert(key: "autoresume|failed", level: .warning,
-                   title: "자동 재개 실패", body: detail)
+    public static func failed(_ detail: String) -> UsageEvent {
+        UsageEvent(title: "자동 재개 실패", body: detail)
     }
 }

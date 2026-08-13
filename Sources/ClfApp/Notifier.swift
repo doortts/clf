@@ -74,19 +74,20 @@ final class Notifier {
         }
     }
 
-    /// 한 번 지나가는 소식. **조건이 아니라 사건이다.**
+    /// 한 번 지나가는 소식을 보낸다.
     ///
     /// `deliver` 는 지금 참인 조건 전부를 받아 사라진 조건의 열쇠를 지운다.
     /// 사건을 그 목록에 섞으면 그때 참이던 조건들의 열쇠가 같이 지워져서 같은
     /// 소진 알림이 다시 온다. 그래서 열쇠 장부를 아예 안 쓰는 문을 따로 둔다.
+    /// 받는 값에 열쇠가 없는 것도 같은 이유다.
     ///
     /// 사건은 겹치지 않아야 하므로 요청 id 는 매번 새로 만든다. 같은 id 를
     /// 쓰면 시스템이 앞의 배너를 갈아치운다.
-    func post(_ alert: UsageAlert) async {
+    func post(_ event: UsageEvent) async {
         guard permission == .granted else { return }
         let content = UNMutableNotificationContent()
-        content.title = alert.title
-        content.body = alert.body
+        content.title = event.title
+        content.body = event.body
         let request = UNNotificationRequest(identifier: UUID().uuidString,
                                             content: content, trigger: nil)
         try? await center.add(request)

@@ -141,6 +141,8 @@ final class AutoResumeDriverTests: XCTestCase {
             return XCTFail("돌린 것으로 남아야 한다: \(driver.status)")
         }
         XCTAssertEqual(sink.events.first?.title, "세션 자동 재개")
+        // 무엇을 이어 돌렸는지 본문에 남는다. 알림만 보고도 알아야 한다
+        XCTAssertEqual(sink.events.first?.body, "제목 세션을 이어서 실행했습니다")
     }
 
     @MainActor
@@ -192,10 +194,10 @@ final class AutoResumeDriverTests: XCTestCase {
 /// 알림 문 대신 여기에 쌓는다. 드라이버는 `Notifier` 를 모른다.
 @MainActor
 private final class Sink {
-    var events: [UsageAlert] = []
+    var events: [UsageEvent] = []
     let arrived = XCTestExpectation(description: "자동 재개 알림")
 
-    func post(_ event: UsageAlert) async {
+    func post(_ event: UsageEvent) async {
         events.append(event)
         arrived.fulfill()
     }
