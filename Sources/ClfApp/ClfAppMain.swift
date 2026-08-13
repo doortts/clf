@@ -28,6 +28,7 @@ struct ClfMenuBarApp: App {
     /// 넘기기 창은 팝오버를 눌러야 뜨지만, 모델은 미리 걸어 둔다.
     private func begin() {
         model.start()
-        HandoffWindow.install(HandoffModel(usage: model))
+        let handoff = HandoffModel(usage: model)
+        HandoffWindow.install(handoff, draft: ResumeDraft(usage: model, handoff: handoff))
     }
 }

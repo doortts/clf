@@ -9,19 +9,22 @@ import SwiftUI
 enum HandoffWindow {
     private static var controller: NSWindowController?
     private static var model: HandoffModel?
+    private static var draft: ResumeDraft?
 
     /// 라벨의 onAppear 는 두 번 온다. 모델을 갈아 끼우면 창이 들고 있던
     /// 상태가 날아가므로 처음 것만 쓴다.
-    static func install(_ model: HandoffModel) {
+    static func install(_ model: HandoffModel, draft: ResumeDraft) {
         guard self.model == nil else { return }
         self.model = model
+        self.draft = draft
     }
 
     static func open() {
-        guard let model else { return }
+        guard let model, let draft else { return }
         if controller == nil {
             let window = NSWindow(contentViewController:
-                                    NSHostingController(rootView: HandoffView(model: model)))
+                                    NSHostingController(rootView: HandoffView(model: model,
+                                                                              draft: draft)))
             window.title = "세션 작업 이전/재개"
             window.styleMask = [.titled, .closable]
             // 닫아도 놓아주지 않는다. 다시 열 때 같은 창을 쓴다
@@ -31,6 +34,7 @@ enum HandoffWindow {
         }
         // 다시 열 때는 지난 결과를 지우고 계정부터 다시 본다
         model.open()
+        draft.open()
         NSApp.activate(ignoringOtherApps: true)
         controller?.showWindow(nil)
         controller?.window?.makeKeyAndOrderFront(nil)

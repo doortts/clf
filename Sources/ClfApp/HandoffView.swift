@@ -4,6 +4,8 @@ import ClfDesktop
 /// 세션 넘기기 창. docs/design/handoff-mockup.html
 struct HandoffView: View {
     @ObservedObject var model: HandoffModel
+    /// 자동 재개 탭의 초안. 탭을 오가도 살아 있어야 해서 창이 들고 있다.
+    @ObservedObject var draft: ResumeDraft
     @Environment(\.colorScheme) private var scheme
 
     static let width: CGFloat = 460
@@ -32,12 +34,15 @@ struct HandoffView: View {
 
             switch model.tab {
             case .handoff: handoffTab
-            case .resume:  ResumeTab(model: model, warnInk: warnInk)
+            case .resume:  ResumeTab(draft: draft, warnInk: warnInk)
             }
         }
         .padding(14)
         .frame(width: Self.width)
-        .onAppear { model.open() }
+        .onAppear {
+            model.open()
+            draft.open()
+        }
     }
 
     private var handoffTab: some View {
