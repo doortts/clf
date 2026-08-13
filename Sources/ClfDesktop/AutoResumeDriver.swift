@@ -107,6 +107,10 @@ public final class AutoResumeDriver: ObservableObject {
     ///
     /// 한 턴이 몇 분씩 가므로 기다리는 동안 화면은 `실행 중` 으로 둔다.
     private func run(_ plan: AutoResumePlan) {
+        // ponytail: 이 앱이 사는 동안만 막는다. 자식이 도는 중에 앱이 죽으면
+        // claude 는 살아남는데 다음 실행에서 이 값은 거짓으로 시작해서, 같은
+        // 세션에 두 번째 판이 붙을 수 있다. pid 나 잠금 파일을 남기면 막힌다.
+        // 실제로 겹쳤다는 말이 나오면 그때 단다
         guard let executable, !resuming else { return }
         resuming = true
         let runner = ResumeRunner(executable: executable)
