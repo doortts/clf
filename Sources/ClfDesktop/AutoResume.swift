@@ -2,8 +2,10 @@ import Foundation
 
 /// 무엇을 언제 이어 돌릴지. 사용자가 창에서 정한다.
 ///
-/// nil 이면 꺼진 것이다. 켜 두고 세션만 안 고른 상태는 없다. 세션을 고르는
-/// 것이 곧 켜는 것이다. docs/design/16-auto-resume.md 8절
+/// nil 이면 꺼진 것이다. 세션을 고르는 것이 곧 켜는 것이라, 켜 두고 세션만
+/// 안 고른 상태는 저장하지 않는다. 화면에서 그 상태로 머무는 동안은
+/// `AutoResumeStatus.needsSession` 이 대신 말한다.
+/// docs/design/16-auto-resume.md 8절
 public struct AutoResumePlan: Codable, Sendable, Equatable {
     /// 한도를 지켜볼 계정. **실행 계정이 아니다.** CLI 는 자기 로그인 계정으로
     /// 돈다. 5절

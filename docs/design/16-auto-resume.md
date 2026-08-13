@@ -132,7 +132,8 @@ public struct AutoResumePlan: Codable, Sendable, Equatable {
 |---|---|
 | ClfDesktop/AutoResume.swift | 상태와 판정. 순수 함수로 두고 TDD |
 | ClfDesktop/SessionScanner.swift | CLI 세션 목록 읽기. 임시 디렉토리로 테스트 |
-| ClfApp/UsageModel | 읽기 주기에 판정을 얹고 타이머와 프로세스 실행 |
+| ClfDesktop/AutoResumeDriver.swift | 예약과 실행과 상태. 실행 파일을 주입해 검증 |
+| ClfApp/UsageModel | 읽기 주기와 1분 시계에 드라이버를 얹는 배선 |
 | ClfApp/HandoffView | 탭과 자동 재개 화면 |
 
 판정 로직(소진 감지, 3분 계산, 잔여 판정, 중복 실행 방지)이 전부
