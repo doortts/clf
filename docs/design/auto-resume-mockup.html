@@ -1,0 +1,249 @@
+<meta charset="utf-8">
+<title>자동 재개 시안</title>
+<style>
+  :root { --ink:#f2f2f7; --dim:#98989d; --line:rgba(255,255,255,.12); }
+  body { margin:0; padding:32px; font:13px/16px -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:var(--ink); }
+  h1 { font-size:17px; line-height:22px; margin:0 0 8px; }
+  h2 { font-size:15px; line-height:20px; margin:30px 0 8px; }
+  h3 { font-size:12px; line-height:15px; color:var(--dim); font-weight:500; margin:0 0 8px; }
+  p.lede { color:var(--dim); margin:0 0 10px; max-width:920px; }
+  p.cap { color:var(--dim); font-size:12px; line-height:16px; margin:8px 0 0; max-width:330px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  code { font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+  .good { color:#3ce16b; } .bad { color:#ff6961; } .warn { color:#ffd60a; }
+
+  /* 팝오버 설정 구획 */
+  .pop { width:312px; border-radius:12px; padding:12px 14px; box-sizing:border-box;
+         background:#252527; }
+  .sect { font-size:11px; font-weight:600; margin:0 0 8px; }
+  .group { border-radius:8px; padding:10px 12px; background:rgba(255,255,255,.06);
+           box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .chk { display:flex; align-items:center; gap:8px; min-height:20px; font-size:11px; }
+  .box { width:13px; height:13px; border-radius:3px; background:#0a84ff; color:#fff;
+         font-size:10px; display:grid; place-items:center; flex:none; }
+  .box.off { background:rgba(255,255,255,.12); }
+  .hint { font-size:10px; line-height:13px; opacity:.5; margin:4px 0 0 21px; }
+  .row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .row .lbl { width:44px; flex:none; font-size:11px; color:var(--dim); }
+  .menu { flex:1; min-width:0; display:flex; align-items:center; gap:6px; height:20px;
+          border-radius:5px; padding:0 6px; font-size:11px;
+          background:rgba(255,255,255,.10); box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .menu span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .menu .chev { margin-left:auto; flex:none; width:11px; height:11px; border-radius:3px;
+                background:#0a84ff; color:#fff; font-size:8px; line-height:11px;
+                text-align:center; }
+  .field { flex:1; height:20px; border-radius:5px; padding:0 6px; font-size:11px;
+           display:flex; align-items:center; background:rgba(0,0,0,.25);
+           box-shadow:inset 0 0 0 1px rgba(255,255,255,.14); }
+  .status { margin-top:10px; padding-top:8px; border-top:1px solid var(--line);
+            font-size:10px; line-height:14px; color:var(--dim); display:flex; gap:6px; }
+  .dot { width:6px; height:6px; border-radius:3px; margin-top:4px; flex:none; }
+  .faded { opacity:.35; }
+
+  /* macOS 알림 배너 */
+  .banner { width:344px; border-radius:16px; padding:12px 14px; box-sizing:border-box;
+            display:flex; gap:10px; background:rgba(58,58,60,.92);
+            box-shadow:0 1px 2px rgba(0,0,0,.2), 0 10px 30px rgba(0,0,0,.45); }
+  .icon { width:38px; height:38px; border-radius:9px; flex:none; display:grid;
+          place-items:center; background:#2c2c2e; box-shadow:0 0 0 .5px rgba(255,255,255,.14); }
+  .icon .bars { display:flex; flex-direction:column; gap:2px; }
+  .icon .bars i { display:block; width:20px; height:4px; border-radius:1px; }
+  .body { min-width:0; flex:1; }
+  .ttl { font-size:13px; line-height:16px; font-weight:600; display:flex; }
+  .ttl span:last-child { margin-left:auto; font-weight:400; opacity:.55; font-size:11px;
+                         flex:none; padding-left:8px; }
+  .txt { font-size:13px; line-height:16px; opacity:.85; margin-top:1px; }
+  .txt b { font-weight:600; opacity:1; }
+
+  /* 흐름 */
+  .flow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+  .step { border-radius:8px; padding:8px 12px; font-size:11px; line-height:15px;
+          background:rgba(255,255,255,.06); box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .step b { display:block; font-size:12px; margin-bottom:2px; }
+  .arr { color:var(--dim); font-family:"SF Mono",ui-monospace,monospace; font-size:11px; }
+
+  table { border-collapse:collapse; margin-top:8px; font-size:12px; line-height:16px;
+          max-width:1010px; }
+  th, td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th { color:var(--dim); font-weight:500; }
+  .note { margin-top:22px; color:var(--dim); max-width:920px; }
+  .note b { color:var(--ink); }
+</style>
+
+<h1>자동 재개 시안</h1>
+<p class="lede">
+  리밋 소진으로 멈춘 CLI 세션을 <b>창이 리셋되고 3분 뒤</b>에 자동으로 이어
+  돌린다. 실행 전에 5시간과 주간 전체 창의 잔여를 다시 읽어 <b>둘 다 30%
+  이상일 때만</b> 돌린다. 30% 는 게이지가 초록으로 바뀌는 그 경계다.
+  설계는 docs/design/16-auto-resume.md.
+</p>
+
+<h2>1. 설정 구획</h2>
+<p class="lede">
+  기존 설정 패널 맨 아래, 알림 칸 다음에 한 구획을 더한다. 켜면 계정, 세션,
+  프롬프트 세 줄이 아래로 열린다.
+</p>
+<div class="cols">
+  <div>
+    <h3>켠 상태</h3>
+    <div class="pop">
+      <div class="sect">자동 재개</div>
+      <div class="group">
+        <div class="chk"><span class="box">&#10003;</span>리밋 풀리면 세션 자동 재개</div>
+        <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 30% 이상일 때만 돕니다</div>
+        <div class="row">
+          <span class="lbl">계정</span>
+          <span class="menu"><span>NAVER_TEAM_52</span><span class="chev">&#8597;</span></span>
+        </div>
+        <div class="hint" style="margin-left:52px">CLI 가 이 계정으로 로그인돼 있어야 합니다</div>
+        <div class="row">
+          <span class="lbl">세션</span>
+          <span class="menu"><span>clf, Build 스크립트 작성</span><span class="chev">&#8597;</span></span>
+        </div>
+        <div class="row">
+          <span class="lbl">프롬프트</span>
+          <span class="field">이어서 진행해줘</span>
+        </div>
+        <div class="status">
+          <span class="dot" style="background:#3ce16b"></span>
+          <span>5시간, 주간 창을 지켜보는 중</span>
+        </div>
+      </div>
+    </div>
+    <p class="cap">
+      세션 메뉴는 <code>프로젝트, 세션 제목</code> 꼴로 최근 10개를 보여준다.
+      상태 줄은 지금 단계를 항상 말한다. 조용히 도는 기능은 도는지 안 도는지가
+      제일 궁금하다.
+    </p>
+  </div>
+  <div>
+    <h3>끈 상태 (기본값)</h3>
+    <div class="pop">
+      <div class="sect">자동 재개</div>
+      <div class="group">
+        <div class="chk"><span class="box off"></span>리밋 풀리면 세션 자동 재개</div>
+        <div class="hint">리셋 3분 뒤, 5시간과 주간 잔여가 30% 이상일 때만 돕니다</div>
+      </div>
+    </div>
+    <p class="cap">
+      끄면 계정, 세션, 프롬프트 줄이 접힌다. 안 쓰는 기능이 자리를 먹지 않는다.
+    </p>
+    <h3 style="margin-top:20px">CLI 를 못 찾은 상태</h3>
+    <div class="pop">
+      <div class="sect">자동 재개</div>
+      <div class="group">
+        <div class="chk faded"><span class="box off"></span>리밋 풀리면 세션 자동 재개</div>
+        <div class="hint" style="opacity:.8; color:#ffd60a">claude CLI 를 찾지 못했습니다. 설치해야 켤 수 있습니다</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>2. 상태 줄</h2>
+<p class="lede">
+  구획 아래 한 줄이 단계를 따라 바뀐다. 색점은 메뉴바 게이지와 같은 어휘다:
+  초록은 평상, 노랑은 기다림, 빨강은 문제.
+</p>
+<table>
+  <tr><th>단계</th><th>표시</th><th>언제</th></tr>
+  <tr>
+    <td>대기</td>
+    <td><span class="good">&#9679;</span> 5시간, 주간 창을 지켜보는 중</td>
+    <td>소진된 창이 없다</td>
+  </tr>
+  <tr>
+    <td>예약</td>
+    <td><span class="warn">&#9679;</span> 5시간 창 소진. 오후 2:32 재개 예정</td>
+    <td>소진 감지. 리셋 + 3분에 타이머</td>
+  </tr>
+  <tr>
+    <td>실행</td>
+    <td><span class="warn">&#9679;</span> 재개 실행 중...</td>
+    <td>점검 통과, CLI 가 도는 중</td>
+  </tr>
+  <tr>
+    <td>실행 후</td>
+    <td><span class="good">&#9679;</span> 오후 2:32 재개함. 다시 지켜보는 중</td>
+    <td>마지막 결과를 남기고 대기로</td>
+  </tr>
+  <tr>
+    <td>보류</td>
+    <td><span class="bad">&#9679;</span> 주간 잔여 12%. 여유가 없어 재개 안 함</td>
+    <td>점검에서 30% 미만</td>
+  </tr>
+  <tr>
+    <td>실패</td>
+    <td><span class="bad">&#9679;</span> 재개 실패 (exit 1). 세션이 없습니다</td>
+    <td>CLI 가 비정상 종료</td>
+  </tr>
+</table>
+
+<h2>3. 알림</h2>
+<p class="lede">
+  결과만 알린다. 예약은 알리지 않는다. 소진 알림이 이미 갔고, 예약 사실은
+  설정의 상태 줄에 있다.
+</p>
+<div class="cols">
+  <div>
+    <h3>재개했을 때</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#3ce16b"></i><i style="background:#3ce16b"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>세션 자동 재개</span><span>지금</span></span>
+        <span class="txt">clf, Build 스크립트 작성 세션을 이어서 실행했습니다</span>
+      </span>
+    </div>
+    <p class="cap">본문에 세션 이름을 넣는다. 어느 작업이 다시 돌기 시작했는지가 알림의 전부다.</p>
+  </div>
+  <div>
+    <h3>보류했을 때</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ffd60a"></i><i style="background:#3ce16b"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>자동 재개 보류</span><span>지금</span></span>
+        <span class="txt">주간 전체 잔여 <b>12%</b> 라 이번 리셋에는 재개하지 않습니다</span>
+      </span>
+    </div>
+    <p class="cap">왜 안 돌았는지를 말한다. 조용히 건너뛰면 고장으로 보인다.</p>
+  </div>
+  <div>
+    <h3>실패했을 때</h3>
+    <div class="banner">
+      <span class="icon"><span class="bars">
+        <i style="background:#ff4a3d"></i><i style="background:#3ce16b"></i>
+        <i style="background:#66d4cf"></i></span></span>
+      <span class="body">
+        <span class="ttl"><span>자동 재개 실패</span><span>지금</span></span>
+        <span class="txt">claude 가 exit 1 로 끝났습니다. No conversation found...</span>
+      </span>
+    </div>
+    <p class="cap">exit code 와 stderr 첫 줄. 짐작을 덧붙이지 않는다.</p>
+  </div>
+</div>
+
+<h2>4. 흐름</h2>
+<div class="flow">
+  <span class="step"><b>대기</b>고른 계정의 5시간,<br>주간 창을 지켜본다</span>
+  <span class="arr">--&gt;</span>
+  <span class="step"><b>예약</b>소진 감지.<br>리셋 + 3분에 타이머</span>
+  <span class="arr">--&gt;</span>
+  <span class="step"><b>점검</b>사용량을 다시 읽어<br>두 창 잔여 30% 이상?</span>
+  <span class="arr">--&gt;</span>
+  <span class="step"><b>실행</b><code>claude --resume ID -p</code><br>결과를 알림으로</span>
+</div>
+<p class="cap" style="max-width:920px">
+  점검에서 떨어지면 보류하고 대기로 돌아간다. 같은 리셋 시각으로는 두 번
+  예약하지 않는다. 토글이 켜져 있는 한 다음 소진에서 다시 돈다.
+</p>
+
+<p class="note">
+  <b>세션 하나만 고른다.</b> 여러 세션 동시 재개는 필요하다는 말이 나오면
+  그때 늘린다. <b>주간 Fable 창은 안 본다.</b> 모델 하나에만 걸리는 창이라
+  재개를 막을 이유가 못 된다. <b>여유 기준은 30% 고정.</b> 노브는 조절하고
+  싶다는 말이 나올 때 단다.
+</p>
