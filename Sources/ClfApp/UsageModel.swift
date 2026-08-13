@@ -45,17 +45,10 @@ final class UsageModel: ObservableObject {
     /// 남은 시간 표기를 흐르게 하는 1분 시계.
     private var clock: Task<Void, Never>?
     private let launcher = AltLauncher()
-    private let notifier = Notifier()
-    /// 리밋이 풀리면 이어 돌린다. 판정은 이 값이 하고 실행은 `runResume` 이 한다.
-    private var resumeWatch = AutoResumeWatch()
-    /// 이미 한 판이 돌고 있으면 겹쳐 돌리지 않는다. 한 세션에 둘이 붙으면 안 된다.
-    private var resuming = false
-    /// 켜 두고 세션을 아직 안 골랐다. 저장할 것이 없어 설정에는 안 남는다.
-    private var resumePending = false
-    /// `claude` 실행 파일. 켤 때 한 번 찾는다.
-    private let cli = ClaudeCLI.find()
-    /// 자동 재개가 어느 단계인가. 창이 이 한 줄을 보여준다.
-    @Published private(set) var resumeStatus = AutoResumeStatus.off
+    private let notifier: Notifier
+    /// 리밋이 풀리면 이어 돌린다. **판정도 실행도 저쪽 몫이다.** 여기는 읽기
+    /// 주기와 시계에 그것을 얹는 배선만 한다.
+    private let resume: AutoResumeDriver
     /// 알림 권한 상태. 설정 화면이 이걸 보고 안내를 붙인다.
     @Published private(set) var notifyPermission = Notifier.Permission.unknown
     /// 앱을 켠 뒤 한 번이라도 알림을 판단했나. 첫 읽기는 표시만 하고 안 보낸다.
@@ -78,10 +71,15 @@ final class UsageModel: ObservableObject {
 
     init(reader: DesktopReader = DesktopReader()) {
         self.reader = reader
+        let notifier = Notifier()
+        self.notifier = notifier
+        // 알림 보내는 문만 넘긴다. 자동 재개가 `Notifier` 를 알면 그쪽이 AppKit
+        // 없이는 못 도는 코드가 된다
+        self.resume = AutoResumeDriver(post: notifier.post)
         self.file = try? DesktopPreferencesFile()
         if let file { prefs = file.load() }
         loginItem = LoginItem.state
-        resumeStatus = idleResumeStatus()
+        resume.planChanged(prefs.autoResume, pending: false)
     }
 
     /// 켜자마자 한 번 읽고, 그다음은 사용량이 정하는 주기로.
@@ -491,7 +489,7 @@ final class UsageModel: ObservableObject {
         // 예약 시각이 지났으면 새로 읽는다. 낡은 값은 리셋 전 0% 라 그대로
         // 판정하면 방금 풀린 창을 보고 보류한다. 읽고 나면 `refresh` 가
         // 판정까지 부른다
-        guard resumeWatch.isDue(Date()) else { return }
+        guard resume.isDue(now: Date()) else { return }
         await refresh(scheduled: true)
     }
 
@@ -524,7 +522,8 @@ final class UsageModel: ObservableObject {
             if !snapshot.throttled { readAt = snapshot.readAt }
             failure = nil
             await notify(at: now)
-            stepAutoResume(at: now)
+            resume.step(org: known.first { $0.uuid == resume.watchedUUID },
+                        readAt: readAt, now: now)
         } catch {
             gate.record(at: now, throttled: false)
             failure = "\(error)"
@@ -637,105 +636,29 @@ final class UsageModel: ObservableObject {
     // MARK: 자동 재개
 
     /// 켤 수 있나. CLI 가 없으면 켜 봐야 돌릴 수단이 없다.
-    var canAutoResume: Bool { cli != nil }
+    var canAutoResume: Bool { resume.canRun }
 
     /// 지금 정해 둔 것. 없으면 꺼진 것이다.
     var autoResume: AutoResumePlan? { prefs.autoResume }
 
+    /// 자동 재개가 어느 단계인가. 창이 이 한 줄을 보여준다.
+    var resumeStatus: AutoResumeStatus { resume.status }
+
     /// 무엇을 이어 돌릴지 정한다. nil 이면 끈다.
     ///
     /// `pending` 은 켜 두고 세션을 아직 안 고른 상태다. 저장할 것이 없어 `plan`
-    /// 은 nil 인데 화면의 체크는 켜져 있다. 상태가 그 사실을 말해야 체크와
-    /// 상자가 서로 다른 말을 하지 않는다.
+    /// 은 nil 인데 화면의 체크는 켜져 있다.
     ///
-    /// 바뀌면 예약을 버린다. 다른 세션에 걸려 있던 예약을 새 세션이 물려받으면
-    /// 사용자가 정한 적 없는 조합으로 돈다.
+    /// **저장값이 그대로여도 알린다.** 상태는 저장값만으로 정해지지 않는다.
+    /// 여기서 걸러 내면 세션 없이 켜기만 누른 순간이 상태에 닿지 못한다.
     func setAutoResume(_ plan: AutoResumePlan?, pending: Bool = false) {
-        resumePending = pending
-        guard plan != prefs.autoResume else {
-            // 저장값이 그대로여도 화면은 바뀌었을 수 있다. 세션 없이 켜기만 누른
-            // 순간이 그렇다. 걸려 있는 예약과 지난 결과는 지우지 않는다
-            if resumeWatch.scheduledAt == nil, !resumeStatus.isResult {
-                resumeStatus = idleResumeStatus()
-            }
-            return
+        if plan != prefs.autoResume {
+            prefs.autoResume = plan
+            // 막대와 무관한 설정이므로 그림을 다시 굽지 않는다. 프롬프트는 한
+            // 글자마다 여기로 오는데 그때마다 굽는 것은 낭비다
+            try? file?.save(prefs)
         }
-        prefs.autoResume = plan
-        // 막대와 무관한 설정이므로 그림을 다시 굽지 않는다. 프롬프트는 한 글자마다
-        // 여기로 오는데 그때마다 굽는 것은 낭비다
-        try? file?.save(prefs)
-        resumeWatch.forget()
-        resumeStatus = idleResumeStatus()
-    }
-
-    /// 예약도 결과도 없을 때의 상태.
-    private func idleResumeStatus() -> AutoResumeStatus {
-        guard cli != nil else { return .unavailable(ClaudeCLI.candidates()) }
-        if prefs.autoResume != nil { return .watching }
-        return resumePending ? .needsSession : .off
-    }
-
-    /// 이번 읽기를 판정에 넘기고 결론을 따른다.
-    ///
-    /// **읽기를 마친 자리에서만 부른다.** 판정은 방금 읽은 값이라야 뜻이 있다.
-    private func stepAutoResume(at now: Date) {
-        guard let plan = prefs.autoResume, cli != nil else {
-            resumeStatus = idleResumeStatus()
-            return
-        }
-        // 한 판이 도는 중이면 그 결과가 상태를 정한다. 판정을 겹쳐 돌리지 않는다
-        guard !resuming else { return }
-
-        let org = known.first { $0.uuid == plan.orgUUID }
-        switch resumeWatch.step(org, now: now, readAt: readAt) {
-        case .none:
-            if let at = resumeWatch.scheduledAt {
-                resumeStatus = .scheduled(at)
-            } else if !resumeStatus.isResult {
-                // 지난 결과는 다음 예약이 생길 때까지 남긴다
-                resumeStatus = .watching
-            }
-        case .run:
-            resumeStatus = .running
-            runResume(plan)
-        case .hold(let why):
-            resumeStatus = .held(why)
-            Task { [weak self] in await self?.notifier.post(AutoResumeAlerts.held(why)) }
-        }
-    }
-
-    /// 세션을 이어 돌리고 결과를 알린다.
-    ///
-    /// 한 턴이 몇 분씩 가므로 기다리는 동안 화면은 `실행 중` 으로 둔다.
-    private func runResume(_ plan: AutoResumePlan) {
-        guard let cli, !resuming else { return }
-        resuming = true
-        let runner = ResumeRunner(executable: cli)
-        Task { [weak self] in
-            let status: AutoResumeStatus
-            let alert: UsageAlert
-            do {
-                let outcome = try await runner.run(plan)
-                if outcome.ok {
-                    status = .ran(Date())
-                    alert = AutoResumeAlerts.ran(plan.title)
-                } else {
-                    // 짐작을 덧붙이지 않는다. 종료 코드와 stderr 첫 줄이 전부다
-                    let detail = "claude 가 exit \(outcome.exitCode) 로 끝났습니다."
-                        + (outcome.detail.map { " \($0)" } ?? "")
-                    status = .failed(detail)
-                    alert = AutoResumeAlerts.failed(detail)
-                }
-            } catch {
-                let detail = "claude 를 실행하지 못했습니다. \(error.localizedDescription)"
-                status = .failed(detail)
-                alert = AutoResumeAlerts.failed(detail)
-            }
-            guard let self else { return }
-            self.resuming = false
-            self.resumeStatus = status
-            await self.notifier.post(alert)
-        }
+        resume.planChanged(plan, pending: pending)
     }
 
     private func persist() {
