@@ -568,7 +568,7 @@ struct PopoverView: View {
                     AppFocus.dismissPopover(yieldFocus: false)
                     HandoffWindow.open()
                 } label: {
-                    Label("세션 작업 이전/재개", systemImage: "arrow.left.arrow.right")
+                    Label("작업이전/자동재개", systemImage: "arrow.left.arrow.right")
                         .calloutStyle(.medium)
                 }
                 .glassButton()
