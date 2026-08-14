@@ -613,6 +613,11 @@ struct PopoverView: View {
             sharedSessions.refresh()
             await model.refresh()
         }
+        // 설정 판을 편 채로 닫으면 그 서브트리가 메뉴바에 남는다. 남은 트리는
+        // 화면 주사율마다 레이아웃을 다시 돌고, 그 한 바퀴마다 세그먼트 Picker 가
+        // 타는 DesignLibrary 경로가 ObservationRegistrar 를 초당 두 개씩 흘린다.
+        // 며칠이면 힙이 수백 MB 가 되고 CPU 가 한 코어를 채운다. 닫을 때 접는다
+        .onDisappear { showingSettings = false }
     }
 
     private func stamp(_ date: Date) -> String {
