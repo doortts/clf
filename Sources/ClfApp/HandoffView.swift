@@ -25,11 +25,7 @@ struct HandoffView: View {
         VStack(alignment: .leading, spacing: 12) {
             // 세션을 다루는 두 일이다. 자동 재개를 설정 패널에 넣으면 켤 때마다
             // 패널이 한 화면을 넘긴다. docs/design/16-auto-resume.md 7절
-            Picker("", selection: $model.tab) {
-                ForEach(HandoffModel.Tab.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            TabBar(tab: $model.tab)
 
             switch model.tab {
             case .handoff: handoffTab
@@ -245,6 +241,46 @@ private struct AlwaysVisibleScrollers: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+/// 탭 두 칸. **칸을 직접 그린다.**
+///
+/// `Picker(.segmented)` 는 칸 라벨로 `Text` 하나만 받는다. 이름 옆에 딱지를
+/// 붙이려고 `HStack` 을 주면 그것을 한 칸으로 안 보고 칸을 하나 더 만들어서
+/// `작업 이전 | 자동 재개 | 실험` 이 됐다. 그래서 모양은 우리가 그리고 고른
+/// 값만 상태로 남긴다. `AccountBox` 가 두 줄을 그리려고 `Menu` 를 버린 것과
+/// 같은 이유다.
+struct TabBar: View {
+    @Binding var tab: HandoffModel.Tab
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(HandoffModel.Tab.allCases) { item in
+                Button { tab = item } label: { segment(item) }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(tab == item ? [.isSelected] : [])
+            }
+        }
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: Metrics.badgeRadius + 2)
+            .fill(Color.primary.opacity(0.08)))
+    }
+
+    private func segment(_ item: HandoffModel.Tab) -> some View {
+        let on = tab == item
+        return HStack(spacing: 5) {
+            Text(item.label)
+                .font(.system(size: 12, weight: on ? .semibold : .regular))
+                .foregroundStyle(on ? Color.primary : Color.secondary)
+            // 고른 칸이 아니어도 딱지는 그대로 둔다. 들어가기 전에 보라고 붙인 것이다
+            if let mark = item.mark { Badge(text: mark, tint: .orange) }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 22)
+        .background(RoundedRectangle(cornerRadius: Metrics.badgeRadius)
+            .fill(on ? Color.primary.opacity(0.16) : Color.clear))
+        .contentShape(Rectangle())
+    }
 }
 
 /// 창 아래에 붙는 안내 상자. 두 탭이 같은 꼴을 쓴다.

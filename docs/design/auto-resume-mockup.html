@@ -18,14 +18,12 @@
          background:#2b2b2d; box-shadow:0 10px 40px rgba(0,0,0,.5); }
   .tabs { display:flex; gap:2px; padding:2px; border-radius:7px; margin:0 0 12px;
           background:rgba(255,255,255,.08); }
-  .tab { flex:1; text-align:center; font-size:12px; line-height:20px; border-radius:5px;
+  .tab { flex:1; text-align:center; font-size:12px; line-height:22px; border-radius:5px;
          color:var(--dim); }
   .tab.on { background:rgba(255,255,255,.16); color:var(--ink); font-weight:600;
             box-shadow:0 1px 2px rgba(0,0,0,.25); }
 
-  /* 실험 딱지 줄. 팝오버의 team 딱지와 같은 꼴 */
-  .exp { display:flex; gap:8px; align-items:flex-start; margin:0 0 12px;
-         font-size:10px; line-height:14px; color:var(--dim); }
+  /* 실험 딱지. 팝오버의 team 딱지와 같은 꼴 */
   .tag { flex:none; height:16px; line-height:16px; padding:0 6px; border-radius:5px;
          font-size:10px; font-weight:600; color:#ff9f0a; background:rgba(255,159,10,.22); }
   .head { display:flex; gap:10px; align-items:flex-start; }
@@ -157,10 +155,7 @@
   <div>
     <h3>켠 상태. 지켜보는 중</h3>
     <div class="win">
-      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
-      <div class="exp"><span class="tag">실험</span>
-        <span>아직 다듬는 중입니다. 사람이 없는 사이에 도는 기능이라 켜 두었다면
-        결과를 한 번씩 확인하세요</span></div>
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개 <span class="tag">실험</span></div></div>
       <div class="head">
         <div style="flex:1; min-width:0">
           <div class="chk"><span class="box">&#10003;</span>리밋 풀리면 자동으로 이어 돌리기</div>
@@ -211,10 +206,7 @@
   <div>
     <h3>끈 상태. 기본값</h3>
     <div class="win">
-      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
-      <div class="exp"><span class="tag">실험</span>
-        <span>아직 다듬는 중입니다. 사람이 없는 사이에 도는 기능이라 켜 두었다면
-        결과를 한 번씩 확인하세요</span></div>
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개 <span class="tag">실험</span></div></div>
       <div class="head">
         <div style="flex:1; min-width:0">
           <div class="chk"><span class="box off"></span>리밋 풀리면 자동으로 이어 돌리기</div>
@@ -339,10 +331,7 @@
   <div>
     <h3>CLI 가 없다</h3>
     <div class="win" style="padding-bottom:14px">
-      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
-      <div class="exp"><span class="tag">실험</span>
-        <span>아직 다듬는 중입니다. 사람이 없는 사이에 도는 기능이라 켜 두었다면
-        결과를 한 번씩 확인하세요</span></div>
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개 <span class="tag">실험</span></div></div>
       <div class="head">
         <div style="flex:1; min-width:0">
           <div class="chk faded"><span class="box off"></span>리밋 풀리면 자동으로 이어 돌리기</div>
@@ -361,10 +350,7 @@
   <div>
     <h3>CLI 세션이 없다</h3>
     <div class="win" style="padding-bottom:14px">
-      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개</div></div>
-      <div class="exp"><span class="tag">실험</span>
-        <span>아직 다듬는 중입니다. 사람이 없는 사이에 도는 기능이라 켜 두었다면
-        결과를 한 번씩 확인하세요</span></div>
+      <div class="tabs"><div class="tab">작업 이전</div><div class="tab on">자동 재개 <span class="tag">실험</span></div></div>
       <div class="head">
         <div style="flex:1; min-width:0">
           <div class="chk"><span class="box">&#10003;</span>리밋 풀리면 자동으로 이어 돌리기</div>

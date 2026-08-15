@@ -44,6 +44,15 @@ final class HandoffModel: ObservableObject {
             case .resume:  return "자동 재개"
             }
         }
+
+        /// 이름 옆에 붙는 딱지. 없으면 nil.
+        ///
+        /// **탭 이름 옆이라야 들어오기 전에 보인다.** 안에 적으면 이미 들어온
+        /// 뒤이고, 켜기 위에 적어도 그 화면을 열어야 읽는다. 사람이 자리를 비운
+        /// 사이에 프로세스를 대신 띄우는 기능이라 그 사실이 먼저 와야 한다.
+        var mark: String? {
+            self == .resume ? "실험" : nil
+        }
     }
 
     @Published var tab = Tab.handoff
