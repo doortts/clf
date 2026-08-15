@@ -40,6 +40,12 @@ public final class AutoResumeDriver: ObservableObject {
     /// 켤 수 있나. CLI 가 없으면 켜 봐야 돌릴 수단이 없다.
     public var canRun: Bool { executable != nil }
 
+    /// 그 CLI 에게 다른 것도 물어볼 수 있게 내준다.
+    ///
+    /// 찾는 규칙이 여기 하나뿐이라야 한다. 창이 따로 찾으면 실행하는 CLI 와
+    /// 로그인을 물어보는 CLI 가 서로 다른 것일 수 있다.
+    public var cli: URL? { executable }
+
     /// 어느 계정을 지켜보나. 부르는 쪽이 그 계정의 사용량을 찾아 넘긴다.
     public var watchedUUID: String? { plan?.orgUUID }
 

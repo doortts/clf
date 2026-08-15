@@ -20,6 +20,11 @@ final class ResumeDraft: ObservableObject {
     @Published private(set) var prompt = AutoResumePlan.defaultPrompt
     /// 이어 돌릴 후보. CLI 가 아는 세션이라 작업 이전 탭의 목록과 출처가 다르다.
     @Published private(set) var sessions: [CliSession] = []
+    /// CLI 가 어느 계정으로 로그인돼 있나. 창을 열 때마다 다시 물어본다.
+    ///
+    /// **실행되는 계정은 이쪽이다.** 위에서 고르는 것은 한도를 지켜볼 계정일
+    /// 뿐이라, 이 값을 안 보여주면 다른 계정 한도로 도는 것을 알 길이 없다.
+    @Published private(set) var auth = CliAuthStatus.checking
 
     private unowned let usage: UsageModel
     /// 계정 목록은 넘기기 창이 만드는 것을 그대로 빌린다. 같은 목록을 두 번
@@ -57,6 +62,12 @@ final class ResumeDraft: ObservableObject {
         session = saved.map { CliSession(id: $0.sessionID, title: $0.title, cwd: $0.cwd,
                                          modifiedAt: .distantPast) }
         loadSessions()
+        loadAuth()
+    }
+
+    /// 창 아래에 적을 한 줄. 지금 고른 계정과 대조한다.
+    var authLine: CliAuthLine {
+        auth.line(watching: accountUUID, named: chosenAccount?.name)
     }
 
     /// 목록은 파일을 훑어야 안다. 창을 여는 길목을 막지 않는다.
@@ -66,6 +77,25 @@ final class ResumeDraft: ObservableObject {
                 CliSessions.scan()
             }.value
             self?.sessions = found
+        }
+    }
+
+    /// CLI 에게 로그인 계정을 물어본다. 프로세스를 띄우는 일이라 창이 뜨는
+    /// 동안 뒤에서 돈다. 답이 오기 전까지는 `확인하는 중` 이다.
+    ///
+    /// 창을 열 때마다 다시 묻는다. 터미널에서 계정을 바꾸고 창을 여는 것이
+    /// 이 값을 의심하는 그 순간이라, 한 번 물어보고 캐시하면 틀린 채로 남는다.
+    private func loadAuth() {
+        auth = .checking
+        guard let cli = usage.resumeDriver.cli else {
+            // CLI 가 없다는 사실은 상태 상자가 이미 말한다. 여기서 또 적으면
+            // 같은 말이 두 줄이다
+            auth = .unreadable("claude 를 찾지 못했습니다")
+            return
+        }
+        Task { [weak self] in
+            let found = await CliAuthReader(executable: cli).check()
+            self?.auth = found
         }
     }
 

@@ -65,6 +65,10 @@
   .note .bar { width:2px; border-radius:1px; flex:none; }
   .note b { font-weight:600; color:var(--ink); }
   .note .dim { color:var(--dim); }
+  /* CLI 로그인 한 줄. 상자가 아니라 점 하나와 글자다 */
+  .auth { display:flex; gap:6px; align-items:flex-start; margin-top:10px; padding:0 2px;
+          font-size:10px; line-height:14px; color:var(--dim); }
+  .adot { width:6px; height:6px; border-radius:3px; margin-top:4px; flex:none; }
   .foot { display:flex; justify-content:flex-end; margin-top:12px; }
   .btn { font-size:12px; border-radius:6px; padding:3px 14px;
          background:rgba(255,255,255,.14); box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
@@ -176,12 +180,20 @@
       <div class="note"><span class="bar" style="background:#3ce16b"></span>
         <span>5시간, 주간 창을 지켜보는 중입니다.
         <span class="dim">소진되면 리셋 3분 뒤에 이 세션을 이어 돌립니다.</span></span></div>
+      <div class="auth"><span class="adot" style="background:#3ce16b"></span>
+        <span>CLI 로그인: NAVER_TEAM_52. 지켜볼 계정과 같습니다</span></div>
       <div class="foot"><span class="btn">닫기</span></div>
     </div>
     <p class="cap">
       계정 상자를 첫 줄 오른쪽에 올린다. 아래 목록이 CLI 세션이라 계정과 줄이
       바뀌면 목록이 그 계정의 세션으로 읽힌다. 켜기 옆에 붙여 <b>한도를 지켜볼
       계정</b>이라는 보조 문구를 함께 보여준다.
+    </p>
+    <p class="cap">
+      맨 아래 한 줄은 <b>CLI 가 어느 계정으로 로그인돼 있는지</b>다. 탭에
+      들어올 때마다 <code>claude auth status --json</code> 을 뒤에서 물어본다.
+      상태 상자와 나눠 둔다. 상자는 자동 재개가 무엇을 하고 있는지를 말하고,
+      이 줄은 그것이 어느 계정으로 돌지를 말한다.
     </p>
     <p class="cap">
       세션은 <b>하나만</b> 고르므로 라디오다. 이전 탭은 여러 개를 옮기니 체크박스다.
@@ -268,6 +280,45 @@
     <p class="cap">
       시각은 <b>상대값</b>으로 적는다. 주간 리셋은 며칠 뒤라 <code>오후 2:32</code>
       만 적으면 오늘로 읽힌다. 남은 시간 표기는 막대가 쓰는 것을 그대로 쓴다.
+    </p>
+  </div>
+</div>
+
+<h2>3-2. CLI 로그인 한 줄</h2>
+<p class="lede">
+  <b>실행되는 계정은 이쪽이다.</b> 위에서 고르는 것은 한도를 지켜볼 계정일
+  뿐이라, 이 줄이 없으면 다른 계정 한도로 도는 것을 알 길이 없다. 실패가
+  아니라서 알림도 안 뜬다.
+</p>
+<div class="cols">
+  <div style="width:460px">
+    <div class="auth"><span class="adot" style="background:#3ce16b"></span>
+      <span>CLI 로그인: NAVER_TEAM_52. 지켜볼 계정과 같습니다</span></div>
+    <div class="auth"><span class="adot" style="background:#ff6961"></span>
+      <span>CLI 로그인: NAVER_TEAM_52. 지켜볼 계정 NAVER_TEAM_40 와 달라서
+      NAVER_TEAM_52 의 한도로 돕니다</span></div>
+    <div class="auth"><span class="adot" style="background:#ff6961"></span>
+      <span>CLI 가 로그인돼 있지 않습니다. 터미널에서 claude auth login 을
+      먼저 하세요</span></div>
+    <div class="auth"><span class="adot" style="background:rgba(255,255,255,.35)"></span>
+      <span>CLI 로그인 계정을 확인하는 중입니다</span></div>
+    <div class="auth"><span class="adot" style="background:#ffd60a"></span>
+      <span>CLI 로그인 계정을 확인하지 못했습니다. claude 가 exit 1 로 끝났습니다</span></div>
+  </div>
+  <div>
+    <p class="cap" style="margin-top:0">
+      <b>같을 때도 말한다.</b> 조용히 있으면 확인을 한 것인지 못 한 것인지
+      구분이 안 된다. 확인 중은 색을 안 쓴다. 아직 아무 소식도 아니다.
+    </p>
+    <p class="cap">
+      <b>막지는 않는다.</b> 로그인이 없거나 계정이 달라도 켜고 끌 수 있다.
+      우리가 아는 것은 방금 물어본 순간의 상태뿐이고 실제로 도는 것은 몇 시간
+      뒤다. 그 사이에 사용자가 로그인할 수 있다.
+    </p>
+    <p class="cap">
+      자격증명 파일을 직접 읽지 않는다. 형식이 바뀌면 조용히 틀린 답을 하게
+      되고, 우리가 읽을 이유가 없는 것을 읽게 된다. CLI 가 자기 상태를 답하는
+      문을 쓴다.
     </p>
   </div>
 </div>

@@ -28,6 +28,7 @@ struct ResumeTab: View {
                 prompt
             }
             status
+            authLine
             Spacer(minLength: 0)
             footer
         }
@@ -146,6 +147,29 @@ struct ResumeTab: View {
         return NoteBox(accent: ink(state.accent)) {
             WrappedCaption(text: state.text())
         }
+    }
+
+    /// CLI 로그인 계정 한 줄.
+    ///
+    /// 상태 상자와 나눠 둔다. 상자는 **자동 재개가 지금 무엇을 하고 있는지**를
+    /// 말하고 이 줄은 **그것이 어느 계정으로 돌지**를 말한다. 한 상자에 넣으면
+    /// 실행 결과와 전제가 섞여 어느 쪽이 문제인지 안 갈린다.
+    private var authLine: some View {
+        let line = draft.authLine
+        return HStack(alignment: .top, spacing: 6) {
+            Circle()
+                .fill(ink(line.accent) ?? Color.secondary.opacity(0.5))
+                .frame(width: 6, height: 6)
+                // 첫 줄 글자 가운데에 맞춘다
+                .padding(.top, 4)
+            Text(line.text)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 2)
+        .accessibilityElement(children: .combine)
     }
 
     private func ink(_ accent: AutoResumeStatus.Accent) -> Color? {
