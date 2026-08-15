@@ -206,13 +206,7 @@ struct OrgCard: View {
     }
 
     private func badge(_ text: String, tint: Color) -> some View {
-        Text(text)
-            .captionStyle(.semibold)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 6)
-            .frame(height: Metrics.badgeHeight)
-            .background(tint.opacity(0.22),
-                        in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
+        Badge(text: text, tint: tint)
     }
 
     /// 월 예산 한 줄. 리셋 자리에는 쓴 금액과 한도를 적는다.
@@ -944,6 +938,25 @@ struct PopoverView: View {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
         return f.string(from: date) + " 갱신"
+    }
+}
+
+/// 이름 옆에 붙는 작은 딱지.
+///
+/// 팝오버의 플랜(`team`)과 기본 창 표시가 쓰던 것을 창에서도 쓴다. 같은 뜻의
+/// 표시가 두 군데서 조금씩 다른 모양이 되면 그때부터 규칙이 아니라 습관이다.
+struct Badge: View {
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        Text(text)
+            .captionStyle(.semibold)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 6)
+            .frame(height: Metrics.badgeHeight)
+            .background(tint.opacity(0.22),
+                        in: RoundedRectangle(cornerRadius: Metrics.badgeRadius))
     }
 }
 

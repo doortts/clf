@@ -17,6 +17,7 @@ struct ResumeTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            experimental
             head
             // CLI 가 없으면 고를 것도 없다. 못 쓰는 줄을 흐리게 남겨 두는 것보다
             // 빼는 편이 낫다. 무엇이 없어서 못 켜는지는 아래 상자가 말한다
@@ -32,6 +33,27 @@ struct ResumeTab: View {
             Spacer(minLength: 0)
             footer
         }
+    }
+
+    /// 실험 기능 딱지.
+    ///
+    /// **맨 위에 둔다.** 켜기보다 먼저 읽혀야 한다. 켜고 나서 알게 되면 이미
+    /// 맡긴 뒤다. 아래 상태 상자에 섞으면 그 상자가 매번 바뀌는 자리라 이 말이
+    /// 지나가는 소식처럼 보인다.
+    ///
+    /// 사람이 자리를 비운 사이에 프로세스를 대신 띄우는 기능이라, 무엇이 덜
+    /// 다듬어졌는지 짐작할 수 있게 한 줄을 같이 적는다.
+    private var experimental: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Badge(text: "실험", tint: .orange)
+            Text("아직 다듬는 중입니다. 사람이 없는 사이에 도는 기능이라"
+                 + " 켜 두었다면 결과를 한 번씩 확인하세요")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: 켜기와 계정
