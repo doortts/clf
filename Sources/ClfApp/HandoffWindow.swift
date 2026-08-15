@@ -22,9 +22,11 @@ enum HandoffWindow {
     static func open() {
         guard let model, let draft else { return }
         if controller == nil {
-            let window = NSWindow(contentViewController:
-                                    NSHostingController(rootView: HandoffView(model: model,
-                                                                              draft: draft)))
+            let hosting = NSHostingController(rootView: HandoffView(model: model, draft: draft))
+            // 탭마다 내용 높이가 다르다. 창이 처음 뜰 때의 높이에 머물면 더 긴
+            // 탭으로 바꿨을 때 아랫줄 단추가 잘린다
+            hosting.sizingOptions = [.preferredContentSize]
+            let window = NSWindow(contentViewController: hosting)
             window.title = "작업이전/자동재개"
             window.styleMask = [.titled, .closable]
             // 닫아도 놓아주지 않는다. 다시 열 때 같은 창을 쓴다

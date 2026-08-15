@@ -21,10 +21,7 @@ struct ResumeTab: View {
             // CLI 가 없으면 고를 것도 없다. 못 쓰는 줄을 흐리게 남겨 두는 것보다
             // 빼는 편이 낫다. 무엇이 없어서 못 켜는지는 아래 상자가 말한다
             if draft.canEdit {
-                VStack(alignment: .leading, spacing: 5) {
-                    count
-                    list
-                }
+                list
                 prompt
             }
             status
@@ -69,62 +66,21 @@ struct ResumeTab: View {
 
     // MARK: 세션 목록
 
-    /// 어디서 온 목록인지 적는다. 위 탭의 목록과 출처가 달라서 개수만 적으면
-    /// 같은 것의 다른 셈으로 읽힌다.
-    private var count: some View {
-        Text("CLI 세션 \(draft.sessions.count)개")
-            .font(.system(size: 10)).foregroundStyle(.secondary)
-            .padding(.horizontal, 2)
-    }
-
+    /// 하나만 이어 돌린다. 그래서 동그라미다.
     private var list: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(draft.sessions.enumerated()), id: \.element.id) { index, session in
-                    if index > 0 { Divider().opacity(0.4) }
-                    row(session)
-                }
+        // 이름이 `세션` 이 아니라 `CLI 세션` 이다. 위 탭의 목록과 출처가 달라서
+        // 개수만 적으면 같은 것의 다른 셈으로 읽힌다
+        SessionList(noun: "CLI 세션", items: draft.sessions,
+                    emptyText: "이어 돌릴 CLI 세션이 없습니다") { session in
+            SessionRow(pick: .one,
+                       on: draft.session?.id == session.id,
+                       title: session.title,
+                       detail: Text(session.folder()).foregroundColor(.secondary),
+                       at: session.modifiedAt,
+                       label: "\(session.title) 세션을 이어 돌린다") {
+                draft.pick(session)
             }
         }
-        .frame(height: Metrics.listHeight)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10)))
-        .overlay {
-            if draft.sessions.isEmpty {
-                Text("이어 돌릴 CLI 세션이 없습니다")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    /// 줄 하나. **동그라미다.** 하나만 고르는 규칙이 눌러보기 전에 보여야 한다.
-    /// 이전 탭은 여러 개를 옮기므로 네모다.
-    private func row(_ session: CliSession) -> some View {
-        let on = draft.session?.id == session.id
-        return Button {
-            draft.pick(session)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: on ? "largecircle.fill.circle" : "circle")
-                    .foregroundStyle(on ? Color.accentColor : Color.secondary)
-                    .font(.system(size: 13))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(session.title).font(.system(size: 12)).lineLimit(1)
-                    Text(session.folder())
-                        .font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
-                }
-                Spacer(minLength: 6)
-                Text(BarText.since(session.modifiedAt))
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(on ? Color.accentColor.opacity(0.18) : Color.clear)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(session.title) 세션을 이어 돌린다")
     }
 
     // MARK: 프롬프트

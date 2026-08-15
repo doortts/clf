@@ -43,10 +43,7 @@ struct HandoffView: View {
     private var handoffTab: some View {
         VStack(alignment: .leading, spacing: 12) {
             route
-            VStack(alignment: .leading, spacing: 5) {
-                count
-                list
-            }
+            list
             note
             Spacer(minLength: 0)
             footer
@@ -68,69 +65,19 @@ struct HandoffView: View {
                    pick: { selection.wrappedValue = $0 })
     }
 
-    /// 목록에 몇 개가 있는지. 화면에 셋만 보이면 그게 전부인지 알 수 없다.
-    ///
-    /// 고른 개수는 안 적는다. 아래 단추가 이미 "2개 옮기기" 라고 말한다.
-    @ViewBuilder private var count: some View {
-        if !model.sessions.isEmpty {
-            Text("세션 \(model.sessions.count)개")
-                .font(.system(size: 10)).foregroundStyle(.secondary)
-                .padding(.horizontal, 2)
-        }
-    }
-
+    /// 여러 개를 골라 옮긴다. 그래서 네모다.
     private var list: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(model.sessions.enumerated()), id: \.element.id) { index, session in
-                    if index > 0 { Divider().opacity(0.4) }
-                    row(session)
-                }
-            }
-            // 넘칠 때는 막대를 계속 보여준다
-            .background(AlwaysVisibleScrollers())
-        }
-        .frame(height: Metrics.listHeight)
-        // 검정 덮기 대신 라벨색 퍼센트. 라이트에서도 같은 만큼 가라앉는다
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.06)))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.primary.opacity(0.10)))
-        .overlay {
-            if model.sessions.isEmpty {
-                Text("이 계정에는 세션이 없습니다")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
+        SessionList(noun: "세션", items: model.sessions,
+                    emptyText: "이 계정에는 세션이 없습니다") { session in
+            SessionRow(pick: .many,
+                       on: model.picked.contains(session.fileName),
+                       title: session.display,
+                       detail: detailLine(session),
+                       at: session.lastActivityAt,
+                       label: "\(session.display) 세션을 골라 옮긴다") {
+                model.toggle(session.fileName)
             }
         }
-    }
-
-    /// 줄 하나. `onTapGesture` 는 스크롤 뷰 안에서 클릭을 놓친다.
-    /// 단추로 만들면 키보드와 보이스오버도 따라온다.
-    private func row(_ session: SessionSummary) -> some View {
-        let on = model.picked.contains(session.fileName)
-        return Button {
-            model.toggle(session.fileName)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: on ? "checkmark.square.fill" : "square")
-                    .foregroundStyle(on ? Color.accentColor : Color.secondary)
-                    .font(.system(size: 13))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(session.display).font(.system(size: 12)).lineLimit(1)
-                    // 폴더와 경고를 한 줄에 같이 적는다. 경고만 색을 준다
-                    detailLine(session)
-                        .font(.system(size: 10))
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 6)
-                Text(BarText.since(session.lastActivityAt))
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(on ? Color.accentColor.opacity(0.18) : Color.clear)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder private var note: some View {
@@ -219,29 +166,6 @@ struct HandoffView: View {
     }
 }
 
-
-/// 목록이 넘치면 스크롤 막대를 계속 보여준다.
-///
-/// `.scrollIndicators(.visible)` 로는 안 된다. 시스템 설정의 "스크롤 막대
-/// 보기" 기본값이 "스크롤할 때" 라서 SwiftUI 의 요청보다 앞선다. 이 창
-/// 하나에서만 뒤집으려면 감싸는 `NSScrollView` 를 찾아 legacy 로 바꾼다.
-/// legacy 막대는 겹치지 않고 자리를 차지하므로 안 넘칠 때는 안 보인다.
-private struct AlwaysVisibleScrollers: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let probe = NSView()
-        // 뷰 계층은 makeNSView 시점에 아직 안 붙어 있다. 다음 사이클에 찾는다
-        DispatchQueue.main.async {
-            var view: NSView? = probe
-            while let v = view, !(v is NSScrollView) { view = v.superview }
-            guard let scroll = view as? NSScrollView else { return }
-            scroll.scrollerStyle = .legacy
-            scroll.autohidesScrollers = true
-        }
-        return probe
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
-}
 
 /// 탭 두 칸. **칸을 직접 그린다.**
 ///
