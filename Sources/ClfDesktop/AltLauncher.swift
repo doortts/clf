@@ -94,8 +94,10 @@ public struct AltLauncher: Sendable {
         let walker = FileManager.default.enumerator(at: url,
             includingPropertiesForKeys: [.totalFileAllocatedSizeKey])
         while let f = walker?.nextObject() as? URL {
-            total += (try? f.resourceValues(forKeys: [.totalFileAllocatedSizeKey])
-                .totalFileAllocatedSize) as? Int ?? 0
+            // 못 읽는 파일은 0 으로 센다. 지울 용량을 어림하는 값이라 한 파일을
+            // 놓치는 것이 걸음을 멈출 이유는 아니다
+            total += (try? f.resourceValues(forKeys: [.totalFileAllocatedSizeKey]))?
+                .totalFileAllocatedSize ?? 0
         }
         return total
     }
