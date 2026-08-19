@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import SwiftUI
+import os
 import ClfDesktop
 
 /// 새 버전을 확인하고 제자리에서 갈아 끼운다.
@@ -266,34 +267,39 @@ final class UpdateModel: ObservableObject {
     }
 
     /// DMG 를 받는다. 진행률과 무활동을 같이 본다.
+    ///
+    /// 통로에 넘길 것을 **초기화 때 다 넘긴다.** 델리게이트가 `Sendable` 이라
+    /// 저장 칸을 나중에 채울 수 없다. 자세한 사정은 `DownloadRelay` 에 적었다.
     private func download(_ from: URL, to target: URL, release: Release) async -> Bool {
         lastProgressAt = Date()
         let expected = release.bytes ?? 0
-
-        let relay = DownloadRelay(
-            target: target,
-            onProgress: { [weak self] received, total in
-                Task { @MainActor in
-                    guard let self else { return }
-                    self.lastProgressAt = Date()
-                    guard case .downloading = self.state else { return }
-                    self.state = .downloading(release, received: received,
-                                              total: total > 0 ? total : expected)
-                }
-            })
-
-        let downloader = URLSession(configuration: .ephemeral, delegate: relay,
-                                    delegateQueue: nil)
-        defer { downloader.finishTasksAndInvalidate() }
+        // 감시자는 부르는 쪽이 쥔다. 통로에 맡기면 그 저장 칸이 가변이 되어야
+        // 한다. 여기 두면 기다림이 끝나는 자리에서 같이 접힌다
+        var watchdog: Task<Void, Never>?
+        defer { watchdog?.cancel() }
 
         do {
             return try await withCheckedThrowingContinuation { continuation in
-                relay.finish = { result in continuation.resume(with: result) }
+                let relay = DownloadRelay(
+                    target: target,
+                    onProgress: { [weak self] received, total in
+                        Task { @MainActor in
+                            guard let self else { return }
+                            self.lastProgressAt = Date()
+                            guard case .downloading = self.state else { return }
+                            self.state = .downloading(release, received: received,
+                                                      total: total > 0 ? total : expected)
+                        }
+                    },
+                    onFinish: { continuation.resume(with: $0) })
+
+                let downloader = URLSession(configuration: .ephemeral, delegate: relay,
+                                            delegateQueue: nil)
                 let task = downloader.downloadTask(with: from)
                 // **요청 전체 타임아웃과 다르다.** 사내망이나 프록시가 연결은
                 // 열어 둔 채 조각을 안 보내면 전체 타임아웃만으로는 영영
                 // 기다리고, 화면에는 멈춘 막대가 남는다
-                relay.watchdog = Task { [weak self] in
+                watchdog = Task { [weak self] in
                     while !Task.isCancelled {
                         try? await Task.sleep(for: .seconds(2))
                         guard let self else { return }
@@ -304,6 +310,10 @@ final class UpdateModel: ObservableObject {
                     }
                 }
                 task.resume()
+                // 새 태스크만 막는다. 지금 것은 끝까지 가고, 끝나면 세션이
+                // 델리게이트 참조를 놓는다. 안 부르면 세션과 델리게이트가
+                // 서로를 잡고 안 죽는다
+                downloader.finishTasksAndInvalidate()
             }
         } catch {
             state = .failed("내려받기가 멈췄습니다. 다시 시도해 보세요")
@@ -430,16 +440,42 @@ final class UpdateModel: ObservableObject {
 ///
 /// `didFinishDownloadingTo` 가 준 파일은 **그 함수가 돌아가는 사이에만** 있다.
 /// 옮기는 것을 콜백 안에서 끝내야 한다.
+///
+/// **저장 칸이 전부 불변이어야 한다.** SDK 가 `NSURLSessionDelegate` 를
+/// `NS_SWIFT_SENDABLE` 로 표시해 두었으므로 이 클래스는 `Sendable` 이 되고,
+/// 가변 칸을 두면 컴파일러가 경고한다. 경고로만 끝나는 일도 아니다. 우리는
+/// 메인 액터에서 값을 넣는데 델리게이트 호출은 세션이 만든 백그라운드 직렬
+/// 큐에서 오므로 그 사이에 순서를 보장하는 것이 아무것도 없다. 그래서 이어질
+/// 곳을 초기화 때 받고, 감시자는 부르는 쪽이 쥔다.
 private final class DownloadRelay: NSObject, URLSessionDownloadDelegate {
     private let target: URL
     private let onProgress: @Sendable (Int64, Int64) -> Void
-    /// 이어질 곳. 태스크를 만든 쪽이 채운다.
-    var finish: ((Result<Bool, Error>) -> Void)?
-    var watchdog: Task<Void, Never>?
+    private let onFinish: @Sendable (Result<Bool, Error>) -> Void
+    /// 이어 주기를 한 번으로 막는다.
+    ///
+    /// **확인된 연속체를 두 번 재개하면 프로세스가 죽는다.** 성공 콜백과 실패
+    /// 콜백이 겹쳐 오지 않는다는 것은 URLSession 의 약속이지만, 어긋났을 때 치를
+    /// 값이 하필 업데이트 도중의 크래시라 약속에 기대지 않는다.
+    /// `clfctl` 의 `OnceFlag` 와 같은 일을 하는데, 이 자리는 검사받는 `Sendable`
+    /// 이라 `@unchecked` 를 새로 들이지 않는 쪽을 쓴다.
+    private let settled = OSAllocatedUnfairLock(initialState: false)
 
-    init(target: URL, onProgress: @escaping @Sendable (Int64, Int64) -> Void) {
+    init(target: URL,
+         onProgress: @escaping @Sendable (Int64, Int64) -> Void,
+         onFinish: @escaping @Sendable (Result<Bool, Error>) -> Void) {
         self.target = target
         self.onProgress = onProgress
+        self.onFinish = onFinish
+    }
+
+    private func settle(_ result: Result<Bool, Error>) {
+        let first = settled.withLock { done -> Bool in
+            guard !done else { return false }
+            done = true
+            return true
+        }
+        guard first else { return }
+        onFinish(result)
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
@@ -451,25 +487,23 @@ private final class DownloadRelay: NSObject, URLSessionDownloadDelegate {
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didFinishDownloadingTo location: URL) {
-        watchdog?.cancel()
         let code = (downloadTask.response as? HTTPURLResponse)?.statusCode ?? 0
         guard code == 200 else {
-            finish?(.failure(URLError(.badServerResponse)))
+            settle(.failure(URLError(.badServerResponse)))
             return
         }
         do {
             try? FileManager.default.removeItem(at: target)
             try FileManager.default.moveItem(at: location, to: target)
-            finish?(.success(true))
+            settle(.success(true))
         } catch {
-            finish?(.failure(error))
+            settle(.failure(error))
         }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     didCompleteWithError error: Error?) {
-        watchdog?.cancel()
         guard let error else { return }   // 성공은 위에서 이미 알렸다
-        finish?(.failure(error))
+        settle(.failure(error))
     }
 }
