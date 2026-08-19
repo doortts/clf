@@ -757,7 +757,87 @@ struct PopoverView: View {
     @State private var showingSettings = false
     @StateObject private var sharedSessions = SharedSessionModel()
 
+    /// 설정을 펼치면 아래로 자라지 않고 **왼쪽에 열이 하나 붙는다.**
+    ///
+    /// 아래로 자라던 것이 화면 밖으로 나갔다. 계정 카드 셋에 설정 판을 이어
+    /// 붙이면 900점을 넘는데 메뉴바를 뺀 높이가 945점이라, 계정이 하나만 늘거나
+    /// 업데이트 카드가 펼쳐지면 하단이 잘린다. 두 열로 가르면 높이가 둘 중 더
+    /// 긴 쪽으로 정해진다. 실측으로 434 에서 570 이 됐고 375점이 남는다.
+    ///
+    /// **팝오버 전체가 왼쪽으로 밀린다.** 창 좌표를 재 보면 닫힌 상태는
+    /// `1163..1503` (폭 340) 이고 펼친 상태는 `597..1278` (폭 681) 이다.
+    /// 시스템은 상태 항목 왼쪽 끝에 창을 맞추다가 그 폭이 화면 오른쪽을 넘기면
+    /// 오른쪽 끝에 맞추는 쪽으로 뒤집는다. 우리가 정할 수 있는 값이 아니다.
+    ///
+    /// 그래서 새 열을 **왼쪽**에 둔다. 어느 쪽에 두든 창은 같은 자리로 밀리므로
+    /// 정할 수 있는 것은 두 열의 차례뿐이다. 설정을 왼쪽에 두면 본문 열의 오른쪽
+    /// 끝이 상태 항목 오른쪽 끝과 맞아서 눈이 가 있던 자리 바로 아래에 남는다.
+    /// 오른쪽에 뒀다면 본문이 상태 항목에서 566점 떨어진 곳으로 간다.
     var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            if showingSettings {
+                settingsColumn
+                // 두 열 사이의 칸막이. 열마다 여백 14 가 있어서 선 좌우로
+                // 28 이 벌어진다
+                Divider()
+            }
+            mainColumn
+        }
+        // 라이트는 흰 판, 다크는 재질이다.
+        //
+        // 킷은 팝오버에 Thick 재질을 쓰고 그 자리가 .thickMaterial 이다.
+        // 라이트에서는 그래도 벽지가 배어 나와서 흰 판으로 덮는다. 게이지의
+        // 초록과 민트가 흰 바탕 기준으로 맞춰진 값이라 바탕이 흔들리면 그
+        // 색들이 같이 흔들린다.
+        // docs/design/popover-hig27-applied-mockup.html
+        .background {
+            if scheme == .dark {
+                Rectangle().fill(.thickMaterial)
+            } else {
+                Color.white
+            }
+        }
+        // esc 로 닫는다. 메뉴는 esc 로 닫히는데 이 창은 안 닫혀서
+        // 사용자가 밖을 눌러야 한다
+        .escapeToClose()
+        .task {
+            // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
+            model.clearNotice()
+            // 계정은 로컬 파일이라 공짜다. 열자마자 지금 값을 본다
+            await model.refreshActiveNow()
+            // 겹친 세션도 로컬 파일이다. 열 때 한 번만 훑는다
+            sharedSessions.refresh()
+            await model.refresh()
+        }
+        // 설정 판을 편 채로 닫으면 그 서브트리가 메뉴바에 남는다. 남은 트리는
+        // 화면 주사율마다 레이아웃을 다시 돌고, 그 한 바퀴마다 세그먼트 Picker 가
+        // 타는 DesignLibrary 경로가 ObservationRegistrar 를 초당 두 개씩 흘린다.
+        // 며칠이면 힙이 수백 MB 가 되고 CPU 가 한 코어를 채운다. 닫을 때 접는다
+        .onDisappear { showingSettings = false }
+    }
+
+    /// 왼쪽 열. 설정만 산다.
+    ///
+    /// 두 열의 제목 줄이 같은 높이에 서도록 여기도 제목을 한 줄 둔다. 열이
+    /// 갑자기 왼쪽에 나타나는데 이름이 없으면 무엇이 열린 것인지 한 박자
+    /// 늦게 읽힌다.
+    private var settingsColumn: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("설정").bodyStyle(.semibold)
+                Spacer()
+            }
+            .calloutStyle()
+            .padding(.bottom, 8)
+
+            SettingsPane(model: model)
+        }
+        .padding(Metrics.popoverPadding)
+        .frame(width: Metrics.popoverWidth)
+    }
+
+    /// 오른쪽 열. 설정을 여닫아도 이 열은 자리와 폭이 그대로다.
+    private var mainColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("clf").bodyStyle(.semibold)
@@ -817,11 +897,14 @@ struct PopoverView: View {
             // 겹칠 때만 나타난다. 대화마다 계정이 하나뿐인 평소에는 없다
             SharedSessionSection(model: sharedSessions, names: model.accountNames)
 
-            if showingSettings {
-                SettingsPane(model: model)
-                    .padding(.top, 12)
-                Divider().padding(.vertical, 8)
-            }
+            // 두 열의 길이가 다르다. 짧은 쪽이 이 열이면 남는 자리가 아래에
+            // 생기는데, 조작 줄이 허공에 뜨고 그 아래가 비면 창이 잘린 것처럼
+            // 보인다. 늘어나는 자리를 여기 두어 조작 줄을 바닥에 붙인다.
+            //
+            // 최소값이 16 인 이유는 설정을 닫았을 때다. 그때는 이 열이 유일한
+            // 열이라 늘어날 자리가 없고, 카드와 조작 줄 사이의 여백이 그대로
+            // 16 이어야 한다. docs/design/footer-gap-mockup.html A안
+            Spacer(minLength: 16)
 
             HStack(spacing: 12) {
                 Text(model.readAt.map { stamp($0) } ?? "-")
@@ -852,44 +935,9 @@ struct PopoverView: View {
                 .accessibilityLabel("clf 종료")
             }
             .buttonStyle(.borderless)
-            // 카드 영역과 하단 조작 줄은 다른 얘기다. 선 대신 여백으로
-            // 구획을 만든다. 설정을 편 상태에는 위에 선과 간격이 이미 있다.
-            // docs/design/footer-gap-mockup.html A안
-            .padding(.top, showingSettings ? 0 : 16)
         }
         .padding(Metrics.popoverPadding)
         .frame(width: Metrics.popoverWidth)
-        // 라이트는 흰 판, 다크는 재질이다.
-        //
-        // 킷은 팝오버에 Thick 재질을 쓰고 그 자리가 .thickMaterial 이다.
-        // 라이트에서는 그래도 벽지가 배어 나와서 흰 판으로 덮는다. 게이지의
-        // 초록과 민트가 흰 바탕 기준으로 맞춰진 값이라 바탕이 흔들리면 그
-        // 색들이 같이 흔들린다.
-        // docs/design/popover-hig27-applied-mockup.html
-        .background {
-            if scheme == .dark {
-                Rectangle().fill(.thickMaterial)
-            } else {
-                Color.white
-            }
-        }
-        // esc 로 닫는다. 메뉴는 esc 로 닫히는데 이 창은 안 닫혀서
-        // 사용자가 밖을 눌러야 한다
-        .escapeToClose()
-        .task {
-            // 지난 결과는 한 번 읽으면 끝이다. 다시 열면 깨끗한 화면부터
-            model.clearNotice()
-            // 계정은 로컬 파일이라 공짜다. 열자마자 지금 값을 본다
-            await model.refreshActiveNow()
-            // 겹친 세션도 로컬 파일이다. 열 때 한 번만 훑는다
-            sharedSessions.refresh()
-            await model.refresh()
-        }
-        // 설정 판을 편 채로 닫으면 그 서브트리가 메뉴바에 남는다. 남은 트리는
-        // 화면 주사율마다 레이아웃을 다시 돌고, 그 한 바퀴마다 세그먼트 Picker 가
-        // 타는 DesignLibrary 경로가 ObservationRegistrar 를 초당 두 개씩 흘린다.
-        // 며칠이면 힙이 수백 MB 가 되고 CPU 가 한 코어를 채운다. 닫을 때 접는다
-        .onDisappear { showingSettings = false }
     }
 
     private func stamp(_ date: Date) -> String {
