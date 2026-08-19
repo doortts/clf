@@ -168,7 +168,9 @@ extension SessionDuplicate {
                 for owner in group {
                     let known = latest[owner.account] ?? nil
                     if known == nil || (owner.lastActivityAt.map { $0 > known! } ?? false) {
-                        latest[owner.account] = owner.lastActivityAt ?? known
+                        // known 으로 되돌릴 자리가 아니다. 이 갈래에 들어오는
+                        // 경우를 다 따져 보면 늘 이쪽 값이 이긴다
+                        latest[owner.account] = owner.lastActivityAt
                     }
                 }
                 // 최근에 쓴 계정만 남긴다. 옛 레코드는 겹침이지 동시 사용이 아니다
