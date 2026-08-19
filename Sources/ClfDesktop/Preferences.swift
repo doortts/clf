@@ -177,13 +177,24 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     /// 리밋이 풀리면 이어 돌릴 세션. nil 이면 꺼진 것이다.
     /// docs/design/16-auto-resume.md
     public var autoResume: AutoResumePlan?
+    /// 마지막으로 릴리즈를 확인한 시각. 24시간 규칙의 기준이다.
+    ///
+    /// **확인을 켜고 끄는 값은 두지 않는다.** 확인은 릴리즈 API 를 한 번 읽는
+    /// 것이 전부고 아무것도 바꾸지 않는다. 끌 것이 없는 스위치를 두면 꺼 놓고
+    /// 잊은 사람이 새 버전을 영영 못 본다.
+    /// docs/design/17-repo-split.html 5절
+    public var lastUpdateCheck: Date?
+    /// 톱니의 점을 지운 태그. 사용자가 그 버전의 설정 칸을 이미 봤다는 뜻이다.
+    public var seenReleaseTag: String?
 
     public init(version: Int = 1, hidden: Set<String> = [], order: [String] = [],
                 barContent: BarContent = .chosen, barDetail: BarDetail = .full,
                 gaugeDirection: GaugeDirection = .used,
                 resetLabel: ResetLabel = .remaining,
                 notify: Bool = true,
-                autoResume: AutoResumePlan? = nil) {
+                autoResume: AutoResumePlan? = nil,
+                lastUpdateCheck: Date? = nil,
+                seenReleaseTag: String? = nil) {
         self.version = version
         self.hidden = hidden
         self.order = order
@@ -193,6 +204,8 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         self.resetLabel = resetLabel
         self.notify = notify
         self.autoResume = autoResume
+        self.lastUpdateCheck = lastUpdateCheck
+        self.seenReleaseTag = seenReleaseTag
     }
 
     /// 필드가 빠진 옛 파일도 읽는다. 설정이 안 열리는 것보다 낫다.
@@ -207,6 +220,8 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         resetLabel = try c.decodeIfPresent(ResetLabel.self, forKey: .resetLabel) ?? .remaining
         notify = try c.decodeIfPresent(Bool.self, forKey: .notify) ?? true
         autoResume = try? c.decodeIfPresent(AutoResumePlan.self, forKey: .autoResume)
+        lastUpdateCheck = try? c.decodeIfPresent(Date.self, forKey: .lastUpdateCheck)
+        seenReleaseTag = try? c.decodeIfPresent(String.self, forKey: .seenReleaseTag)
     }
 
     public func isHidden(_ uuid: String) -> Bool { hidden.contains(uuid) }
