@@ -479,9 +479,275 @@ struct SettingsPane: View {
 
             Divider()
 
+            UpdateSection(model: model, updates: model.updates)
+
+            Divider()
+
+            RepoSection(updates: model.updates)
+
+            Divider()
+
             // 새 창을 띄우면 계정마다 300MB 쯤 쌓인다. 지울 자리가 필요하다
             purgeSection
         }
+        // 설정을 연 것이 곧 그 버전을 본 것이다. 톱니의 점이 여기서 사라진다.
+        // 같은 릴리즈를 열 때마다 다시 권하지 않는다
+        .onAppear { model.markUpdateSeen() }
+    }
+}
+
+/// 새 버전 확인과 설치.
+///
+/// **확인을 켜고 끄는 체크박스는 없다.** 확인은 릴리즈 API 를 한 번 읽는 것이
+/// 전부고 아무것도 바꾸지 않는다. 받고 갈아 끼우는 일은 사람이 단추를 눌러야
+/// 시작한다. 끌 것이 없는 스위치를 두면 꺼 놓고 잊은 사람이 새 버전을 영영
+/// 못 본다. docs/design/17-repo-split.html 5절
+///
+/// `updates` 를 따로 관찰한다. 상태를 `UsageModel` 의 계산 프로퍼티로 옮겨
+/// 담으면 값은 맞지만 그 변화를 알리는 쪽이 없어서 화면이 안 다시 그려진다.
+private struct UpdateSection: View {
+    @ObservedObject var model: UsageModel
+    @ObservedObject var updates: UpdateModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 2) {
+                Text("업데이트").subheadStyle(.semibold)
+                // 팝오버 머리의 사용량 새로고침과 같은 글리프다. 같은 뜻을 두
+                // 곳에서 다른 모양으로 그릴 이유가 없다.
+                //
+                // **돌리지 않는다.** 확인은 대개 1초 안에 끝나고 그동안 도는
+                // 그림은 그 자체로 소리다. 못 누르게 하는 것으로 끝낸다
+                if updates.skipped == nil {
+                    Button { Task { await model.checkUpdateNow() } } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                    .captionStyle()
+                    .disabled(updates.busy)
+                    .hoverTip("지금 확인")
+                    .accessibilityLabel("지금 업데이트 확인")
+                }
+            }
+            statusLine
+            card
+            staleNotice
+        }
+    }
+
+    /// 제목 아래 한 줄. 체크박스가 없으니 들여쓰기도 없다.
+    @ViewBuilder private var statusLine: some View {
+        if let why = updates.skipped {
+            Text(why).captionStyle().foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            switch updates.state {
+            case .idle:
+                Text(updates.currentVersion).captionStyle().foregroundStyle(.secondary)
+            case .checking:
+                Text("확인 중...").captionStyle().foregroundStyle(.secondary)
+            case .upToDate:
+                HStack(spacing: 3) {
+                    Image(systemName: "checkmark")
+                    Text("\(updates.currentVersion), 최신입니다")
+                }
+                .captionStyle().foregroundStyle(.green)
+            case .available:
+                // 결과 줄은 늘 같은 자리에서 같은 것을 말한다. 새 버전은 카드
+                // 제목이 된다
+                Text("지금 \(updates.currentVersion)")
+                    .captionStyle().foregroundStyle(.secondary)
+            case .downloading(let release, _, _), .ready(let release):
+                Text("\(release.tag) 으로 갈아타는 중")
+                    .captionStyle().foregroundStyle(.secondary)
+            case .failed(let why):
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(why).captionStyle().foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // **다시 시도는 남는다.** 확인 아이콘은 릴리즈를 다시 읽고
+                    // 이 단추는 막힌 그 단계부터 다시 간다
+                    HStack(spacing: 8) {
+                        Button { Task { await updates.retry() } } label: {
+                            controlBox("다시 시도", color: .secondary, filled: false)
+                        }
+                        .buttonStyle(.plain)
+                        Button { updates.revealDownload() } label: {
+                            Text("받은 파일 열기")
+                        }
+                        .buttonStyle(.borderless).captionStyle()
+                        Button { updates.openReleaseNotes() } label: {
+                            Text("직접 받기")
+                        }
+                        .buttonStyle(.borderless).captionStyle()
+                        .accessibilityHint("사내 저장소의 릴리즈 페이지를 엽니다")
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var card: some View {
+        switch updates.state {
+        case .available(let release):
+            box {
+                Text("\(release.tag) 이 나왔습니다").captionStyle(.semibold)
+                notes(release)
+                HStack(spacing: 8) {
+                    if updates.canInstall {
+                        Button { Task { await updates.install() } } label: {
+                            controlBox("설치하고 다시 시작", color: .accentColor, filled: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("새 버전을 받아 설치하고 앱을 다시 시작한다")
+                    }
+                    Button { updates.openReleaseNotes() } label: { Text("릴리즈 노트") }
+                        .buttonStyle(.borderless).captionStyle()
+                        .accessibilityHint("사내 저장소의 릴리즈 페이지를 엽니다")
+                }
+                if let blocked = updates.installBlockedReason {
+                    Text(blocked).captionStyle().foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if let size = release.sizeText {
+                    Text("약 \(size). 받아서 바꿔 넣고 앱이 다시 뜹니다")
+                        .captionStyle().foregroundStyle(.tertiary)
+                }
+            }
+        case .downloading(let release, let received, let total):
+            box {
+                Text("\(release.tag) 받는 중").captionStyle(.semibold)
+                // 막대는 여기 한 곳에만 쓴다. 4MB 는 대개 몇 초지만 사내망이
+                // 막히면 멈춘 것과 느린 것을 구별할 방법이 이것뿐이다
+                ProgressView(value: Double(received), total: Double(max(total, 1)))
+                    .progressViewStyle(.linear)
+                Text(progressText(received: received, total: total))
+                    .captionStyle().foregroundStyle(.tertiary)
+            }
+        case .ready(let release):
+            box {
+                HStack(spacing: 3) {
+                    Image(systemName: "checkmark")
+                    Text("\(release.tag) 준비됨").captionStyle(.semibold)
+                }
+                .foregroundStyle(.green)
+                // 단추가 없다. 여기까지 왔으면 사용자가 이미 한 번 눌렀다
+                Text("2초 뒤에 clf 가 다시 시작합니다")
+                    .captionStyle().foregroundStyle(.tertiary)
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    /// 지난 교체가 끝나지 않았다. helper 는 앱이 죽은 뒤에 돌아서 이 로그가
+    /// 유일한 단서다.
+    @ViewBuilder private var staleNotice: some View {
+        if updates.staleLog != nil, case .ready = updates.state {
+            EmptyView()
+        } else if updates.staleLog != nil {
+            HStack(spacing: 4) {
+                Text("지난 업데이트가 끝나지 않았습니다")
+                    .captionStyle().foregroundStyle(.orange)
+                Button("로그 열기") { updates.openStaleLog() }
+                    .buttonStyle(.borderless).captionStyle()
+            }
+        }
+    }
+
+    @ViewBuilder private func notes(_ release: Release) -> some View {
+        let lines = release.noteLines()
+        if !lines.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                // 세 줄까지만 보인다. 전문은 릴리즈 노트로 브라우저에서 본다.
+                // 312픽셀 안에 스크롤 영역을 또 만들지 않는다
+                ForEach(lines, id: \.self) { line in
+                    Text(line).captionStyle().foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.tail)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: Metrics.badgeRadius)
+                .fill(Color.primary.opacity(0.04)))
+        }
+    }
+
+    private func progressText(received: Int64, total: Int64) -> String {
+        let mb = { (bytes: Int64) in String(format: "%.1fMB", Double(bytes) / 1_048_576) }
+        guard total > 0 else { return mb(received) }
+        return "\(mb(received)) / \(mb(total))"
+    }
+
+    /// 카드 하나. 설정의 계정 상자와 같은 바탕을 쓴다.
+    private func box(@ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 6) { content() }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: Metrics.boxRadius)
+                .fill(Color.primary.opacity(0.06)))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.boxRadius)
+                .stroke(Color.primary.opacity(0.10)))
+    }
+}
+
+/// 이슈와 릴리즈 노트로 가는 문.
+///
+/// 업데이트 기능과 무관하게 늘 같은 모양으로 있다. 목적지는 전부 사내 GHE 다.
+/// docs/design/17-repo-split.html 3절
+private struct RepoSection: View {
+    let updates: UpdateModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("저장소").subheadStyle(.semibold)
+            HStack(spacing: 8) {
+                Button { updates.openIssue() } label: {
+                    controlBox("이슈 남기기", color: .accentColor, filled: false)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("사내 저장소에 이슈 남기기")
+                Button { updates.openReleases() } label: {
+                    controlBox("릴리즈 페이지", color: .accentColor, filled: false)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("사내 저장소의 릴리즈 목록 열기")
+            }
+            // 사내망 밖에서는 안 열린다. 그 사실을 미리 말한다. 업데이트 자체는
+            // 공개 저장소를 보므로 망과 무관하게 돈다
+            Text("이슈와 릴리즈 노트는 사내 저장소에 있습니다. 사내망에서 열립니다")
+                .captionStyle().foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// 톱니. 새 버전이 있으면 점 하나가 붙는다.
+///
+/// **점 하나가 전부다.** 숫자도 글자도 붙이지 않는다. 한도를 보러 연 사람의
+/// 눈을 업데이트가 가로채면 안 된다. 사용자가 스스로 설정을 열 이유를 만드는
+/// 것이 이 점의 전부고, 설정을 한 번 열면 사라진다.
+///
+/// `updates` 를 관찰해야 확인이 끝난 순간 점이 따라 붙는다. 팝오버를 연 채로
+/// 확인이 끝나는 일이 실제로 있다.
+private struct GearIcon: View {
+    @ObservedObject var updates: UpdateModel
+    let open: Bool
+    let news: Bool
+
+    var body: some View {
+        Image(systemName: open ? "gearshape.fill" : "gearshape")
+            .overlay(alignment: .topTrailing) {
+                if news {
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 5, height: 5)
+                        // 팝오버 바탕색으로 테두리를 둬서 톱니 획과 안 붙는다
+                        .overlay(Circle().stroke(Color(nsColor: .windowBackgroundColor),
+                                                 lineWidth: 1))
+                        .offset(x: 3, y: -2)
+                }
+            }
     }
 }
 
@@ -511,10 +777,12 @@ struct PopoverView: View {
                 Button {
                     withAnimation(.easeOut(duration: 0.12)) { showingSettings.toggle() }
                 } label: {
-                    Image(systemName: showingSettings ? "gearshape.fill" : "gearshape")
+                    GearIcon(updates: model.updates, open: showingSettings,
+                             news: model.hasUpdateNews)
                 }
                 .help(showingSettings ? "설정 닫기" : "설정 열기")
                 .accessibilityLabel(showingSettings ? "설정 닫기" : "설정 열기")
+                .accessibilityValue(model.hasUpdateNews ? "새 버전 있음" : "")
             }
             .buttonStyle(.borderless)
             .calloutStyle()

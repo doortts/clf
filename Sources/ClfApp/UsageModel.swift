@@ -68,6 +68,10 @@ final class UsageModel: ObservableObject {
     private var frontExecutable: String?
     /// 설정 화면이 보는 목록. 사용량을 못 읽는 계정도 들어간다.
     private(set) var known: [OrgUsage] = []
+    /// 새 버전 확인과 교체. **판정도 설치도 저쪽 몫이다.** 여기는 이미 도는
+    /// 주기에 확인을 얹고, 설정 파일에 두 값을 적는 일만 한다.
+    /// docs/design/17-repo-split.html
+    let updates = UpdateModel()
 
     init(reader: DesktopReader = DesktopReader()) {
         self.reader = reader
@@ -98,6 +102,9 @@ final class UsageModel: ObservableObject {
                 await MainActor.run { self.syncNotifyPermission() }
             }
         }
+        // 지난 교체가 끝났는지 먼저 본다. helper 는 앱이 죽은 뒤에 돌아서
+        // 실패했으면 남은 폴더와 로그가 유일한 단서다
+        updates.findStaleAttempt()
         watchAppearance()
         watchMenuBarBrightness()
         watchFrontApp()
@@ -524,6 +531,9 @@ final class UsageModel: ObservableObject {
             await notify(at: now)
             resume.step(org: known.first { $0.uuid == resume.watchedUUID },
                         readAt: readAt, now: now)
+            // 이미 도는 주기에 얹는다. 타이머를 새로 두지 않는다. 하루가 안
+            // 지났으면 저쪽이 곧바로 돌아온다
+            await checkUpdateIfDue(now: now)
         } catch {
             gate.record(at: now, throttled: false)
             failure = "\(error)"
@@ -662,6 +672,35 @@ final class UsageModel: ObservableObject {
             try? file?.save(prefs)
         }
         resume.planChanged(plan, pending: pending)
+    }
+
+    // MARK: 업데이트
+
+    /// 톱니에 점을 올릴지. 확인한 뒤 새 버전이 있고 아직 안 본 태그일 때만.
+    var hasUpdateNews: Bool { updates.hasNews(seen: prefs.seenReleaseTag) }
+
+    /// 하루 한 번. 때가 아니면 저쪽이 아무것도 안 하고 돌아온다.
+    private func checkUpdateIfDue(now: Date) async {
+        guard let at = await updates.checkIfDue(last: prefs.lastUpdateCheck, now: now) else {
+            return
+        }
+        prefs.lastUpdateCheck = at
+        // 막대와 무관한 값이라 그림을 다시 굽지 않는다
+        try? file?.save(prefs)
+    }
+
+    /// 제목 옆 새로고침. 24시간 규칙을 무시한다.
+    func checkUpdateNow() async {
+        guard let at = await updates.checkNow() else { return }
+        prefs.lastUpdateCheck = at
+        try? file?.save(prefs)
+    }
+
+    /// 설정을 열면 그 태그를 봤다고 적는다. 같은 릴리즈를 계속 권하지 않는다.
+    func markUpdateSeen() {
+        guard let tag = updates.newTag, prefs.seenReleaseTag != tag else { return }
+        prefs.seenReleaseTag = tag
+        try? file?.save(prefs)
     }
 
     private func persist() {
