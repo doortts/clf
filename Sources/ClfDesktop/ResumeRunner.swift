@@ -58,33 +58,57 @@ public struct ResumeRunner: Sendable {
         if !plan.cwd.isEmpty {
             process.currentDirectoryURL = URL(fileURLWithPath: plan.cwd)
         }
-        // 답변은 stdout 으로 길게 나온다. 우리가 읽을 것이 아니다
-        process.standardOutput = FileHandle.nullDevice
+        // 안 막으면 자식이 부모 stdin 을 물려받는다. 터미널에서 띄운 앱이면
+        // claude 가 들어올 것 없는 입력을 3초 기다리다 경고를 남긴다
+        process.standardInput = FileHandle.nullDevice
 
         // 파이프가 아니라 파일로 받는다. 파이프 버퍼(64KB)가 차면 자식이 쓰다가
-        // 멈추고 우리는 끝나기를 기다려서 서로 붙는다. 파일은 그 한계가 없다
-        let log = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("clf-resume-\(UUID().uuidString).log")
-        FileManager.default.createFile(atPath: log.path, contents: nil)
-        let sink = try FileHandle(forWritingTo: log)
-        process.standardError = sink
+        // 멈추고 우리는 끝나기를 기다려서 서로 붙는다. 파일은 그 한계가 없다.
+        //
+        // stdout 도 받는다. claude 는 인증 실패 같은 치명적 오류를 stdout 으로
+        // 내고 그때 stderr 는 비어 있다. 버리면 사용자에게 종료 코드만 남는다.
+        // 한 파일에 합치지 않는 것은 두 줄기가 도착하는 차례가 안 정해져서다
+        let stamp = UUID().uuidString
+        let out = try Self.makeLog("clf-resume-\(stamp)-out.log")
+        let err = try Self.makeLog("clf-resume-\(stamp)-err.log")
+        process.standardOutput = out.handle
+        process.standardError = err.handle
 
         return try await withCheckedThrowingContinuation { continuation in
+            let close: @Sendable () -> Void = {
+                try? out.handle.close()
+                try? err.handle.close()
+            }
+            let drop: @Sendable () -> Void = {
+                try? FileManager.default.removeItem(at: out.url)
+                try? FileManager.default.removeItem(at: err.url)
+            }
             process.terminationHandler = { finished in
-                try? sink.close()
-                let detail = Self.firstLine(of: log)
-                try? FileManager.default.removeItem(at: log)
-                continuation.resume(returning: ResumeOutcome(
-                    exitCode: finished.terminationStatus, detail: detail))
+                close()
+                let code = finished.terminationStatus
+                // 성공한 판의 stdout 은 답변 전문이라 읽을 것이 없다. 실패면
+                // stdout 을 먼저 본다. stderr 에는 경고가 먼저 올 때가 있다
+                let detail = code == 0
+                    ? nil
+                    : Self.firstLine(of: out.url) ?? Self.firstLine(of: err.url)
+                drop()
+                continuation.resume(returning: ResumeOutcome(exitCode: code, detail: detail))
             }
             do {
                 try process.run()
             } catch {
-                try? sink.close()
-                try? FileManager.default.removeItem(at: log)
+                close()
+                drop()
                 continuation.resume(throwing: error)
             }
         }
+    }
+
+    /// 빈 로그 파일 하나와 그 파일에 쓰는 손잡이.
+    private static func makeLog(_ name: String) throws -> (url: URL, handle: FileHandle) {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(name)
+        FileManager.default.createFile(atPath: url.path, contents: nil)
+        return (url, try FileHandle(forWritingTo: url))
     }
 
     /// 실패를 설명하는 한 줄. 길면 자른다. 로그 전문을 알림에 실을 수 없다.

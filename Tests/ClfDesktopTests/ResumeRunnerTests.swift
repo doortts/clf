@@ -87,8 +87,9 @@ final class ResumeRunnerTests: XCTestCase {
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         let outcome = try await ResumeRunner(executable: cli).run(plan(cwd: work.path))
         // 임시 디렉토리는 심볼릭 링크를 타서 경로 문자열이 다를 수 있다
-        XCTAssertEqual(URL(fileURLWithPath: outcome.detail ?? "").resolvingSymlinksInPath(),
-                       work.resolvingSymlinksInPath())
+        // URL 끼리 견주면 디렉토리 쪽에만 후행 슬래시가 붙어 안 맞는다. 경로로 본다
+        XCTAssertEqual(URL(fileURLWithPath: outcome.detail ?? "").resolvingSymlinksInPath().path,
+                       work.resolvingSymlinksInPath().path)
     }
 
     /// 파이프 대신 파일로 받는 이유. 64KB 를 넘겨도 서로 붙지 않는다.
@@ -112,6 +113,50 @@ final class ResumeRunnerTests: XCTestCase {
         let detail = try await ResumeRunner(executable: cli).run(plan()).detail
         XCTAssertEqual(detail?.count, 123, detail ?? "")
         XCTAssertTrue(detail?.hasSuffix("...") ?? false)
+    }
+
+    /// 진짜 이유가 stdout 으로 나오는 경우. claude 는 인증 실패를 그쪽에 쓰고
+    /// 그때 stderr 는 비어 있다. 버리면 화면에 종료 코드만 남는다.
+    func testFailureReadsStdoutWhenStderrIsEmpty() async throws {
+        let cli = try script("""
+        echo "Failed to authenticate: OAuth session expired"
+        exit 1
+        """)
+        let outcome = try await ResumeRunner(executable: cli).run(plan())
+        XCTAssertEqual(outcome.exitCode, 1)
+        XCTAssertEqual(outcome.detail, "Failed to authenticate: OAuth session expired")
+    }
+
+    /// 둘 다 있으면 stdout 을 고른다. stderr 에는 경고가 먼저 올 때가 있다.
+    func testStdoutWinsOverStderrWarning() async throws {
+        let cli = try script("""
+        echo "Warning: no stdin data received in 3s" >&2
+        echo "Not logged in"
+        exit 1
+        """)
+        let detail = try await ResumeRunner(executable: cli).run(plan()).detail
+        XCTAssertEqual(detail, "Not logged in")
+    }
+
+    /// 성공한 판의 stdout 은 답변 전문이다. 그 첫 줄을 이유로 올리지 않는다.
+    func testSuccessIgnoresStdout() async throws {
+        let cli = try script("""
+        echo "답변 첫 줄"
+        exit 0
+        """)
+        let outcome = try await ResumeRunner(executable: cli).run(plan())
+        XCTAssertTrue(outcome.ok)
+        XCTAssertNil(outcome.detail)
+    }
+
+    /// stdin 을 막는다. 안 막으면 자식이 부모 입력을 기다린다.
+    func testStdinIsEmpty() async throws {
+        let cli = try script("""
+        if [ -z "$(cat)" ]; then echo "빈 입력"; else echo "입력 있음"; fi
+        exit 1
+        """)
+        let detail = try await ResumeRunner(executable: cli).run(plan()).detail
+        XCTAssertEqual(detail, "빈 입력")
     }
 
     func testMissingExecutableThrows() async {
