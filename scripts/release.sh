@@ -161,8 +161,17 @@ ditto "$APP" .build/dmgroot/clf.app
 hdiutil create -volname "clf $TAG" -srcfolder .build/dmgroot \
         -ov -format UDZO "$DMG"
 
-# ---- 3. DMG 공증 + 스테이플 ---------------------------------------------
-# 브라우저로 직접 받아 여는 사람이 이 티켓을 본다
+# ---- 3. DMG 서명 + 공증 + 스테이플 --------------------------------------
+# 브라우저로 직접 받아 여는 사람이 이 티켓을 본다.
+#
+# **DMG 도 서명해야 한다.** hdiutil 이 만든 것은 서명이 없고, 서명 없는
+# DMG 에는 티켓을 붙일 자리가 없다. 그래도 stapler 는 "worked" 를 찍는다.
+# 그 상태로 올리면 받은 사람 쪽에서 spctl 이 `no usable signature` 로
+# 떨어지고, Gatekeeper 는 애플에 물어봐야 티켓을 안다. 서명은 공증보다
+# 먼저다. 뒤에 하면 방금 붙인 티켓이 깨진다
+if [ "$SKIP_NOTARIZE" -eq 0 ]; then
+  codesign --force --timestamp --sign "$CLF_SIGN_IDENTITY" "$DMG"
+fi
 notarize "$DMG"
 staple "$DMG"
 
@@ -172,6 +181,12 @@ staple "$DMG"
 if [ "$SKIP_NOTARIZE" -eq 0 ]; then
   spctl -a -vv "$APP" 2>&1 | grep -q "Notarized Developer ID" \
     || { echo "spctl 평가 실패. 올리지 않는다"; spctl -a -vv "$APP"; exit 1; }
+  # DMG 도 본다. 스테이플이 조용히 헛일이 되는 경로가 있어서 stapler 의
+  # "worked" 만으로는 붙었는지 알 수 없다
+  spctl -a -vv -t open --context context:primary-signature "$DMG" 2>&1 \
+    | grep -q "^.*: accepted" \
+    || { echo "DMG 의 spctl 평가 실패. 올리지 않는다"; \
+         spctl -a -vv -t open --context context:primary-signature "$DMG"; exit 1; }
 fi
 
 if [ "$PUBLISH" -eq 0 ]; then
