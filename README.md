@@ -129,3 +129,10 @@ swift test
 ## 문서
 
 [docs/design/00-scope.md](docs/design/00-scope.md) 를 먼저 읽습니다.
+
+
+## 아키텍처 참고
+
+- claulay https://oss.navercorp.com/chanyeong-cho/claulay
+  - 구조 이해에 정말 도움이 많이 되었습니다!
+- CCSwitcher https://github.com/XueshiQiao/CCSwitcher
