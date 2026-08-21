@@ -52,6 +52,19 @@ PUBLIC_REPO=github.com/doortts/clf
 GHE_REPO=oss.navercorp.com/sw-chae/clf
 NOTES=".build/notes-$TAG.md"
 
+# **환경변수 토큰을 벗는다.** gh 는 GH_ENTERPRISE_TOKEN 을 github.com 이 아닌
+# 모든 호스트에 쓴다. 값은 하나뿐인데 이 기계에는 GHE 호스트가 둘이라
+# (es.naverlabs.com, oss.navercorp.com) 하나에만 맞을 수 있고, 그러면서
+# hosts.yml 의 멀쩡한 자격증명을 가린다. 대화형 쉘에서만 나타나므로
+# `The oss.navercorp.com token in GH_ENTERPRISE_TOKEN is no longer valid` 가
+# 사람 손에서만 뜨고 스크립트로 확인할 때는 안 뜬다.
+#
+# 우리는 두 호스트에 각각 맞는 것이 필요하고 그것이 hosts.yml 에 호스트별로
+# 있다. 릴리즈는 이 기계에서 사람이 돌리는 것이라 (Developer ID 인증서와
+# notarytool 프로필이 필요하다) 환경변수 토큰에 기댈 자리가 없다.
+# git push 는 osxkeychain 을 쓰므로 영향받지 않는다
+unset GH_TOKEN GH_ENTERPRISE_TOKEN GITHUB_TOKEN GITHUB_ENTERPRISE_TOKEN
+
 # ---- 실수를 빌드 전에 잡는다 --------------------------------------------
 # 태그 꼴이 아니면 앱의 semver 비교가 이 릴리즈를 영영 못 본다
 [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
