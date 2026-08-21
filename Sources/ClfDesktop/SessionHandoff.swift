@@ -159,6 +159,9 @@ extension SessionStore {
 
             let cwd = json["cwd"] as? String ?? json["originCwd"] as? String ?? ""
             let transcript = SessionMirror.transcriptPath(cli, projects: projects)
+            // 시간마다 도는 예약 루틴 세션은 목록에 안 올린다. 사람이 하던 일을
+            // 옮기려고 보는 자리다. 제목을 읽기 전에 걸러 트랜스크립트를 덜 읽는다
+            if let transcript, CliSessions.isRoutine(transcript) { return nil }
             return SessionSummary(
                 fileName: name,
                 cliSessionID: cli,

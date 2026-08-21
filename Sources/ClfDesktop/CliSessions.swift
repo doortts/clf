@@ -48,6 +48,20 @@ public enum CliSessions {
     /// 그 안에서 살펴보는 줄 수. 못 찾으면 그만둔다.
     static let headLines = 60
 
+    /// 예약 루틴이 스스로 시작한 세션의 표시.
+    ///
+    /// 루틴 세션의 첫 프롬프트는 CLI 가 붙인 `<scheduled-task ...>` 로 시작한다.
+    /// 사람이 시작한 세션에는 이 표시가 없다.
+    static let routineMarker = #""content":"<scheduled-task"#
+
+    /// 시간마다 도는 예약 루틴이 만든 세션인가.
+    ///
+    /// **목록에서 뺀다.** 이 목록은 사람이 하던 일을 다시 잡으려고 보는 것인데,
+    /// 루틴은 한 시간에 하나씩 쌓여서 최근 열 개를 금방 다 차지한다.
+    static func isRoutine(_ url: URL) -> Bool {
+        head(url).prefix(headLines).contains { $0.contains(routineMarker) }
+    }
+
     /// 최근에 손댄 것부터 `limit` 개.
     ///
     /// 더 오래된 세션을 자동으로 이어 돌릴 일은 드물다. 필요하면 그 세션을
@@ -66,19 +80,29 @@ public enum CliSessions {
                 found.append((file, at ?? .distantPast))
             }
         }
-        return found
-            .sorted { $0.at > $1.at }
-            .prefix(limit)
-            .map { describe($0.url, modifiedAt: $0.at) }
+        var out: [CliSession] = []
+        for item in found.sorted(by: { $0.at > $1.at }) {
+            // 루틴을 건너뛴 자리는 그 다음 세션이 메운다. 걸러서 목록이 줄면
+            // 사람이 찾던 세션이 limit 밖으로 밀려난다
+            guard let session = describe(item.url, modifiedAt: item.at) else { continue }
+            out.append(session)
+            if out.count == limit { break }
+        }
+        return out
     }
 
-    /// 기록 앞부분에서 제목과 작업 디렉토리를 읽는다.
-    static func describe(_ url: URL, modifiedAt: Date) -> CliSession {
+    /// 기록 앞부분에서 제목과 작업 디렉토리를 읽는다. 루틴 세션이면 `nil`.
+    static func describe(_ url: URL, modifiedAt: Date) -> CliSession? {
+        let lines = Array(head(url).prefix(headLines))
+        // 제목보다 먼저 본다. 제목과 cwd 를 다 찾아 루프를 끊으면 뒤에 있는
+        // 표시를 못 본다
+        guard !lines.contains(where: { $0.contains(routineMarker) }) else { return nil }
+
         var title: String?
         var fallback: String?
         var cwd: String?
 
-        for line in head(url).prefix(headLines) {
+        for line in lines {
             guard let row = try? JSONSerialization.jsonObject(with: Data(line.utf8))
                     as? [String: Any] else { continue }
             if cwd == nil, let value = row["cwd"] as? String, !value.isEmpty { cwd = value }

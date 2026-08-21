@@ -116,6 +116,38 @@ final class CliSessionsTests: XCTestCase {
         XCTAssertEqual(CliSessions.scan(root: root).count, 1)
     }
 
+    // MARK: 예약 루틴
+
+    /// 시간마다 도는 루틴 세션은 목록에 없다. 사람이 시작한 세션만 보여준다.
+    func testSkipsScheduledRoutines() throws {
+        let now = Date()
+        try write("routine", project: "-a", lines: [
+            #"{"type":"queue-operation","operation":"enqueue","content":"<scheduled-task name=\"pr\">\n루틴 지시"}"#,
+            #"{"type":"custom-title","customTitle":"PR 리뷰 루틴"}"#,
+            #"{"type":"user","cwd":"/repo/wt","message":{"role":"user","content":"<scheduled-task name=\"pr\">"}}"#,
+        ], at: now)
+        try write("mine", project: "-a", lines: [
+            #"{"type":"custom-title","customTitle":"내 작업"}"#,
+        ], at: now.addingTimeInterval(-60))
+        XCTAssertEqual(CliSessions.scan(root: root).map(\.title), ["내 작업"])
+    }
+
+    /// 걸러낸 자리는 다음 세션이 메운다. 루틴이 limit 를 먹으면 안 된다.
+    func testRoutinesDoNotEatTheLimit() throws {
+        let now = Date()
+        for i in 0..<3 {
+            try write("r\(i)", project: "-a", lines: [
+                #"{"type":"user","message":{"role":"user","content":"<scheduled-task name=\"x\">"}}"#,
+            ], at: now.addingTimeInterval(TimeInterval(-i)))
+        }
+        for i in 0..<2 {
+            try write("m\(i)", project: "-a",
+                      lines: [#"{"type":"custom-title","customTitle":"내것 \#(i)"}"#],
+                      at: now.addingTimeInterval(TimeInterval(-100 - i)))
+        }
+        XCTAssertEqual(CliSessions.scan(root: root, limit: 2).map(\.title), ["내것 0", "내것 1"])
+    }
+
     func testMissingRootIsEmpty() {
         let gone = root.appendingPathComponent("없는곳")
         XCTAssertTrue(CliSessions.scan(root: gone).isEmpty)

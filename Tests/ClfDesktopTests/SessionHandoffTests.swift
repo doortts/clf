@@ -536,6 +536,16 @@ final class SessionWarningTests: XCTestCase {
         XCTAssertNil(only { _ in false }.warning)
     }
 
+    /// 루틴이 만든 세션은 옮길 목록에도 안 올린다.
+    func test_hidesScheduledRoutines() throws {
+        try put(cwd: "/repo")
+        let dir = projects.appendingPathComponent("proj")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data(#"{"type":"user","message":{"role":"user","content":"<scheduled-task name=\"pr\">"}}"#.utf8)
+            .write(to: dir.appendingPathComponent("c1.jsonl"))
+        XCTAssertTrue(store.summaries(projects: projects, folderExists: { _ in true }).isEmpty)
+    }
+
     /// 기본값은 실제 파일 시스템을 본다. 호출부가 아무것도 안 넘겨도 동작해야 한다.
     func test_defaultLooksAtTheRealFileSystem() throws {
         try put(cwd: root.path)
