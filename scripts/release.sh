@@ -66,6 +66,18 @@ if [ "$SKIP_NOTARIZE" -eq 0 ]; then
     || { echo "notarytool 프로필 '$PROFILE' 이 없다. 위 준비물 2를 먼저 한다"; exit 1; }
 fi
 
+# 그 저장소로 가는 리모트의 이름. **이름을 박아 두면 안 된다.** 이름은 기계마다
+# 다르고, 어느 기계에서는 origin 이 공개 쪽이다. 그러면 아래 5절의 순서가
+# 조용히 뒤집혀 공개 릴리즈가 먼저 나가고, 없는 이름이면 절반만 올라간 채로
+# 멈춘다. 주소는 우리가 위에 적어 둔 값이므로 그것으로 찾는다
+remote_for() {
+  local repo=$1 name
+  name=$(git remote -v | awk -v r="$repo" '$3=="(push)" && index($2,r){print $1; exit}')
+  [ -n "$name" ] || { echo "$repo 로 가는 리모트가 없다:"; \
+                      echo "  git remote add <이름> https://$repo"; exit 1; }
+  echo "$name"
+}
+
 if [ "$PUBLISH" -eq 1 ]; then
   command -v gh >/dev/null || { echo "gh 가 없다. brew install gh"; exit 1; }
   # 두 호스트를 다 본다. 빌드와 공증이 끝난 뒤에 인증에서 걸리면 아깝다
@@ -74,6 +86,10 @@ if [ "$PUBLISH" -eq 1 ]; then
       || { echo "gh 가 $host 에 로그인되어 있지 않다:"; \
            echo "  gh auth login --hostname $host"; exit 1; }
   done
+  # 리모트도 여기서 찾는다. 빌드 뒤에 없는 리모트로 걸리면 아까운 것이 같다
+  GHE_REMOTE=$(remote_for "$GHE_REPO")
+  PUBLIC_REMOTE=$(remote_for "$PUBLIC_REPO")
+  echo "  GHE: $GHE_REMOTE, 공개: $PUBLIC_REMOTE"
   # 공개 저장소는 이제 살아 있는 소스 미러다. 태그를 밀면 그 커밋들이 같이
   # 올라간다. 사람의 기억에 맡기면 바쁜 날에 새어 나간다
   # docs/design/17-repo-split.html 2절
@@ -214,12 +230,12 @@ publish_to() {
 # **GHE 가 먼저다.** 공개 릴리즈가 생기는 순간부터 앱들이 새 버전을 보고
 # "릴리즈 노트" 를 누르기 시작한다. 그 링크의 목적지인 GHE 페이지가 먼저 서
 # 있어야 한다. 반대 순서로 하면 죽은 링크가 먼저 나간다
-git push origin "$TAG"
-git push origin HEAD:main
+git push "$GHE_REMOTE" "$TAG"
+git push "$GHE_REMOTE" HEAD:main
 publish_to "$GHE_REPO"
 
-git push gh "$TAG"
-git push gh HEAD:main
+git push "$PUBLIC_REMOTE" "$TAG"
+git push "$PUBLIC_REMOTE" HEAD:main
 publish_to "$PUBLIC_REPO"
 
 echo
