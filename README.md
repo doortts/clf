@@ -11,6 +11,8 @@ Claude Code 데스크톱 앱 사용자용 메뉴바 도구
   - 팁. ChatGPT(구. Codex) Desktop 앱은 이미 GUI 멀티 윈도우 기능을 지원합니다.
 - * 추론 요청을 보내지 않으므로 조회에 토큰을 쓰지 않습니다.
 
+![메뉴바](docs/images/popover.png)
+
 ## 한계 사항
 - macOS 전용앱니다.
 - Claude code cli 설치되어 있어야 합니다.
