@@ -1,0 +1,10 @@
+# gitleaks 오탐 목록. 지문은 커밋:파일:규칙:줄 이다.
+#
+# 여기 넣기 전에 사람이 그 줄을 직접 봐야 한다. 규칙을 끄지 않고 건마다
+# 적는 이유가 그것이다. 규칙을 끄면 다음에 들어올 진짜 값도 같이 지나간다.
+# scripts/release.sh 가 공개 저장소로 밀기 전에 gitleaks 를 돌린다.
+
+# 암호화 왕복 테스트가 평문으로 쓰는 UUID 다. 변수 이름이 secret 이라 걸렸고
+# 값은 아무 서비스와도 상관이 없다. 이 테스트는 넣은 것이 그대로 나오는지만
+# 본다. 파일은 그 뒤 Tests/ClfDesktopTests/ 로 옮겨졌다
+f18582039d6628cf363f9e1e6f8c7edfddaf83a1:Tests/ClflDesktopTests/SafeStorageTests.swift:generic-api-key:27
