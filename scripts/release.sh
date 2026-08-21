@@ -180,15 +180,98 @@ fi
 staple "$APP"
 
 # ---- 2. 스테이플된 앱으로 DMG -------------------------------------------
-# /Applications 심볼릭 링크는 넣지 않는다. clf 는 ~/Applications 에 사는
-# 앱이고 창에 뜬 링크가 그쪽으로 유도한다. docs/design/11-menubar-app.md
+# 창을 열면 clf.app 과 Applications 가 나란히 있고 사이에 화살표가 있다.
+# docs/design/dmg-window-mockup.html 의 시안 C 다.
+#
+# **이건 앞선 결정을 뒤집은 것이다.** 예전에는 링크를 넣지 않았다. clf 가
+# ~/Applications 에 사는 앱인데 창의 링크는 /Applications 로 유도하기
+# 때문이었다. DMG 안에서 ~ 를 가리키는 링크는 만들 수 없다. 만든 기계의 홈
+# 경로가 그대로 박힌다. /Applications 로 가도 앱은 정상으로 돈다.
+# canReplace 는 admin 그룹 쓰기로 통과하고, LoginItem 의
+# path.contains("/Applications/") 는 두 경로 다 맞는다.
 DMG=".build/clf-$TAG.dmg"
-rm -rf .build/dmgroot "$DMG"
-mkdir -p .build/dmgroot
+RW=".build/clf-rw.dmg"
+VOLNAME=clf
+MOUNT="/Volumes/$VOLNAME"
+
+# 배경 그림. 아이콘 좌표와 화살표가 같은 값을 봐야 하므로 코드로 그린다.
+# 1x 와 2x 를 한 파일로 묶는다. 2x 만 주면 Finder 가 1:1 픽셀로 그려서
+# 창보다 큰 그림이 된다
+BG=.build/background.tiff
+if [ ! -f "$BG" ] || [ tools/make-dmg-bg.swift -nt "$BG" ]; then
+  swiftc -O tools/make-dmg-bg.swift -o .build/make-dmg-bg
+  .build/make-dmg-bg .build/dmg-bg.png 1
+  .build/make-dmg-bg .build/dmg-bg-2x.png 2
+  tiffutil -cathidpicheck .build/dmg-bg.png .build/dmg-bg-2x.png -out "$BG" >/dev/null
+fi
+
+rm -rf .build/dmgroot "$DMG" "$RW"
+mkdir -p .build/dmgroot/.background
 # cp -R 은 서명과 심볼릭 링크를 흘린다
 ditto "$APP" .build/dmgroot/clf.app
-hdiutil create -volname "clf $TAG" -srcfolder .build/dmgroot \
-        -ov -format UDZO "$DMG"
+cp "$BG" .build/dmgroot/.background/background.tiff
+ln -s /Applications .build/dmgroot/Applications
+
+# 창 설정을 넣으려면 쓸 수 있는 이미지여야 한다. 기본값인 UDZO 는 읽기
+# 전용이다. 여유는 .DS_Store 와 배경이 들어갈 자리다
+SIZE_KB=$(( $(du -sk .build/dmgroot | cut -f1) + 10240 ))
+hdiutil create -volname "$VOLNAME" -srcfolder .build/dmgroot -fs HFS+ \
+        -format UDRW -size "${SIZE_KB}k" -ov "$RW" >/dev/null
+
+# 앞선 실패가 붙여 둔 것이 있으면 뗀다. 붙은 채로 두면 hdiutil 이 이름 뒤에
+# 숫자를 붙이고, 그러면 아래 AppleScript 가 엉뚱한 창을 만진다
+if [ -d "$MOUNT" ]; then hdiutil detach -quiet "$MOUNT" || true; fi
+hdiutil attach -readwrite -noverify -noautoopen "$RW" >/dev/null
+[ -d "$MOUNT" ] || { echo "DMG 가 $MOUNT 에 안 붙었다"; exit 1; }
+
+# Finder 에 창 크기, 아이콘 크기, 배경, 아이콘 좌표를 적는다. Finder 가 그것을
+# 볼륨의 .DS_Store 에 쓴다. 좌표는 tools/make-dmg-bg.swift 와 같은 값이어야
+# 화살표가 아이콘을 가리킨다.
+#
+# 이 기계에서 처음 돌리면 macOS 가 Finder 자동화 허용을 묻는다. 거절하면
+# 배경 없는 DMG 가 조용히 만들어지는 것이 아니라 아래 검사에서 멈춘다
+osascript <<APPLESCRIPT
+tell application "Finder"
+  tell disk "$VOLNAME"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    -- 경로줄은 창 아래를 24pt 먹는다. 없는 Finder 도 있으니 실패는 넘긴다.
+    -- 켜져 있어도 안내 문구는 안 잘린다. 아래 높이가 그만큼 여유를 준다
+    try
+      set pathbar visible of container window to false
+    end try
+    -- **bounds 는 제목줄까지 포함한 창 전체다.** 배경 그림은 내용 영역
+    -- 왼쪽 위에서 1:1 로 깔리므로, 높이를 그림대로 400 만 주면 아래 28pt 가
+    -- 잘려서 안내 문구가 사라진다. 제목줄 높이를 더해 내용이 400 이 되게 한다
+    set the bounds of container window to {200, 120, 860, 548}
+    set opts to the icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 112
+    set text size of opts to 13
+    set background picture of opts to file ".background:background.tiff"
+    set position of item "clf.app" of container window to {180, 180}
+    set position of item "Applications" of container window to {480, 180}
+    close
+    open
+    update without registering applications
+    delay 2
+  end tell
+end tell
+APPLESCRIPT
+
+# Finder 가 정말 썼는지 본다. osascript 가 0 으로 끝나도 창 설정이 안 남는
+# 경로가 있고, 그걸 놓치면 배경 없는 DMG 가 공증까지 통과해서 올라간다
+[ -s "$MOUNT/.DS_Store" ] \
+  || { echo "Finder 가 창 설정을 남기지 않았다. 자동화 권한을 확인한다"; \
+       hdiutil detach -quiet "$MOUNT" || true; exit 1; }
+
+sync
+hdiutil detach -quiet "$MOUNT"
+# 읽기 전용 압축본. 이것이 서명하고 공증할 파일이다
+hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null
+rm -f "$RW"
 
 # ---- 3. DMG 서명 + 공증 + 스테이플 --------------------------------------
 # 브라우저로 직접 받아 여는 사람이 이 티켓을 본다.

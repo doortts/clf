@@ -502,6 +502,14 @@ public static func isStableLocation(_ path: String) -> Bool {
 헛일이라 미리 막고 이유를 말한다. `scripts/install-app.sh` 가 `~/Applications`
 로 옮긴다. 관리자 권한이 필요 없는 자리다.
 
+`/Applications` 도 같은 자리로 통과한다. `contains("/Applications/")` 가 두
+경로를 다 받기 때문이다. 릴리즈 DMG 는 창에 `/Applications` 링크를 놓아서
+끌어다 놓게 한다 (`docs/design/dmg-window-mockup.html`). DMG 안에서 `~` 를
+가리키는 링크는 만들 수 없어서 그렇다. 만든 기계의 홈 경로가 그대로 박힌다.
+`/Applications` 는 `admin` 그룹이 쓸 수 있으므로 자동 업데이트의
+`canReplace` 도 통과한다. 관리자가 아닌 계정에서만 막히고 그때는 앱이
+**직접 받기** 로 안내한다.
+
 ### 승인 대기를 켜진 것으로 그리지 않는다
 
 `.requiresApproval` 은 등록은 됐고 사용자가 시스템 설정에서 허용해야 하는
