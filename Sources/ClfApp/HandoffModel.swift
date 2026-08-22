@@ -65,8 +65,13 @@ final class HandoffModel: ObservableObject {
     @Published private(set) var working = false
     /// 양쪽에 두거나 공유를 끊은 결과. 옮기기 안내와 뜻이 달라 따로 둔다.
     @Published private(set) var shareNote: String?
+    /// 대화 하나를 같이 보는 계정들. 장부에 적힌 그대로다.
+    ///
+    /// 열쇠만 들고 있었는데, 목록에 **어느 계정에 같이 있는지**를 적으려면
+    /// 계정까지 있어야 한다.
+    @Published private(set) var sharedBy: [String: [String]] = [:]
     /// 일부러 공유해 둔 대화. 공유 끊기 단추를 여기 있는 것에만 연다.
-    @Published private(set) var sharedIDs: Set<String> = []
+    var sharedIDs: Set<String> { Set(sharedBy.keys) }
 
     private let primary: URL
     private let launcher: AltLauncher
@@ -88,6 +93,11 @@ final class HandoffModel: ObservableObject {
     }
 
     func account(_ uuid: String) -> Account? { accounts.first { $0.uuid == uuid } }
+
+    /// 계정 uuid -> 이름. 공유 표시가 uuid 대신 이름을 적는다.
+    var names: [String: String] {
+        Dictionary(accounts.map { ($0.uuid, $0.name) }, uniquingKeysWith: { a, _ in a })
+    }
 
     /// 옮기기 전에 보여줄 안내. 계정이 둘 다 정해져야 만들 수 있다.
     var plan: HandoffPlan? {
@@ -127,7 +137,7 @@ final class HandoffModel: ObservableObject {
     /// 원본 계정이 가진 세션. 제목은 트랜스크립트 양끝에서 읽는다.
     func reload() {
         picked = []
-        sharedIDs = Set((try? SharedSessions())?.all().keys ?? [:].keys)
+        sharedBy = (try? SharedSessions())?.all().mapValues(\.accounts) ?? [:]
         guard let account = account(source), let stores = stores(for: account) else {
             sessions = []
             return

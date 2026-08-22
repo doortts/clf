@@ -328,6 +328,24 @@ public enum ShareNote {
     public static func afterUnshare(_ count: Int, from name: String) -> String {
         "\(count)개의 공유를 끊었습니다. \(name) 목록에서는 재시작 뒤에 빠집니다."
     }
+
+    /// 목록 줄에 적을 공유 표시. 공유해 둔 것이 아니면 nil.
+    ///
+    /// **어느 계정에 같이 있는지까지 적는다.** `양쪽에 있음` 만으로는 어느
+    /// 계정인지 몰라서, 계정이 셋인 사람은 목록을 보고도 확인하러 가야 한다.
+    ///
+    /// 지금 보고 있는 계정(`showing`)은 뺀다. 그 계정 목록에 있다는 사실은
+    /// 그 줄이 거기 있는 것으로 이미 말했다.
+    ///
+    /// 겹침 경고(`SessionSummary.sharedByAccounts`)와 다른 것이다. 그쪽은
+    /// 우연히 두 계정에 걸린 상태고 이쪽은 사용자가 그러라고 만든 상태다.
+    public static func sharing(with accounts: [String], showing: String,
+                               names: [String: String]) -> String? {
+        let others = accounts.filter { $0 != showing }
+        guard !others.isEmpty else { return nil }
+        // 이름을 모르는 계정은 uuid 로라도 적는다. 빈자리로 두면 몇 곳인지도 모른다
+        return others.map { names[$0] ?? $0 }.sorted().joined(separator: ", ") + " 에도 있음"
+    }
 }
 
 /// 옮긴 뒤에 남는 일.

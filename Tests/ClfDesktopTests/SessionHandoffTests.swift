@@ -229,6 +229,36 @@ final class HandoffSiteTests: XCTestCase {
         XCTAssertTrue(ShareNote.after(shared: 1, target: ("B", .none)).contains("띄우면"))
     }
 
+    // MARK: 목록 줄의 공유 표시
+
+    /// **어느 계정에 같이 있는지까지 적는다.** 지금 보고 있는 계정은 뺀다.
+    /// 그 줄이 거기 있다는 사실은 목록 자체가 이미 말했다.
+    func test_sharingNamesTheOtherAccounts() {
+        XCTAssertEqual(ShareNote.sharing(with: ["u1", "u2"], showing: "u1",
+                                         names: ["u1": "T40", "u2": "T52"]),
+                       "T52 에도 있음")
+    }
+
+    /// 셋이면 다 적는다. 순서는 이름으로 고정한다.
+    func test_sharingSortsByName() {
+        XCTAssertEqual(ShareNote.sharing(with: ["u1", "u2", "u3"], showing: "u1",
+                                         names: ["u1": "T40", "u2": "T52", "u3": "Naver"]),
+                       "Naver, T52 에도 있음")
+    }
+
+    /// 이름을 모르는 계정은 uuid 로라도 적는다. 빈자리로 두면 몇 곳인지도 모른다.
+    func test_sharingFallsBackToTheUUID() {
+        XCTAssertEqual(ShareNote.sharing(with: ["u1", "u9"], showing: "u1",
+                                         names: ["u1": "T40"]),
+                       "u9 에도 있음")
+    }
+
+    /// 공유가 아니면 적을 것이 없다. 장부에 없는 대화가 여기로 온다.
+    func test_sharingSaysNothingWhenAlone() {
+        XCTAssertNil(ShareNote.sharing(with: [], showing: "u1", names: [:]))
+        XCTAssertNil(ShareNote.sharing(with: ["u1"], showing: "u1", names: ["u1": "T40"]))
+    }
+
     func test_unshareNoteNamesTheAccountThatLosesIt() {
         XCTAssertEqual(ShareNote.afterUnshare(1, from: "B"),
                        "1개의 공유를 끊었습니다. B 목록에서는 재시작 뒤에 빠집니다.")

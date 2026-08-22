@@ -122,12 +122,19 @@ struct HandoffView: View {
 
     /// 제목 아래 한 줄. 폴더는 늘 보조색이고 경고 부분만 주의색이다.
     /// 문자열을 합쳐 색 하나로 칠하면 폴더까지 노래진다.
+    ///
+    /// 공유 표시는 보조색이다. **경고가 아니라 사용자가 만든 상태다.**
+    /// 주의색으로 적으면 우연히 겹친 것과 같은 무게로 읽힌다.
     private func detailLine(_ session: SessionSummary) -> Text {
-        let folder = Text(session.folder).foregroundColor(.secondary)
-        guard let warning = session.warning else { return folder }
-        let warn = Text(warning).foregroundColor(warnInk)
-        guard !session.folder.isEmpty else { return warn }
-        return folder + Text(" - ").foregroundColor(.secondary) + warn
+        var parts: [Text] = []
+        if !session.folder.isEmpty { parts.append(Text(session.folder).foregroundColor(.secondary)) }
+        if let warning = session.warning { parts.append(Text(warning).foregroundColor(warnInk)) }
+        if let note = ShareNote.sharing(with: model.sharedBy[session.cliSessionID] ?? [],
+                                        showing: model.source, names: model.names) {
+            parts.append(Text(note).foregroundColor(.secondary))
+        }
+        let dash = Text(" - ").foregroundColor(.secondary)
+        return parts.dropFirst().reduce(parts.first ?? Text("")) { $0 + dash + $1 }
     }
 
     /// 안내는 접어서 다 보여준다. 한 줄로 자르면 뒷말이 사라진다.
