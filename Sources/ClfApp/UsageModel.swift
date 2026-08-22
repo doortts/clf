@@ -682,13 +682,23 @@ final class UsageModel: ObservableObject {
     var hasUpdateNews: Bool { updates.hasNews(seen: prefs.seenReleaseTag) }
 
     /// 하루 한 번. 때가 아니면 저쪽이 아무것도 안 하고 돌아온다.
-    private func checkUpdateIfDue(now: Date) async {
-        guard let at = await updates.checkIfDue(last: prefs.lastUpdateCheck, now: now) else {
+    private func checkUpdateIfDue(now: Date,
+                                  interval: TimeInterval = UpdateCheck.checkInterval) async {
+        guard let at = await updates.checkIfDue(last: prefs.lastUpdateCheck, now: now,
+                                                interval: interval) else {
             return
         }
         prefs.lastUpdateCheck = at
         // 막대와 무관한 값이라 그림을 다시 굽지 않는다
         try? file?.save(prefs)
+    }
+
+    /// 팝오버를 열 때. 주기보다 짧은 바닥이라 새 버전이 하루씩 묵지 않는다.
+    ///
+    /// 확인 아이콘과 다르다. 저쪽은 사람이 눌러서 지금 보라는 뜻이라 바닥이
+    /// 없고, 이쪽은 여는 김에 보는 것이라 한 시간을 둔다.
+    func checkUpdateOnOpen(now: Date = Date()) async {
+        await checkUpdateIfDue(now: now, interval: UpdateCheck.openInterval)
     }
 
     /// 제목 옆 새로고침. 24시간 규칙을 무시한다.

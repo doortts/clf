@@ -175,6 +175,24 @@ final class UpdateEligibilityTests: XCTestCase {
         XCTAssertTrue(UpdateCheck.shouldCheck(last: now.addingTimeInterval(3600), now: now))
     }
 
+    /// 팝오버를 열 때는 한 시간이다. 여닫기가 잦아서 바닥이 없으면 몇 초 사이에
+    /// 요청이 여러 번 나간다.
+    func test_openingUsesTheHourlyFloor() {
+        let minutes: (Double) -> Date = { self.now.addingTimeInterval(-$0 * 60) }
+        let floor = UpdateCheck.openInterval
+        XCTAssertFalse(UpdateCheck.shouldCheck(last: minutes(1), now: now, interval: floor))
+        XCTAssertFalse(UpdateCheck.shouldCheck(last: minutes(59), now: now, interval: floor))
+        XCTAssertTrue(UpdateCheck.shouldCheck(last: minutes(61), now: now, interval: floor))
+    }
+
+    /// 같은 도장을 두 바닥이 본다. 두 시간 전이면 팝오버는 보고 주기는 안 본다.
+    func test_theSameStampMeansDifferentThingsToTheTwoFloors() {
+        let twoHoursAgo = now.addingTimeInterval(-2 * 3600)
+        XCTAssertTrue(UpdateCheck.shouldCheck(last: twoHoursAgo, now: now,
+                                              interval: UpdateCheck.openInterval))
+        XCTAssertFalse(UpdateCheck.shouldCheck(last: twoHoursAgo, now: now))
+    }
+
     /// 저장소에서 바로 실행한 것이다. 릴리즈로 갈아타면 방금 빌드한 것이 사라진다.
     func test_buildDirectoryIsADevelopmentBuild() {
         let verdict = UpdateCheck.eligibility(

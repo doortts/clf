@@ -109,14 +109,29 @@ public enum UpdateCheck {
     /// 확인 주기. 릴리즈는 자주 바뀌지 않으니 익명 한도를 아낀다.
     public static let checkInterval: TimeInterval = 24 * 60 * 60
 
+    /// 팝오버를 열어서 생기는 확인 사이의 최소 간격.
+    ///
+    /// 주기만 있으면 새 버전이 나오고 최대 하루 동안 딱지가 안 붙는다. 여는
+    /// 것은 사람이 하는 일이라 그때 한 번 보면 그 하루가 없어진다.
+    ///
+    /// **바닥이 필요하다.** 팝오버는 여닫기가 잦아서 바닥이 없으면 몇 초
+    /// 사이에 요청이 여러 번 나간다. 릴리즈는 시간 단위로 바뀌는 것이 아니라
+    /// 한 시간이면 충분히 촘촘하다.
+    public static let openInterval: TimeInterval = 60 * 60
+
     /// 지금 확인할 때인가.
+    ///
+    /// 간격은 부르는 쪽이 정한다. 주기 루프와 팝오버가 같은 도장을 보되 서로
+    /// 다른 바닥을 쓴다. 도장이 하나라 잦은 쪽이 뜸한 쪽을 덮어 주고, 팝오버를
+    /// 한 번도 안 여는 기계는 주기 루프가 그대로 맡는다.
     ///
     /// 시계가 뒤로 간 경우(마지막 확인이 미래)도 확인한다. 그 도장은 못 믿을
     /// 값이고, 안 그러면 시계를 되돌린 기계가 영영 확인을 안 한다.
-    public static func shouldCheck(last: Date?, now: Date) -> Bool {
+    public static func shouldCheck(last: Date?, now: Date,
+                                   interval: TimeInterval = checkInterval) -> Bool {
         guard let last else { return true }
         let elapsed = now.timeIntervalSince(last)
-        return elapsed >= checkInterval || elapsed < 0
+        return elapsed >= interval || elapsed < 0
     }
 
     /// 확인할 자격이 있는 빌드인지 본다.

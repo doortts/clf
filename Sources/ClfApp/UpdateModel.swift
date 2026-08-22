@@ -106,13 +106,18 @@ final class UpdateModel: ObservableObject {
 
     // MARK: 확인
 
-    /// 켤 때와 하루 한 번. 시각 판단의 기준값은 부르는 쪽이 넘긴다.
+    /// 켤 때와 하루 한 번, 그리고 팝오버를 열 때. 시각 판단의 기준값은 부르는
+    /// 쪽이 넘긴다.
     ///
+    /// 간격도 부르는 쪽이 정한다. 주기 루프는 하루, 팝오버는 한 시간이다.
     /// 확인했으면 그 시각을 돌려준다. 부르는 쪽이 그것을 설정에 적는다.
     @discardableResult
-    func checkIfDue(last: Date?, now: Date = Date()) async -> Date? {
+    func checkIfDue(last: Date?, now: Date = Date(),
+                    interval: TimeInterval = UpdateCheck.checkInterval) async -> Date? {
         guard case .eligible = eligibility else { return nil }
-        guard UpdateCheck.shouldCheck(last: last, now: now) else { return nil }
+        guard UpdateCheck.shouldCheck(last: last, now: now, interval: interval) else {
+            return nil
+        }
         await check()
         return now
     }

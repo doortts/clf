@@ -1,0 +1,239 @@
+<meta charset="utf-8">
+<title>업데이트 딱지와 열 때 확인 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.55 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:820px; }
+  h2 { font-size:13px; margin:34px 0 10px; padding-top:14px;
+       border-top:1px solid rgba(255,255,255,.10); }
+  h3 { font-size:12px; margin:22px 0 8px; color:#f2f2f7; }
+  p { max-width:820px; margin:0 0 12px; color:#c7c7cc; }
+  .row { display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start; }
+  .variant { display:flex; flex-direction:column; gap:9px; }
+  .vname { font-size:11px; color:#98989d; max-width:230px; }
+  .vname b { color:#f2f2f7; font-weight:600; }
+
+  /* ---- 팝오버 머리 줄 재현. 실제 폭 340, 여백 14 ---- */
+  .pop { width:340px; border-radius:10px; padding:14px 14px 12px;
+         box-shadow:0 8px 26px rgba(0,0,0,.45); }
+  .pop.light { background:#ffffff; color:#1d1d1f; --popbg:#ffffff; }
+  .pop.dark  { background:#2c2c2e; color:#f2f2f7; --popbg:#2c2c2e; }
+  .hd { display:flex; align-items:center; gap:7px; }
+  .title { font-size:13px; font-weight:600; }
+  .sub { font-size:12px; opacity:.55; }
+  .spacer { flex:1; }
+  .gearwrap { position:relative; display:inline-flex; }
+  .glyph { width:13px; height:13px; display:block; }
+  .light .glyph { color:#1d1d1f; }
+  .dark .glyph { color:#f2f2f7; }
+
+  /* ---- 딱지들. 값은 pt 그대로다 ---- */
+  .badge { position:absolute; display:flex; align-items:center; justify-content:center;
+           box-sizing:border-box; }
+  .dot   { width:5px; height:5px; border-radius:50%; background:#007aff;
+           border:1px solid var(--popbg); top:-2px; right:-3px; }
+  .n10   { width:10px; height:10px; border-radius:50%; background:#ff3b30;
+           border:1px solid var(--popbg); top:-4px; right:-5px;
+           font:700 7px/1 -apple-system,system-ui,sans-serif; color:#fff; }
+  .n12   { width:12px; height:12px; border-radius:50%; background:#ff3b30;
+           border:1px solid var(--popbg); top:-5px; right:-6px;
+           font:700 8px/1 -apple-system,system-ui,sans-serif; color:#fff; }
+  .ncap  { min-width:13px; height:10px; padding:0 2px; border-radius:5px; background:#ff3b30;
+           border:1px solid var(--popbg); top:-4px; right:-6px;
+           font:700 7px/1 -apple-system,system-ui,sans-serif; color:#fff; }
+  .badge span { transform:translateY(.5px); letter-spacing:0; }
+
+  /* ---- 확대판. 배지가 4pt 단위라 실물로는 차이를 못 본다 ---- */
+  .zoom { transform:scale(4); transform-origin:top left; }
+  .zoomcell { width:112px; height:76px; display:flex; align-items:flex-start;
+              padding-top:14px; padding-left:14px; box-sizing:border-box;
+              border-radius:8px; overflow:hidden; }
+  .zoomcell.light { background:#ffffff; --popbg:#ffffff; }
+  .zoomcell.dark  { background:#2c2c2e; --popbg:#2c2c2e; }
+  .zoomcell.light .glyph { color:#1d1d1f; }
+  .zoomcell.dark .glyph { color:#f2f2f7; }
+  .pair { display:flex; gap:10px; }
+
+  table { border-collapse:collapse; margin:6px 0 16px; font-size:12px; max-width:820px; }
+  th,td { text-align:left; padding:7px 14px 7px 0; vertical-align:top;
+          border-bottom:1px solid rgba(255,255,255,.10); }
+  th { color:#f2f2f7; font-weight:600; font-size:11px; }
+  td { color:#c7c7cc; }
+  code { background:rgba(255,255,255,.08); border-radius:4px; padding:0 4px;
+         font:11px/1.5 ui-monospace,"SF Mono",Menlo,monospace; }
+  .note { margin-top:10px; color:#98989d; max-width:820px; }
+  .note b { color:#f2f2f7; }
+  ul { padding-left:20px; max-width:820px; color:#c7c7cc; }
+  li { margin:4px 0; }
+</style>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="gear" viewBox="0 0 24 24">
+    <g fill="currentColor">
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(45 12 12)"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(90 12 12)"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(135 12 12)"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(180 12 12)"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(225 12 12)"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(270 12 12)"/>
+      <rect x="10.7" y="1.4" width="2.6" height="4.2" rx="1.1" transform="rotate(315 12 12)"/>
+    </g>
+    <circle cx="12" cy="12" r="7.1" fill="none" stroke="currentColor" stroke-width="1.9"/>
+    <circle cx="12" cy="12" r="2.7" fill="none" stroke="currentColor" stroke-width="1.9"/>
+  </symbol>
+  <symbol id="refresh" viewBox="0 0 24 24">
+    <path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor"
+          stroke-width="2.1" stroke-linecap="round"/>
+    <path d="M20 3.4 V8.2 H15.2" fill="none" stroke="currentColor"
+          stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<h1>업데이트 딱지와 열 때 확인 시안</h1>
+<p class="lede">
+  둘을 같이 본다. 하나는 <b>언제 확인하나</b>이고 하나는 <b>확인해서 새 것이
+  있을 때 무엇을 보여주나</b>다. 지금은 하루 한 번만 확인하고, 있으면 톱니에
+  파란 점 5pt 를 올린다. 점은 무슨 뜻인지 말하지 않는다.
+</p>
+
+<p class="note" style="border-left:3px solid #ff3b30;padding-left:12px;margin-bottom:22px">
+  <b>정한 것.</b> 딱지는 <b>시안 A</b>, 확인 바닥은 <b>60분</b>이다.
+  자리는 <code>offset(x: 4, y: -3)</code> 으로 실측해서 정했다. 시안의 CSS 값
+  <code>(5, -4)</code> 를 그대로 옮기면 딱지가 톱니에서 떠 보인다.
+  <code>overlay(alignment:)</code> 가 글리프 잉크가 아니라 레이아웃 상자에
+  맞추는데 SF Symbol 은 그 상자보다 작게 그려지기 때문이다.
+</p>
+
+<h2>1. 딱지</h2>
+<p>
+  톱니는 12pt 글리프다. 딱지가 커지면 톱니를 가리고 작으면 글자가 안 읽힌다.
+  그 사이를 찾는 것이 이 절이다. 확대판은 4배다. 실물 크기로는 셋을 구별할 수
+  없어서 같이 둔다.
+</p>
+
+<div class="row">
+  <div class="variant">
+    <div class="vname"><b>지금</b> - 파란 점 5pt. 새 것이 있다는 사실만 알리고
+      무엇인지는 말하지 않는다.</div>
+    <div class="pair">
+      <div class="zoomcell light"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge dot"></span></span></div></div>
+      <div class="zoomcell dark"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge dot"></span></span></div></div>
+    </div>
+  </div>
+
+  <div class="variant">
+    <div class="vname"><b>시안 A</b> - 붉은 원 10pt 에 흰 N 7pt. 톱니 획을
+      거의 안 가린다.</div>
+    <div class="pair">
+      <div class="zoomcell light"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge n10"><span>N</span></span></span></div></div>
+      <div class="zoomcell dark"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge n10"><span>N</span></span></span></div></div>
+    </div>
+  </div>
+
+  <div class="variant">
+    <div class="vname"><b>시안 B</b> - 붉은 원 12pt 에 흰 N 8pt. 멀리서도
+      읽히지만 톱니 오른쪽 위 톱니바퀴를 덮는다.</div>
+    <div class="pair">
+      <div class="zoomcell light"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge n12"><span>N</span></span></span></div></div>
+      <div class="zoomcell dark"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge n12"><span>N</span></span></span></div></div>
+    </div>
+  </div>
+
+  <div class="variant">
+    <div class="vname"><b>시안 C</b> - 캡슐. 높이는 A 와 같고 옆으로 눕는다.
+      글자에 여백이 생겨 같은 높이에서 더 읽힌다.</div>
+    <div class="pair">
+      <div class="zoomcell light"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge ncap"><span>N</span></span></span></div></div>
+      <div class="zoomcell dark"><div class="zoom"><span class="gearwrap">
+        <svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge ncap"><span>N</span></span></span></div></div>
+    </div>
+  </div>
+</div>
+
+<h3>실물 크기. 머리 줄에 앉은 모습</h3>
+<div class="row">
+  <div class="variant">
+    <div class="vname">시안 A, 라이트</div>
+    <div class="pop light"><div class="hd">
+      <span class="title">clf</span><span class="sub">남은 용량 기준</span>
+      <span class="spacer"></span>
+      <svg class="glyph"><use href="#refresh"/></svg>
+      <span class="gearwrap"><svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge n10"><span>N</span></span></span>
+    </div></div>
+  </div>
+  <div class="variant">
+    <div class="vname">시안 A, 다크</div>
+    <div class="pop dark"><div class="hd">
+      <span class="title">clf</span><span class="sub">남은 용량 기준</span>
+      <span class="spacer"></span>
+      <svg class="glyph"><use href="#refresh"/></svg>
+      <span class="gearwrap"><svg class="glyph"><use href="#gear"/></svg>
+        <span class="badge n10"><span>N</span></span></span>
+    </div></div>
+  </div>
+</div>
+
+<p class="note">
+  <b>붉은색을 쓰는 값.</b> 이 앱에서 빨강은 잔여 5% 이하다. 게이지와 알림이
+  그 뜻으로 쓴다. 톱니 딱지에 같은 빨강을 두면 한 화면에 뜻이 둘이 된다.
+  다만 딱지는 게이지 밖에 있고 글자가 N 이라 잔여로 읽힐 자리는 아니다.
+  <code>Color.red</code> 대신 조금 다른 빨강을 쓸 수도 있는데, 그러면 이번에는
+  시스템 빨강이 아닌 이유를 설명할 수 없다. 시안은 <code>#ff3b30</code> 으로
+  뒀다.
+</p>
+
+<h2>2. 언제 확인하나</h2>
+<p>
+  지금은 사용량 폴링 주기에 얹혀 하루 한 번만 본다. 팝오버를 열어도 확인하지
+  않는다. 그래서 새 버전이 나오고 최대 24시간 동안 딱지가 안 붙는다.
+</p>
+
+<table>
+  <tr><th>계기</th><th>지금</th><th>바뀐 뒤</th></tr>
+  <tr><td>앱 시작, 폴링 주기</td><td>24시간에 한 번</td><td>그대로</td></tr>
+  <tr><td>메뉴바를 눌러 팝오버를 엶</td><td>확인 안 함</td>
+      <td><b>확인한다.</b> 단 60분 안에 또 열면 건너뛴다</td></tr>
+  <tr><td>설정의 새로고침 아이콘</td><td>주기를 무시하고 확인</td><td>그대로</td></tr>
+</table>
+
+<h3>60분을 두는 이유</h3>
+<ul>
+  <li>팝오버는 여닫기가 잦다. 바닥이 없으면 몇 초 사이에 요청이 여러 번 나간다</li>
+  <li>릴리즈는 시간 단위로 바뀌는 것이 아니다. 한 시간이면 하루를 기다리는
+      것보다 24배 촘촘하고, 그보다 더 촘촘해서 얻는 것이 없다.
+      사용량 읽기의 <code>ReadGate.quietWindow</code> 60초를 그대로 쓰지 않는
+      이유가 그것이다. 그쪽은 숫자가 분 단위로 바뀌지만 릴리즈는 아니다</li>
+  <li>ETag 가 맞으면 304 라서 익명 한도를 안 깎는다. 그래도 왕복은 왕복이다</li>
+  <li>도장은 <code>lastUpdateCheck</code> 하나를 같이 쓴다. 잦은 쪽이 뜸한 쪽을
+      덮어 주고, 팝오버를 한 번도 안 여는 기계는 주기 루프가 그대로 맡는다</li>
+</ul>
+
+<p class="note">
+  <b>확인 중이라고 티내지 않는다.</b> 열자마자 도는 확인이라 대개 1초 안에
+  끝난다. 머리 줄에 도는 그림을 띄우면 열 때마다 그것이 먼저 보인다.
+  결과가 나오면 딱지가 붙고, 그것으로 끝이다. 팝오버를 연 채로 확인이 끝나는
+  일이 실제로 있고 <code>GearIcon</code> 은 이미 그것을 따라 그린다.
+</p>
+<p class="note">
+  <b>실패는 그대로 조용하다.</b> 릴리즈를 못 읽는 것은 다음에 다시 보면 되는
+  일이라 팝오버 머리에 빨간 줄을 띄우지 않는다. 사유는 설정 안에만 적힌다.
+  이 규칙은 안 바꾼다.
+</p>

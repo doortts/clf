@@ -733,13 +733,24 @@ private struct GearIcon: View {
         Image(systemName: open ? "gearshape.fill" : "gearshape")
             .overlay(alignment: .topTrailing) {
                 if news {
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 5, height: 5)
+                    // 점이 아니라 글자다. 점은 뭔가 있다는 것만 말하고 무엇인지는
+                    // 말하지 않는다. docs/design/update-badge-mockup.html 시안 A
+                    //
+                    // 10점을 넘기면 12점짜리 톱니의 오른쪽 위 톱니바퀴를 덮는다.
+                    // 이 크기가 글자가 읽히면서 톱니가 남는 자리다
+                    Text("N")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 10, height: 10)
+                        .background(Circle().fill(Color.red))
                         // 팝오버 바탕색으로 테두리를 둬서 톱니 획과 안 붙는다
                         .overlay(Circle().stroke(Color(nsColor: .windowBackgroundColor),
                                                  lineWidth: 1))
-                        .offset(x: 3, y: -2)
+                        // 시안의 값(5, -4)을 그대로 쓰면 딱지가 톱니에서 떠
+                        // 보인다. overlay 는 글리프 잉크가 아니라 **레이아웃
+                        // 상자**에 맞추는데 SF Symbol 은 그 상자보다 작게
+                        // 그려지기 때문이다. 실측으로 한 점씩 당겼다
+                        .offset(x: 4, y: -3)
                 }
             }
     }
@@ -802,6 +813,9 @@ struct PopoverView: View {
             // 겹친 세션도 로컬 파일이다. 열 때 한 번만 훑는다
             sharedSessions.refresh()
             await model.refresh()
+            // 새 버전은 마지막에 본다. 숫자가 먼저 떠야 한다. 한 시간 바닥이
+            // 있어서 여닫기가 잦아도 요청이 안 쌓인다
+            await model.checkUpdateOnOpen()
         }
         // 설정 판을 편 채로 닫으면 그 서브트리가 메뉴바에 남는다. 남은 트리는
         // 화면 주사율마다 레이아웃을 다시 돌고, 그 한 바퀴마다 세그먼트 Picker 가
