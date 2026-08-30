@@ -47,17 +47,22 @@ public struct DesktopSnapshot: Sendable, Equatable {
     public let unreadableByUUID: [String: String]
     /// 서버가 429 로 막았다. 실패와 다르다. 더 물어보면 안 된다는 뜻이다.
     public let throttled: Bool
+    /// 요청이 서버에 닿지 못했다. 이번 읽기는 없던 일이다. 여기서 5분을 쉬면
+    /// 회선이 돌아와도 화면이 한참 끊긴 때의 값에 멈춰 있는다.
+    public let offline: Bool
     /// 이번에 알아낸 계정 이름. 다음 읽기가 캐시로 쓴다.
     public let names: [String: String]
     public let readAt: Date
 
     public init(orgs: [OrgUsage], unreadable: [String],
                 unreadableByUUID: [String: String] = [:],
-                throttled: Bool = false, names: [String: String] = [:], readAt: Date) {
+                throttled: Bool = false, offline: Bool = false,
+                names: [String: String] = [:], readAt: Date) {
         self.orgs = orgs
         self.unreadable = unreadable
         self.unreadableByUUID = unreadableByUUID
         self.throttled = throttled
+        self.offline = offline
         self.names = names
         self.readAt = readAt
     }
@@ -109,9 +114,12 @@ public struct DesktopReader: Sendable {
         let key = try safeStorageKeyFromKeychain()
         let tokens = try allTokens(key: key)
         let current = try? activeOrg(key: key)
-        let names = cached.isEmpty
-            ? ((try? await session.orgNames(sessionKey: sessionKey(key: key))) ?? [:])
-            : cached
+        var offline = false
+        var names = cached
+        if cached.isEmpty {
+            do { names = try await session.orgNames(sessionKey: sessionKey(key: key)) }
+            catch { offline = (error as? UsageFetchError)?.offline == true }
+        }
 
         var orgs: [OrgUsage] = []
         var throttled = false
@@ -130,6 +138,7 @@ public struct DesktopReader: Sendable {
                                      limits: report.limits, spend: report.spend))
             } catch {
                 if (error as? UsageFetchError)?.throttled == true { throttled = true }
+                if (error as? UsageFetchError)?.offline == true { offline = true }
                 orgs.append(OrgUsage(uuid: uuid, name: name, isActive: uuid == current,
                                      plan: token.subscriptionType, limits: [:],
                                      error: "\(error)"))
@@ -150,6 +159,7 @@ public struct DesktopReader: Sendable {
                                      plan: nil, limits: report.limits, spend: report.spend))
             } catch {
                 if (error as? UsageFetchError)?.throttled == true { throttled = true }
+                if (error as? UsageFetchError)?.offline == true { offline = true }
                 missing[uuid] = name
             }
         }
@@ -161,6 +171,7 @@ public struct DesktopReader: Sendable {
                                unreadable: missing.values.sorted(),
                                unreadableByUUID: missing,
                                throttled: throttled,
+                               offline: offline,
                                names: names,
                                readAt: now)
     }

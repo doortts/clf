@@ -12,18 +12,24 @@ public struct RefreshPacer: Sendable {
     public static let idleInterval = Duration.seconds(600)
     /// 429 를 받았을 때. 창이 언제 열리는지 서버가 안 알려주므로 넉넉히 쉰다.
     public static let throttledInterval = Duration.seconds(900)
+    /// 회선이 끊겼을 때. 429 와 정반대로 **짧게** 쉰다. 서버가 막은 것이
+    /// 아니라 요청이 나가지도 못한 것이라 두드려도 서버에 부담이 없고,
+    /// 회선이 언제 돌아오는지는 다시 걸어 보는 것 말고 알 길이 없다.
+    public static let offlineInterval = Duration.seconds(30)
     /// 몇 번 연속 그대로여야 조용하다고 볼지.
     public static let idleThreshold = 3
 
     /// 연속으로 변화가 없었던 횟수. 첫 관측은 비교 대상이 없어 세지 않는다.
     public private(set) var idleStreak = 0
     private var backedOff = false
+    private var offline = false
     private var fingerprint: String?
 
     public init() {}
 
     public var currentInterval: Duration {
         if backedOff { return Self.throttledInterval }
+        if offline { return Self.offlineInterval }
         return idleStreak >= Self.idleThreshold ? Self.idleInterval : Self.activeInterval
     }
 
@@ -31,8 +37,12 @@ public struct RefreshPacer: Sendable {
     @discardableResult
     public mutating func observe(_ snapshot: DesktopSnapshot) -> Duration {
         backedOff = snapshot.throttled
+        offline = snapshot.offline
         // 막힌 동안 값이 그대로인 것은 조용한 게 아니다
         if snapshot.throttled { idleStreak = 0; return currentInterval }
+        // 끊긴 동안도 마찬가지다. 지문을 남기지도 않는다. 끊긴 채로 셋을
+        // 채우고 나면 회선이 돌아왔을 때 10분을 기다리게 된다
+        if snapshot.offline { idleStreak = 0; return currentInterval }
 
         guard let current = Self.fingerprint(of: snapshot) else {
             // 아무것도 못 읽었으면 정보가 없는 것이다. 조용하다고 단정하지 않는다.

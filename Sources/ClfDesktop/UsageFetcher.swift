@@ -25,11 +25,23 @@ public struct UsageFetchError: Error, CustomStringConvertible {
     public let description: String
     /// 429. 실패와 다르다. 서버가 그만 물어보라고 한 것이다.
     public let throttled: Bool
+    /// 요청이 서버에 닿지도 못했다. 429 와도 다르다. 서버는 아무 말도 안 했고
+    /// 우리 쪽 회선이 끊긴 것이라, 회선이 돌아오면 곧바로 다시 읽어야 한다.
+    public let offline: Bool
 
-    public init(description: String, throttled: Bool = false) {
+    public init(description: String, throttled: Bool = false, offline: Bool = false) {
         self.description = description
         self.throttled = throttled
+        self.offline = offline
     }
+
+    /// URLSession 이 준 전송 오류를 이 자리의 말로 바꾼다.
+    ///
+    /// 끊김, 시간 초과, DNS 실패를 한 갈래로 묶는다. 셋 다 회선이 돌아오면
+    /// 풀리는 것이라 앱이 할 일이 같다. 원문(`Error Domain=NSURLErrorDomain
+    /// Code=-1009 ...`)을 그대로 카드에 흘리면 폭에 잘려 읽히지도 않는다.
+    public static let noNetwork = UsageFetchError(
+        description: "네트워크에 연결하지 못했다. 연결되면 다시 읽는다", offline: true)
 }
 
 public struct LiveUsageFetcher: UsageFetching {
@@ -68,7 +80,12 @@ public struct LiveUsageFetcher: UsageFetching {
     }
 
     private func send(_ request: URLRequest) async throws -> UsageReport {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is URLError {
+            throw UsageFetchError.noNetwork
+        }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         switch status {
         case 200:
@@ -91,7 +108,12 @@ public struct LiveUsageFetcher: UsageFetching {
         request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "cookie")
         request.setValue("Mozilla/5.0 (Macintosh) Claude/1.0", forHTTPHeaderField: "user-agent")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is URLError {
+            throw UsageFetchError.noNetwork
+        }
         guard (response as? HTTPURLResponse)?.statusCode == 200 else { return [:] }
 
         let object = try? JSONSerialization.jsonObject(with: data)

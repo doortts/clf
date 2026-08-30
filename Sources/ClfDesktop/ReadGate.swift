@@ -29,8 +29,16 @@ public struct ReadGate: Sendable {
         return now >= nextAllowed
     }
 
-    public mutating func record(at now: Date, throttled: Bool) {
+    /// 못 읽고 끝난 읽기는 문을 닫지 않는다.
+    ///
+    /// 정숙 구간은 **방금 읽은 값을 지키자고** 있는 것이다. 회선이 끊겨
+    /// 아무것도 못 읽었으면 지킬 값이 없고, 화면에 남은 것은 끊기기 전의
+    /// 낡은 값이다. 그 상태로 문까지 닫으면 사용자가 회선을 되살리고
+    /// 새로고침을 눌러도 1분 동안 아무 일도 안 일어난다. 눌러도 아무 일이
+    /// 없으면 고장 난 것으로 보인다.
+    public mutating func record(at now: Date, throttled: Bool, offline: Bool = false) {
         blocked = throttled
+        if offline && !throttled { nextAllowed = nil; return }
         nextAllowed = now.addingTimeInterval(throttled ? Self.throttledWindow : Self.quietWindow)
     }
 

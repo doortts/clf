@@ -517,7 +517,7 @@ final class UsageModel: ObservableObject {
         do {
             let snapshot = try await reader.read(names: cachedNames)
             pacer.observe(snapshot)
-            gate.record(at: now, throttled: snapshot.throttled)
+            gate.record(at: now, throttled: snapshot.throttled, offline: snapshot.offline)
             waitText = gate.complaint(at: now)
 
             // 못 읽은 계정에는 지난번 값을 물려준다. 한 번 실패했다고 화면을
@@ -526,7 +526,9 @@ final class UsageModel: ObservableObject {
             if !snapshot.names.isEmpty { cachedNames = snapshot.names }
             orgs = prefs.apply(to: known)
             rebuildBar()
-            if !snapshot.throttled { readAt = snapshot.readAt }
+            // 끊긴 읽기도 읽은 것으로 찍으면 발밑의 시각만 새것이 되고 숫자는
+            // 끊기기 전 값이다. 그 조합이 낡은 값을 지금 값으로 믿게 만든다
+            if !snapshot.throttled && !snapshot.offline { readAt = snapshot.readAt }
             failure = nil
             await notify(at: now)
             resume.step(org: known.first { $0.uuid == resume.watchedUUID },
