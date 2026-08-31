@@ -67,3 +67,50 @@ final class ReassignActiveTests: XCTestCase {
         XCTAssertTrue(reassignActive(to: nil, in: orgs).allSatisfy { !$0.isActive })
     }
 }
+
+/// 쿠키가 앱을 못 따라올 때가 있다.
+///
+/// `lastActiveOrg` 는 서버가 내려주는 값이라 앱에서 계정을 바꿔도 그대로일 수
+/// 있다. 실제로 T40 으로 옮긴 뒤에도 막대가 하루 넘게 T52 를 가리켰다.
+/// `config.json` 에 계정마다 남는 연 시각이 그 어긋남을 잡아 준다.
+final class ActiveOrgFromOpenedAtTests: XCTestCase {
+    let at = { (day: Int) in Date(timeIntervalSince1970: Double(day) * 86400) }
+
+    func test_takesTheOrgOpenedAfterTheCookie() {
+        let opened = ["t52": at(1), "t40": at(2)]
+        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: opened), "t40")
+    }
+
+    func test_keepsTheCookieWhenItIsTheNewest() {
+        let opened = ["t52": at(3), "t40": at(2)]
+        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: opened), "t52")
+    }
+
+    /// 쿠키가 가리키는 계정에 연 시각이 없으면 견줄 것이 없다. 남의 시각만
+    /// 보고 옮겨 가면 엉뚱한 계정에 활성 표시가 붙는다.
+    func test_keepsTheCookieWhenItHasNoStamp() {
+        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: ["t40": at(2)]), "t52")
+    }
+
+    func test_keepsTheCookieWhenNothingIsStamped() {
+        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: [:]), "t52")
+    }
+
+    func test_readsStampsFromConfigKeys() {
+        let root: [String: Any] = [
+            "dxt:allowlistLastUpdated:t40": "2026-08-31T03:03:26.824Z",
+            "dxt:allowlistLastUpdated:t52": "2026-08-30T15:38:59Z",
+            "dxt:allowlistEnabled:t40": false,
+            "lastKnownAccountUuid": "914e4f12",
+        ]
+        let opened = DesktopReader.openedAt(config: root)
+        XCTAssertEqual(Set(opened.keys), ["t40", "t52"])
+        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: opened), "t40")
+    }
+
+    /// 날짜가 아닌 값은 뺀다. 못 읽으면 쿠키만 남아 옛 동작 그대로다.
+    func test_ignoresUnparsableStamps() {
+        let root: [String: Any] = ["dxt:allowlistLastUpdated:t40": "어제"]
+        XCTAssertTrue(DesktopReader.openedAt(config: root).isEmpty)
+    }
+}
