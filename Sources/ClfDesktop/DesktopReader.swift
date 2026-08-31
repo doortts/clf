@@ -236,51 +236,16 @@ public struct DesktopReader: Sendable {
         return try? activeOrg(key: key)
     }
 
-    /// 쿠키를 먼저 보고, 그보다 최근에 연 계정이 있으면 그쪽을 쓴다.
+    /// 앱이 마지막으로 요청을 보낸 계정을 먼저 보고, 없으면 쿠키를 쓴다.
     ///
     /// `lastActiveOrg` 는 서버가 `Set-Cookie` 로 내려주는 값이라
     /// (docs/design/09-desktop-org-switch.md 2절) 앱에서 계정을 바꿔도 안 따라올
-    /// 때가 있다. 실제로 하루가 지나도록 막대와 팝오버가 옛 계정을 가리켰다.
+    /// 때가 있다. 실제로 두 방향으로 다 어긋나서 막대와 팝오버가 몇 시간씩 옛
+    /// 계정을 가리켰다. 앱이 자기 로그에 적어 둔 요청 URL 은 그런 지연이 없다.
     private func activeOrg(key: Data) throws -> String {
-        let fromCookie = String(decoding: stripDomainHash(try cookie("lastActiveOrg", key: key)),
-                                as: UTF8.self)
-        return DesktopReader.activeOrg(cookieOrg: fromCookie, openedAt: openedAt(in: support))
-    }
-
-    /// 앱이 계정을 열 때 `config.json` 에 적는 시각. 계정마다 한 줄이다.
-    static let openedKeyPrefix = "dxt:allowlistLastUpdated:"
-
-    /// 쿠키가 뒤처졌으면 더 최근에 연 계정이 지금 쓰는 계정이다.
-    ///
-    /// 쿠키가 가리키는 계정에 연 시각이 없으면 견줄 것이 없다. 그때는 쿠키를
-    /// 그대로 믿는다. 모르는 값으로 옮겨 가면 활성 표시가 통째로 사라진다.
-    static func activeOrg(cookieOrg: String, openedAt: [String: Date]) -> String {
-        guard let mine = openedAt[cookieOrg],
-              let latest = openedAt.max(by: { $0.value < $1.value }),
-              latest.value > mine else { return cookieOrg }
-        return latest.key
-    }
-
-    /// `config.json` 의 평문 키에서 계정별로 연 시각을 모은다.
-    ///
-    /// 못 읽은 값은 뺀다. 하나도 못 읽으면 쿠키만 남으므로 옛 동작 그대로다.
-    static func openedAt(config root: [String: Any]) -> [String: Date] {
-        let withMillis = ISO8601DateFormatter()
-        withMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let plain = ISO8601DateFormatter()
-        return root.reduce(into: [:]) { out, pair in
-            guard pair.key.hasPrefix(openedKeyPrefix), let text = pair.value as? String,
-                  let at = withMillis.date(from: text) ?? plain.date(from: text) else { return }
-            out[String(pair.key.dropFirst(openedKeyPrefix.count))] = at
-        }
-    }
-
-    private func openedAt(in directory: URL) -> [String: Date] {
-        guard let data = FileManager.default
-                .contents(atPath: directory.appendingPathComponent("config.json").path),
-              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return [:] }
-        return DesktopReader.openedAt(config: root)
+        if let traced = OrgTrace.lastOrg(in: support) { return traced }
+        return String(decoding: stripDomainHash(try cookie("lastActiveOrg", key: key)),
+                      as: UTF8.self)
     }
 
     private func sessionKey(key: Data) throws -> String {

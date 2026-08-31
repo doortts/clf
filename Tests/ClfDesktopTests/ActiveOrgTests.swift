@@ -71,46 +71,64 @@ final class ReassignActiveTests: XCTestCase {
 /// 쿠키가 앱을 못 따라올 때가 있다.
 ///
 /// `lastActiveOrg` 는 서버가 내려주는 값이라 앱에서 계정을 바꿔도 그대로일 수
-/// 있다. 실제로 T40 으로 옮긴 뒤에도 막대가 하루 넘게 T52 를 가리켰다.
-/// `config.json` 에 계정마다 남는 연 시각이 그 어긋남을 잡아 준다.
-final class ActiveOrgFromOpenedAtTests: XCTestCase {
-    let at = { (day: Int) in Date(timeIntervalSince1970: Double(day) * 86400) }
+/// 있다. 실제로 T52 로 옮긴 뒤에도 막대가 몇 시간 동안 T40 을 가리켰다. 앱이
+/// 자기 로그에 적어 둔 요청 URL 이 그 어긋남을 잡아 준다.
+final class OrgTraceTests: XCTestCase {
+    let t52 = "2a063dae-21bd-4040-ad6c-69e633ed6639"
+    let t40 = "746e81ae-c1e7-4402-a1af-7a3cf49a7fa5"
 
-    func test_takesTheOrgOpenedAfterTheCookie() {
-        let opened = ["t52": at(1), "t40": at(2)]
-        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: opened), "t40")
+    func scope(_ urls: [String?]) -> Data {
+        let crumbs: [[String: Any]] = urls.map { url in
+            guard let url else { return ["category": "electron", "message": "window.focus"] }
+            return ["category": "electron.net", "data": ["url": url, "method": "GET"]]
+        }
+        return try! JSONSerialization.data(withJSONObject: ["scope": ["breadcrumbs": crumbs]])
     }
 
-    func test_keepsTheCookieWhenItIsTheNewest() {
-        let opened = ["t52": at(3), "t40": at(2)]
-        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: opened), "t52")
+    /// 계정을 바꾸면 새 계정으로 요청이 나간다. 마지막 것이 지금 계정이다.
+    func test_takesTheLastOrgTheAppCalled() {
+        let data = scope([
+            "https://claude.ai/api/organizations/\(t40)/skills/list-skills",
+            nil,
+            "https://claude.ai/api/organizations/\(t52)/plugins/list-plugins",
+        ])
+        XCTAssertEqual(OrgTrace.lastOrg(scope: data), t52)
     }
 
-    /// 쿠키가 가리키는 계정에 연 시각이 없으면 견줄 것이 없다. 남의 시각만
-    /// 보고 옮겨 가면 엉뚱한 계정에 활성 표시가 붙는다.
-    func test_keepsTheCookieWhenItHasNoStamp() {
-        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: ["t40": at(2)]), "t52")
+    /// 계정 URL 뒤에 나온 다른 요청이 답을 가리지 않는다.
+    func test_skipsCrumbsWithoutAnOrg() {
+        let data = scope([
+            "https://claude.ai/api/bootstrap/\(t52)/current_user_access",
+            "https://api.github.com/repos/doortts/clf/pulls",
+            nil,
+        ])
+        XCTAssertEqual(OrgTrace.lastOrg(scope: data), t52)
     }
 
-    func test_keepsTheCookieWhenNothingIsStamped() {
-        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: [:]), "t52")
+    /// 100개짜리 고리에 계정 URL 이 하나도 없을 수 있다. 그때는 쿠키를 쓴다.
+    func test_returnsNilWhenNoCrumbNamesAnOrg() {
+        XCTAssertNil(OrgTrace.lastOrg(scope: scope([nil, "https://claude.ai/api/organizations"])))
+        XCTAssertNil(OrgTrace.lastOrg(scope: Data("{}".utf8)))
+        XCTAssertNil(OrgTrace.lastOrg(scope: Data("깨진 값".utf8)))
     }
 
-    func test_readsStampsFromConfigKeys() {
-        let root: [String: Any] = [
-            "dxt:allowlistLastUpdated:t40": "2026-08-31T03:03:26.824Z",
-            "dxt:allowlistLastUpdated:t52": "2026-08-30T15:38:59Z",
-            "dxt:allowlistEnabled:t40": false,
-            "lastKnownAccountUuid": "914e4f12",
-        ]
-        let opened = DesktopReader.openedAt(config: root)
-        XCTAssertEqual(Set(opened.keys), ["t40", "t52"])
-        XCTAssertEqual(DesktopReader.activeOrg(cookieOrg: "t52", openedAt: opened), "t40")
+    func test_readsBothOrgScopedShapes() {
+        XCTAssertEqual(
+            OrgTrace.org(inURL: "https://claude.ai/api/organizations/\(t40)/skills/list-skills"),
+            t40)
+        XCTAssertEqual(
+            OrgTrace.org(inURL: "https://claude.ai/api/bootstrap/\(t52)/current_user_access"),
+            t52)
+        XCTAssertEqual(OrgTrace.org(inURL: "https://claude.ai/api/organizations/\(t52)"), t52)
+        XCTAssertEqual(OrgTrace.org(inURL: "https://claude.ai/api/bootstrap/\(t52)?x=1"), t52)
     }
 
-    /// 날짜가 아닌 값은 뺀다. 못 읽으면 쿠키만 남아 옛 동작 그대로다.
-    func test_ignoresUnparsableStamps() {
-        let root: [String: Any] = ["dxt:allowlistLastUpdated:t40": "어제"]
-        XCTAssertTrue(DesktopReader.openedAt(config: root).isEmpty)
+    /// 사람이나 대화의 uuid 를 계정으로 읽으면 활성 표시가 통째로 사라진다.
+    /// 계정 uuid 를 담는 두 갈래만 본다.
+    func test_ignoresUUIDsThatAreNotOrgs() {
+        XCTAssertNil(OrgTrace.org(inURL: "https://claude.ai/api/account/\(t52)"))
+        XCTAssertNil(OrgTrace.org(inURL: "https://claude.ai/api/organizations/personal/x"))
+        XCTAssertNil(OrgTrace.org(inURL: "https://claude.ai/api/organizations/"))
+        XCTAssertNil(OrgTrace.org(inURL: "https://evil.example/api/organizations/\(t52)"))
     }
 }
