@@ -115,6 +115,26 @@ final class ReleaseDecodeTests: XCTestCase {
         XCTAssertEqual(release.noteLines(), ["- 하나", "- 둘", "- 셋"])
     }
 
+    /// 바뀐 것이 한 줄인 판에서 `## 설치` 와 그 아래가 카드로 딸려 올라왔다.
+    /// v0.3.1 에서 실제로 그랬다. 이 카드를 보는 사람은 이미 설치한 사람이다.
+    func test_noteLinesStopAtTheFirstHeading() {
+        let release = Release(tag: "v0.3.1", notes: """
+        - 릴리즈 스크립트 정리. 앱 동작은 v0.3.0 과 같음
+
+        ## 설치
+
+        - DMG 를 열어 clf.app 을 Applications 로 끌어다 놓으세요
+        """)
+        XCTAssertEqual(release.noteLines(), ["- 릴리즈 스크립트 정리. 앱 동작은 v0.3.0 과 같음"])
+    }
+
+    /// 노트가 제목으로 시작하면 거기서 끊어서 카드가 통째로 빈다. 그러면
+    /// 무엇이 바뀌었는지 모른 채 설치 단추만 남는다.
+    func test_aLeadingHeadingIsSkippedNotStoppedOn() {
+        let release = Release(tag: "v0.5.0", notes: "# clf v0.5.0\n\n- 하나\n- 둘\n\n## 설치\n- 셋")
+        XCTAssertEqual(release.noteLines(), ["- 하나", "- 둘"])
+    }
+
     func test_sizeTextIsNilWithoutSize() {
         XCTAssertNil(Release(tag: "v0.5.0").sizeText)
         XCTAssertEqual(Release(tag: "v0.5.0", bytes: 4_404_019).sizeText, "4.2MB")

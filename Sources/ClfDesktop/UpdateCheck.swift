@@ -65,15 +65,31 @@ public struct Release: Equatable, Sendable {
 
     public var version: ReleaseVersion? { ReleaseVersion.release(from: tag) }
 
-    /// 카드에 보일 노트. 빈 줄은 버리고 정해진 줄 수까지만.
+    /// 카드에 보일 노트. 빈 줄은 버리고 첫 제목에서 끊고 정해진 줄 수까지만.
     ///
     /// 전문은 **릴리즈 노트** 로 브라우저에서 본다. 320픽셀 안에 스크롤
     /// 영역을 또 만들지 않는다.
+    ///
+    /// **제목에서 끊는다.** 노트는 바뀐 것이 먼저 오고 그다음이 `## 설치` 다.
+    /// 앞에서 세 줄만 자르면 바뀐 것이 적은 판에서 `## 설치` 와 그 아래 설치
+    /// 안내가 카드로 딸려 올라온다. 이 카드를 보는 사람은 이미 설치한
+    /// 사람이라 읽힐 글이 아니고, 마크다운 제목이 그대로 한 줄을 먹는다.
+    ///
+    /// 맨 위의 제목은 건너뛴다. 노트가 제목으로 시작하면 거기서 끊는 바람에
+    /// 카드가 통째로 비고, 그러면 무엇이 바뀌었는지 모른 채 설치 단추만 남는다.
     public func noteLines(limit: Int = 3) -> [String] {
-        let lines = notes.split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        return Array(lines.prefix(limit))
+        var picked: [String] = []
+        for raw in notes.split(whereSeparator: \.isNewline) {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.isEmpty { continue }
+            if line.hasPrefix("#") {
+                if picked.isEmpty { continue }
+                break
+            }
+            picked.append(line)
+            if picked.count == limit { break }
+        }
+        return picked
     }
 
     /// 사람이 읽을 크기. 자산에 크기가 없으면 nil 이다.
