@@ -103,6 +103,20 @@ if [ "$PUBLISH" -eq 1 ]; then
   GHE_REMOTE=$(remote_for "$GHE_REPO")
   PUBLIC_REMOTE=$(remote_for "$PUBLIC_REPO")
   echo "  GHE: $GHE_REMOTE, 공개: $PUBLIC_REMOTE"
+
+  # 밀 수 있는 상태인지 지금 본다. 빌드와 공증에 10분을 쓰고 나서 push 가
+  # 거절되면 그 10분이 통째로 날아간다. 인증과 리모트를 여기서 보는 이유와
+  # 같다. v0.3.0 에서 GHE 만 옛 커밋에 남아 있어서 실제로 그랬다
+  for remote in "$GHE_REMOTE" "$PUBLIC_REMOTE"; do
+    git fetch "$remote" --quiet
+    # 아직 main 이 없는 저장소면 볼 것이 없다. 첫 push 가 그 자리를 만든다
+    if tip=$(git rev-parse --verify --quiet "$remote/main"); then
+      git merge-base --is-ancestor "$tip" HEAD \
+        || { echo "$remote/main 에 이 브랜치가 안 담은 커밋이 있다:"; \
+             echo "  git log --oneline HEAD..$remote/main"; \
+             echo "먼저 정리한 뒤에 다시 돌린다"; exit 1; }
+    fi
+  done
   # 공개 저장소는 이제 살아 있는 소스 미러다. 태그를 밀면 그 커밋들이 같이
   # 올라간다. 사람의 기억에 맡기면 바쁜 날에 새어 나간다
   # docs/design/17-repo-split.html 2절
@@ -326,12 +340,17 @@ publish_to() {
 # **GHE 가 먼저다.** 공개 릴리즈가 생기는 순간부터 앱들이 새 버전을 보고
 # "릴리즈 노트" 를 누르기 시작한다. 그 링크의 목적지인 GHE 페이지가 먼저 서
 # 있어야 한다. 반대 순서로 하면 죽은 링크가 먼저 나간다
-git push "$GHE_REMOTE" "$TAG"
+#
+# **한 저장소 안에서는 커밋이 태그보다 먼저다.** 태그를 먼저 밀면 커밋 push 가
+# 거절됐을 때 태그만 원격에 뜬 채로 멈춘다. 그 태그를 main 이 안 담고 있는
+# 상태가 남고, 그것을 치우려면 사람이 손으로 지워야 한다. 커밋이 먼저면 거절이
+# 나도 원격에 아무것도 안 남는다. v0.3.0 에서 실제로 겪었다
 git push "$GHE_REMOTE" HEAD:main
+git push "$GHE_REMOTE" "$TAG"
 publish_to "$GHE_REPO"
 
-git push "$PUBLIC_REMOTE" "$TAG"
 git push "$PUBLIC_REMOTE" HEAD:main
+git push "$PUBLIC_REMOTE" "$TAG"
 publish_to "$PUBLIC_REPO"
 
 echo
