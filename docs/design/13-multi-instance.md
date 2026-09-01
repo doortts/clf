@@ -692,3 +692,49 @@ origin 을 검사해서 밖에서는 못 부른다.
 
 한 작업 폴더에 세션이 여럿인 것을 사용자에게도 세션에게도 알려주지 않는다.
 이번에 알아챈 것은 모델이 `git status` 를 직접 돌려봤기 때문이고 그건 운이었다.
+
+---
+
+## 13. 앱이 환경변수를 막았다. 스위치로 옮겼다
+
+3절이 기댄 전제가 앱 업데이트로 깨졌다.
+
+> 데이터 디렉토리를 환경변수로 바꿀 수 있다
+
+1.40609.0 부트 코드가 패키지로 서명된 앱에서는 그 변수를 **지운다.**
+
+```js
+var KK = jH();   // CLAUDE_CDP_AUTH 를 ed25519 로 검증
+E.app.isPackaged && !KK && (delete process.env.CLAUDE_USER_DATA_DIR, ...)
+```
+
+`jH()` 는 앱 개인키로 서명한 `CLAUDE_CDP_AUTH` 토큰을 요구한다. 그 키는 번들에
+없고 공개키만 있다. 그래서 `CLAUDE_USER_DATA_DIR` 를 달아 띄워도 앱이 그 변수를
+버리고 **기본 데이터 디렉토리로 뜬다.** 팝오버에서 다른 계정 새 창을 눌러도
+지금 열린 계정과 같은 계정 창이 하나 더 뜨는 증상이 이것이다.
+
+실측으로 확정했다. `CLAUDE_USER_DATA_DIR=~/.claude-alt-NAVER_TEAM_40` 로 띄운
+프로세스가 여는 파일 42개가 전부 기본 디렉토리였고 alt 디렉토리 파일은 0개였다.
+
+### 우회는 Electron 스위치다
+
+`--user-data-dir` 는 Electron 이 앱 코드보다 먼저 먹는 네이티브 스위치라 위
+`delete` 를 안 탄다. 앱의 금지 스위치 목록(`remote-debugging-port` 류)에도 없다.
+
+```
+/Applications/Claude.app/Contents/MacOS/Claude --user-data-dir=~/.claude-alt-<이름>
+```
+
+실측으로 확정했다. 이 스위치로 seed 한 프로필을 띄우니 그 프로세스가 alt 디렉토리
+파일 91개를 열었고, 그 창은 org `746e81ae`(NAVER_TEAM_40)에 요청을 보냈다.
+같은 순간 기본 앱은 `2a063dae`(NAVER_TEAM_52)였다. 두 계정이 각자 격리된 창으로
+동시에 떴다.
+
+`HOME` 을 바꾸는 길은 접었다. macOS 에서 Electron 의 userData 경로는 `HOME`
+환경변수가 아니라 실제 홈을 보므로 안 옮겨지고, 옮겨진다 해도 4절의 트랜스크립트
+공유(`~/.claude/projects`)까지 끊긴다. `--user-data-dir` 는 `HOME` 을 그대로 두어
+그 공유를 지킨다.
+
+씨앗과 세션 미러링과 `ps` 스캔은 그대로다. 바뀐 것은 넘기는 방법 하나뿐이라
+`launch` 는 환경변수 대신 이 스위치를 넘기고, `ps` 파싱은 `CLAUDE_USER_DATA_DIR=`
+대신 `--user-data-dir=` 를 찾는다.

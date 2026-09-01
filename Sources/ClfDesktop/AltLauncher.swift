@@ -30,8 +30,15 @@ public struct AltLauncher: Sendable {
         mirrorIn(dir: dir, account: uuid)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: AltInstance.executable)
+        // 데이터 디렉토리는 Electron 스위치로 넘긴다. 앱이 패키지로 서명돼 있으면
+        // `CLAUDE_USER_DATA_DIR` 환경변수는 부팅 때 지워 버려서(app.asar 의
+        // `isPackaged && !cdpAuth` 분기) 새 창이 기본 계정으로 뜬다. `--user-data-dir`
+        // 은 Electron 이 앱 코드보다 먼저 먹는 네이티브 스위치라 그 방어를 안 탄다.
+        // docs/design/13-multi-instance.md 13절
+        process.arguments = ["--user-data-dir=\(dir.path)"]
+        // 상속된 값이 자식에 흘러 스위치와 어긋나지 않게 그 변수만 뺀다
         var env = ProcessInfo.processInfo.environment
-        env["CLAUDE_USER_DATA_DIR"] = dir.path
+        env.removeValue(forKey: "CLAUDE_USER_DATA_DIR")
         process.environment = env
         // 우리가 죽어도 창은 남아야 한다. 기다리지 않는다
         process.standardOutput = FileHandle.nullDevice

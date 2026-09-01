@@ -54,10 +54,10 @@ final class AltDirectoryTests: XCTestCase {
     }
 }
 
-/// 어느 계정에 창이 떠 있는지 `ps -A -E` 출력에서 읽는다.
+/// 어느 계정에 창이 떠 있는지 `ps` 명령줄의 `--user-data-dir` 에서 읽는다.
 final class InstanceScanTests: XCTestCase {
     let sample = """
-    /Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-NAVER_TEAM_52 PATH=/usr/bin
+    /Applications/Claude.app/Contents/MacOS/Claude --user-data-dir=/Users/x/.claude-alt-NAVER_TEAM_52 PATH=/usr/bin
     /Applications/Claude.app/Contents/MacOS/Claude PATH=/usr/bin HOME=/Users/x
     /Applications/Claude.app/Contents/Frameworks/Claude Helper.app/Contents/MacOS/Claude Helper --type=renderer
     """
@@ -66,7 +66,7 @@ final class InstanceScanTests: XCTestCase {
         XCTAssertEqual(AltInstance.runningAccounts(psOutput: sample), ["NAVER_TEAM_52"])
     }
 
-    /// 기본 인스턴스는 환경변수가 없고 헬퍼는 실행 파일이 다르다. 둘 다 안 센다.
+    /// 기본 인스턴스는 그 스위치가 없고 헬퍼는 실행 파일이 다르다. 둘 다 안 센다.
     func test_countsOnlyOurInstances() {
         XCTAssertEqual(AltInstance.runningAccounts(psOutput: sample).count, 1)
     }
@@ -77,7 +77,7 @@ final class InstanceScanTests: XCTestCase {
 
     /// 우리 규칙과 다른 디렉토리는 무시한다. 계정을 못 알아내기 때문이다.
     func test_ignoresForeignDataDirs() {
-        let odd = "/Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/tmp/whatever"
+        let odd = "/Applications/Claude.app/Contents/MacOS/Claude --user-data-dir=/tmp/whatever"
         XCTAssertTrue(AltInstance.runningAccounts(psOutput: odd).isEmpty)
     }
 }
@@ -178,8 +178,8 @@ final class DomainHashTests: XCTestCase {
 /// 창을 앞으로 꺼내려면 pid 가 있어야 한다.
 final class InstancePIDTests: XCTestCase {
     let sample = """
-      821 /Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-NAVER_TEAM_52 PATH=/usr/bin
-      950 /Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-Naver PATH=/usr/bin
+      821 /Applications/Claude.app/Contents/MacOS/Claude --user-data-dir=/Users/x/.claude-alt-NAVER_TEAM_52 PATH=/usr/bin
+      950 /Applications/Claude.app/Contents/MacOS/Claude --user-data-dir=/Users/x/.claude-alt-Naver PATH=/usr/bin
     28705 /Applications/Claude.app/Contents/MacOS/Claude PATH=/usr/bin
     30011 /Applications/Claude.app/Contents/Frameworks/Claude Helper.app/Contents/MacOS/Claude Helper --type=renderer
     """
@@ -199,7 +199,7 @@ final class InstancePIDTests: XCTestCase {
 
     /// pid 가 없는 줄은 버린다. 앞에 pid 가 붙어 나오지 않는 형식일 수 있다.
     func test_ignoresLinesWithoutAPID() {
-        let noPID = "/Applications/Claude.app/Contents/MacOS/Claude CLAUDE_USER_DATA_DIR=/Users/x/.claude-alt-A"
+        let noPID = "/Applications/Claude.app/Contents/MacOS/Claude --user-data-dir=/Users/x/.claude-alt-A"
         XCTAssertTrue(AltInstance.runningInstances(psOutput: noPID).isEmpty)
     }
 }

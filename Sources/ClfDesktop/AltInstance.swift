@@ -58,8 +58,8 @@ public enum InstanceSlot: Sendable, Equatable, CaseIterable {
 
 /// 계정마다 데이터 디렉토리를 따로 둔 별도 인스턴스.
 ///
-/// 데스크톱 앱은 `CLAUDE_USER_DATA_DIR` 로 데이터 디렉토리를 바꿀 수 있고
-/// 단일 인스턴스 잠금이 없다. 그래서 계정마다 하나씩 띄울 수 있다.
+/// 데스크톱 앱은 Electron 의 `--user-data-dir` 스위치로 데이터 디렉토리를
+/// 바꿀 수 있고 단일 인스턴스 잠금이 없다. 그래서 계정마다 하나씩 띄울 수 있다.
 /// docs/design/13-multi-instance.md
 public enum AltInstance {
     public static let executable =
@@ -120,10 +120,10 @@ public enum AltInstance {
         return String(decoding: data, as: UTF8.self)
     }
 
-    /// `ps -E` 출력에서 우리가 띄운 인스턴스의 계정을 골라낸다.
+    /// `ps` 출력에서 우리가 띄운 인스턴스의 계정을 골라낸다.
     ///
-    /// 환경변수가 명령줄 뒤에 붙어 나온다. 기본 인스턴스에는 그 변수가 없고,
-    /// 헬퍼 프로세스는 실행 파일 경로가 다르다.
+    /// `--user-data-dir` 스위치가 명령줄에 붙어 나온다. 기본 인스턴스에는 그
+    /// 스위치가 없고, 헬퍼 프로세스는 실행 파일 경로가 다르다.
     public static func runningAccounts(psOutput: String) -> Set<String> {
         Set(slugAndPID(psOutput).map(\.slug))
     }
@@ -139,7 +139,7 @@ public enum AltInstance {
         psOutput.split(separator: "\n").compactMap { line in
             guard line.contains(executable),
                   !line.contains("Helper"),
-                  let range = line.range(of: "CLAUDE_USER_DATA_DIR=")
+                  let range = line.range(of: "--user-data-dir=")
             else { return nil }
             let path = line[range.upperBound...].prefix { !$0.isWhitespace }
             guard let name = path.split(separator: "/").last,
