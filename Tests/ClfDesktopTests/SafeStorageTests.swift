@@ -84,6 +84,33 @@ final class SafeStorageTests: XCTestCase {
         XCTAssertFalse(cache["222"]!.canReadUsage)
     }
 
+    /// 앱이 키 앞에 `acct:<계정>|<clientId>` 를 붙이기 시작했다.
+    /// 그 조각을 떼야 orgId 가 나온다
+    func test_readsOrgFromAccountPrefixedKey() throws {
+        let json = Data("""
+        {"acct:914e4f12-ea66-4f6f-877e-84f745abb094|9d1c250a-e61b-44d9-88ed-5944d1962f5e:\
+        746e81ae-c1e7-4402-a1af-7a3cf49a7fa5:https://api.anthropic.com:user:profile":
+          {"token":"sk-ant-oat01-aaa","subscriptionType":"team"}}
+        """.utf8)
+        let cache = try parseTokenCache(json)
+        XCTAssertEqual(Array(cache.keys), ["746e81ae-c1e7-4402-a1af-7a3cf49a7fa5"])
+        XCTAssertTrue(cache.values.first!.canReadUsage)
+    }
+
+    /// clientId 가 둘이면 같은 계정 키가 둘이다. 한 줄로 합쳐야 한다
+    func test_mergesKeysThatDifferOnlyByClient() throws {
+        let json = Data("""
+        {"acct:914e4f12|9d1c250a:111:https://api.anthropic.com:user:inference":
+          {"token":"a"},
+         "acct:914e4f12|a473d7bb:111:https://api.anthropic.com:user:profile":
+          {"token":"b"}}
+        """.utf8)
+        let cache = try parseTokenCache(json)
+        XCTAssertEqual(Array(cache.keys), ["111"])
+        // 사용량을 읽을 수 있는 쪽이 남는다. 사전 순회 순서와 무관하다
+        XCTAssertEqual(cache["111"]?.token, "b")
+    }
+
     func test_ignoresMalformedKeys() throws {
         let json = Data(#"{"nocolons": {"token":"a"}, "c:222:h:s": {"token":"b"}}"#.utf8)
         XCTAssertEqual(Array(try parseTokenCache(json).keys), ["222"])

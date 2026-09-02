@@ -31,6 +31,16 @@ public struct DesktopToken: Sendable, Equatable {
 /// ```
 /// 콜론이 host 와 scopes 안에도 있으므로 **앞에서 두 번째 조각**만 떼야 한다.
 /// 뒤에서 세거나 전부 쪼개면 어긋난다.
+///
+/// 앱이 어느 버전부터 clientId 자리에 `계정|clientId` 를 넣고 키 맨 앞에
+/// `acct` 표시를 하나 더 붙인다.
+/// ```
+/// acct:914e4f12-...|9d1c250a-...:746e81ae-...:https://api.anthropic.com:user:profile
+/// ^표시  ^ 계정       ^ clientId    ^ orgId
+/// ```
+/// 그 표시만 떼면 조각 자리가 예전 키와 같아진다. 안 떼면 `계정|clientId` 를
+/// orgId 로 읽어서 팝오버에 계정 이름 대신 uuid 앞 8글자가 뜨고, clientId 가
+/// 두 개면 같은 계정이 두 줄로 늘어난다.
 public func parseTokenCache(_ data: Data) throws -> [String: DesktopToken] {
     guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
         throw SafeStorageError(description: "토큰 캐시가 JSON 객체가 아니다")
@@ -38,7 +48,10 @@ public func parseTokenCache(_ data: Data) throws -> [String: DesktopToken] {
 
     var out: [String: DesktopToken] = [:]
     for (cacheKey, value) in root {
-        let parts = cacheKey.split(separator: ":", omittingEmptySubsequences: false)
+        var parts = cacheKey.split(separator: ":", omittingEmptySubsequences: false)
+        if parts.first == "acct", parts.count >= 2, parts[1].contains("|") {
+            parts.removeFirst()
+        }
         guard parts.count >= 2, let record = value as? [String: Any],
               let token = record["token"] as? String else { continue }
 
@@ -49,12 +62,15 @@ public func parseTokenCache(_ data: Data) throws -> [String: DesktopToken] {
         let expires = (record["expiresAt"] as? Double).map {
             Date(timeIntervalSince1970: $0 / 1000)
         }
-        out[org] = DesktopToken(
+        // 한 계정에 스코프가 다른 키가 여러 개 있다. 그대로 덮어쓰면 사전
+        // 순회 순서에 따라 user:profile 없는 토큰이 남아 사용량을 못 읽는다
+        let parsed = DesktopToken(
             token: token,
             subscriptionType: record["subscriptionType"] as? String,
             rateLimitTier: record["rateLimitTier"] as? String,
             expiresAt: expires,
             canReadUsage: cacheKey.contains("user:profile"))
+        out[org] = out[org].map { DesktopReader.fresher($0, parsed) } ?? parsed
     }
     return out
 }
