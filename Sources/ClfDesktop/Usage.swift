@@ -13,10 +13,16 @@ public enum LimitKind: String, Sendable, CaseIterable {
     case weeklyAll = "weekly_all"
     case weeklyScoped = "weekly_scoped"
 
-    public var label: String {
+    public var label: String { label(for: .claude) }
+
+    /// 공급자마다 갈리는 것은 주간 줄 하나다.
+    ///
+    /// Codex 카드에 `주간 전체` 라고 쓰면 "전체가 아닌 것" 이 있어야 하는데
+    /// 없다. docs/design/18-codex-usage.md 3-2절
+    public func label(for provider: Provider) -> String {
         switch self {
         case .session:      return "5시간"
-        case .weeklyAll:    return "주간 전체"
+        case .weeklyAll:    return provider == .codex ? "주간" : "주간 전체"
         case .weeklyScoped: return "주간 Fable"
         }
     }

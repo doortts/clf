@@ -339,7 +339,7 @@ struct SegmentBlock: View {
                 SegmentGauge(used: spend.percentUsed, band: spend.band,
                              direction: direction, dark: dark)
             } else {
-                ForEach(LimitKind.allCases, id: \.self) { kind in
+                ForEach(org.rowKinds, id: \.self) { kind in
                     SegmentGauge(limit: org.limits[kind], direction: direction, dark: dark,
                                  mint: kind == FableTint.kind)
                 }

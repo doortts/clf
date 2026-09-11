@@ -232,8 +232,9 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
 
     /// 숨긴 것을 걸러내고 순서를 매긴다.
     ///
-    /// 순서를 안 정했으면 활성 계정이 먼저, 나머지는 이름순이다. 정했으면
-    /// 그쪽이 이긴다. 활성 계정 우선은 기본값일 뿐 사용자 의사를 덮지 않는다.
+    /// 순서를 안 정했으면 활성 계정이 먼저, 나머지는 이름순이고 Codex 는 맨
+    /// 뒤다. 이 앱은 Claude 메뉴바 앱으로 시작했고 기존 사용자의 화면이 바뀌면
+    /// 안 된다. 정했으면 그쪽이 이긴다. docs/design/18-codex-usage.md 4-4절
     public func apply(to orgs: [OrgUsage]) -> [OrgUsage] {
         ordered(orgs.filter { !hidden.contains($0.uuid) })
     }
@@ -241,7 +242,10 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     /// 차례만 매긴다. 숨긴 목록은 안 본다.
     func ordered(_ orgs: [OrgUsage]) -> [OrgUsage] {
         guard !order.isEmpty else {
-            return orgs.sorted { ($0.isActive ? 0 : 1, $0.name) < ($1.isActive ? 0 : 1, $1.name) }
+            return orgs.sorted {
+                ($0.provider == .codex ? 1 : 0, $0.isActive ? 0 : 1, $0.name)
+                    < ($1.provider == .codex ? 1 : 0, $1.isActive ? 0 : 1, $1.name)
+            }
         }
         // 순서에 있는 것부터, 없는 것은 뒤에 이름순으로. 사라진 계정 항목은 무시된다
         let rank = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })

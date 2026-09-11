@@ -6,7 +6,7 @@ import ClfDesktop
 /// docs/design/10-desktop-usage.md
 struct Desktop: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Claude 데스크톱 앱의 계정별 한도",
+        abstract: "Claude 데스크톱 앱과 Codex 의 계정별 한도",
         subcommands: [Usage.self, Orgs.self, Show.self, Hide.self, Order.self, Bar.self],
         defaultSubcommand: Usage.self)
 
@@ -18,30 +18,30 @@ struct Desktop: AsyncParsableCommand {
         @Flag(help: "표 대신 JSON") var json = false
 
         func run() async throws {
-            let reader = DesktopReader()
-            guard reader.isInstalled else {
-                throw CheckFailed(description: "Claude 데스크톱 앱을 찾지 못했다")
-            }
-            let snapshot = try await reader.read()
+            // Claude 앱이 없는 기계에서도 Codex 만 낸다. 18 문서 5절
+            let (snapshot, codex) = try await readAll()
             // 설정에서 끈 계정은 빼고 사용자가 정한 순서로
             let prefs = try DesktopPreferencesFile().load()
-            var orgs = prefs.apply(to: snapshot.orgs)
+            var orgs = prefs.apply(to: (snapshot?.orgs ?? []) + codex)
             if active { orgs = orgs.filter(\.isActive) }
+            let unreadable = snapshot?.unreadable ?? []
 
             if json {
-                print(try renderJSON(orgs, unreadable: snapshot.unreadable))
+                print(try renderJSON(orgs, unreadable: unreadable))
                 return
             }
             for org in orgs { render(org) }
-            if !active, !snapshot.unreadable.isEmpty {
-                print("  아직 못 읽는 계정: " + snapshot.unreadable.joined(separator: ", "))
+            if !active, !unreadable.isEmpty {
+                print("  아직 못 읽는 계정: " + unreadable.joined(separator: ", "))
                 print("  앱에서 한 번 열면 토큰이 캐시돼 다음부터 읽힌다")
             }
         }
 
         private func render(_ org: OrgUsage) {
             let mark = org.isActive ? "*" : " "
-            print("\(mark) \(org.name)" + (org.isActive ? "  (지금 앱에서 쓰는 계정)" : ""))
+            let tail = org.isActive ? "  (지금 앱에서 쓰는 계정)"
+                : org.provider == .codex ? "  (\(org.plan ?? "플랜 모름"))" : ""
+            print("\(mark) \(org.name)" + tail)
             if let error = org.error {
                 print("    \(error)")
                 print()
@@ -55,7 +55,7 @@ struct Desktop: AsyncParsableCommand {
                 // 사용률 0 인 창은 아직 안 열려 리셋 시각이 없다
                 let when = limit.resetsAt.map { "\(until($0)) 뒤 리셋" } ?? "창 안 열림"
                 let warn = limit.band == .low || limit.band == .empty ? "   주의" : ""
-                print("    \(pad(kind.label, to: 10)) [\(bar)] "
+                print("    \(pad(kind.label(for: org.provider), to: 10)) [\(bar)] "
                       + "잔여 \(pad(String(limit.percentRemaining), to: 3, right: true))%   "
                       + when + warn)
             }
@@ -75,7 +75,8 @@ struct Desktop: AsyncParsableCommand {
             let iso = ISO8601DateFormatter()
             let rows: [[String: Any]] = orgs.map { org in
                 var row: [String: Any] = ["uuid": org.uuid, "name": org.name,
-                                          "active": org.isActive]
+                                          "active": org.isActive,
+                                          "provider": org.provider.rawValue]
                 if let plan = org.plan { row["plan"] = plan }
                 if let error = org.error { row["error"] = error }
                 var limits: [String: Any] = [:]
@@ -111,6 +112,25 @@ struct Desktop: AsyncParsableCommand {
     }
 }
 
+extension Desktop {
+    /// Claude 스냅샷과 Codex 계정. 둘 다 없을 때만 실패다.
+    /// 설정 명령이 보는 목록. Codex 도 이름으로 숨기고 순서를 정할 수 있어야 한다.
+    static func knownAll() async throws -> [OrgUsage] {
+        let (snapshot, codex) = try await readAll()
+        return (snapshot?.knownOrgs ?? []) + codex
+    }
+
+    static func readAll() async throws -> (DesktopSnapshot?, [OrgUsage]) {
+        let claude = DesktopReader()
+        let codex = CodexReader()
+        guard claude.isInstalled || codex.isInstalled else {
+            throw CheckFailed(description: "Claude 데스크톱 앱도 Codex 도 찾지 못했다")
+        }
+        let snapshot = claude.isInstalled ? try await claude.read() : nil
+        return (snapshot, await codex.read().orgs)
+    }
+}
+
 // MARK: 설정
 
 extension Desktop {
@@ -120,9 +140,9 @@ extension Desktop {
             abstract: "아는 계정 전부와 표시 여부")
 
         func run() async throws {
-            let snapshot = try await DesktopReader().read()
+            let (snapshot, codex) = try await Desktop.readAll()
             let prefs = try DesktopPreferencesFile().load()
-            let known = snapshot.knownOrgs
+            let known = (snapshot?.knownOrgs ?? []) + codex
             let ordered = prefs.apply(to: known).map(\.uuid)
 
             let rows = known.map { org -> [String] in
@@ -164,7 +184,7 @@ extension Desktop {
         @Argument(help: "보고 싶은 순서대로") var targets: [String]
 
         func run() async throws {
-            let known = try await DesktopReader().read().knownOrgs
+            let known = try await Desktop.knownAll()
             let file = try DesktopPreferencesFile()
             var prefs = file.load()
             prefs.order = try targets.map { try resolve($0, in: known).uuid }
@@ -195,7 +215,7 @@ extension Desktop {
             prefs.barContent = content
             try file.save(prefs)
 
-            let known = try await DesktopReader().read().knownOrgs
+            let known = try await Desktop.knownAll()
             // 메뉴바와 같은 답을 내야 한다. 창이 떠 있는지도 같이 본다
             let running = AltInstance.scanInstances()
             let windowed = Set(known.filter { org in
@@ -221,7 +241,7 @@ private func resolve(_ target: String, in orgs: [OrgUsage]) throws -> OrgUsage {
 }
 
 private func setVisibility(_ target: String, hidden: Bool) async throws {
-    let known = try await DesktopReader().read().knownOrgs
+    let known = try await Desktop.knownAll()
     let org = try resolve(target, in: known)
     let file = try DesktopPreferencesFile()
     var prefs = file.load()

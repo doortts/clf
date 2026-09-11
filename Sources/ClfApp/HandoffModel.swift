@@ -83,8 +83,9 @@ final class HandoffModel: ObservableObject {
         self.launcher = AltLauncher(source: primary)
     }
 
+    /// Codex 는 없다. 세션 형식이 Claude 것이라 옮길 곳이 못 된다
     var accounts: [Account] {
-        usage.known.map { org in
+        usage.known.filter { $0.provider == .claude }.map { org in
             let slug = AltInstance.slug(org.name)
             return Account(uuid: org.uuid, name: org.name,
                            slot: InstanceSlot.of(slug: slug, isPrimary: org.isActive,

@@ -6,6 +6,7 @@ Claude Code 데스크톱 앱 사용자용 메뉴바 도구
 
 ## 주요 기능
 - Claude code 여러 계정을 사용량, 리셋시간등을 메뉴바에서 볼수 있습니다.
+- ChatGPT Codex 계정도 같은 카드로 봅니다. `~/.codex/auth.json` 이 있으면 저절로 뜹니다.
 - 한 계정에서 작업하던 세션을 다른 계정으로 이전하거나 두 계정에서 동시에 쓸수 있게 해줍니다.
 - 여러개의 Claude code desktop 앱 창을 실행할 수 있습니다.
   - 팁. ChatGPT(구. Codex) Desktop 앱은 이미 GUI 멀티 윈도우 기능을 지원합니다.

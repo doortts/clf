@@ -65,8 +65,22 @@ public func mergeKeepingLastGood(fresh: [OrgUsage], previous: [OrgUsage]) -> [Or
     return fresh.map { org in
         guard !org.hasUsage, let last = old[org.uuid], last.hasUsage else { return org }
         return OrgUsage(uuid: org.uuid, name: org.name, isActive: org.isActive,
-                        plan: org.plan ?? last.plan, limits: last.limits,
+                        plan: org.plan ?? last.plan, provider: org.provider,
+                        limits: last.limits,
                         spend: last.spend, error: org.error, isStale: true)
+    }
+}
+
+/// 이번에 읽기 자체가 안 된 공급자의 계정을 지난 값 그대로 낡은 표시로 남긴다.
+///
+/// Claude 앱 읽기가 던졌는데 Codex 는 읽혔을 때 쓴다. Claude 카드를 지우면
+/// 사용자가 알고 있던 것까지 잃고, 그대로 두면 옛 값을 지금 값으로 믿는다.
+/// docs/design/18-codex-usage.md 3-4절
+public func markStale(_ orgs: [OrgUsage], error: String) -> [OrgUsage] {
+    orgs.map { org in
+        OrgUsage(uuid: org.uuid, name: org.name, isActive: org.isActive, plan: org.plan,
+                 provider: org.provider, limits: org.limits, spend: org.spend,
+                 error: error, isStale: org.hasUsage)
     }
 }
 
@@ -81,7 +95,7 @@ public func reassignActive(to uuid: String?, in orgs: [OrgUsage]) -> [OrgUsage] 
     orgs.map { org in
         guard org.isActive != (org.uuid == uuid) else { return org }
         return OrgUsage(uuid: org.uuid, name: org.name, isActive: org.uuid == uuid,
-                        plan: org.plan, limits: org.limits, spend: org.spend,
-                        error: org.error, isStale: org.isStale)
+                        plan: org.plan, provider: org.provider, limits: org.limits,
+                        spend: org.spend, error: org.error, isStale: org.isStale)
     }
 }

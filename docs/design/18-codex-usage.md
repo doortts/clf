@@ -5,6 +5,7 @@ Claude 계정 카드 옆에 ChatGPT Codex 계정 카드를 같은 모양으로 �
 같은 규칙으로 그린다.
 
 **할 수 있다.** 2026-09-11 에 이 기계에서 직접 확인했다. 근거는 1절.
+같은 날 구현했다. `CodexUsage.swift`, `CodexReader.swift` 와 `CodexUsageTests`.
 
 ---
 

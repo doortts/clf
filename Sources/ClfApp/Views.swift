@@ -120,7 +120,8 @@ struct OrgCard: View {
                 budgetRow(spend)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(LimitKind.allCases, id: \.self) { kind in
+                    // Codex 는 있는 줄만. 없는 줄을 `?` 로 그리면 고장을 찾는다
+                    ForEach(org.rowKinds, id: \.self) { kind in
                         row(kind, org.limits[kind])
                     }
                 }
@@ -158,6 +159,23 @@ struct OrgCard: View {
     /// 옆 카드의 상태 상자와 크기도 색도 안 맞았다. 셋 다 `controlBox` 로
     /// 그려서 높이 20, 좌우 12, 모서리 6 을 공유하고 채움과 테두리로만 갈린다.
     @ViewBuilder private var slotControl: some View {
+        if org.provider == .codex {
+            // Codex 앱은 계정별 창이 아니라 그냥 앱이다. 앞으로 꺼내는 것만
+            // 한다. 앱이 없으면 onFocus 가 nil 로 오고 단추도 없다.
+            // docs/design/18-codex-usage.md 4-1절
+            if let onFocus {
+                Button { onFocus() } label: {
+                    controlBox("앞으로 꺼내기", color: .accentColor, filled: false)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Codex 앱을 앞으로")
+            }
+        } else {
+            claudeControl
+        }
+    }
+
+    @ViewBuilder private var claudeControl: some View {
         switch slot {
         case .none:
             Button { onLaunch?() } label: {
@@ -230,7 +248,7 @@ struct OrgCard: View {
         VStack(alignment: .leading, spacing: 4) {
             // 간격 7 과 들여쓰기 65 는 게이지 폭을 정한다. 건드리지 않는다
             HStack(spacing: 7) {
-                Text(kind.label)
+                Text(kind.label(for: org.provider))
                     .subheadStyle().foregroundStyle(.secondary)
                     .frame(width: 58, alignment: .leading)
                 UsageGauge(limit: limit, direction: direction,
@@ -897,7 +915,7 @@ struct PopoverView: View {
                 ForEach(Array(model.orgs.enumerated()), id: \.element.id) { _, org in
                     OrgCard(org: org, direction: model.prefs.gaugeDirection, slot: model.slot(org),
                             onLaunch: { model.launch(org) },
-                            onFocus: { model.focus(org) },
+                            onFocus: model.canFocus(org) ? { model.focus(org) } : nil,
                             focused: org.uuid == model.focusedUUID)
                 }
             }

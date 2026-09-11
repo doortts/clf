@@ -54,8 +54,11 @@ struct BarOrgView: View {
                         value: "\(direction.displayPercent(used: spend.percentUsed))%",
                         band: spend.band)]
         }
-        // 세 창인데 숫자는 두 줄이 한계다. 셋째 줄은 자리가 없어 게이지만 남는다
-        return [row(.session, "5h"), row(.weeklyAll, "1w")]
+        // 세 창인데 숫자는 두 줄이 한계다. 셋째 줄은 자리가 없어 게이지만 남는다.
+        // Codex 는 있는 줄만. prolite 는 주간 한 줄이다. 18 문서 4-2절
+        return [(LimitKind.session, "5h"), (LimitKind.weeklyAll, "1w")]
+            .filter { org.rowKinds.contains($0.0) }
+            .map { row($0.0, $0.1) }
     }
 
     private func row(_ kind: LimitKind, _ period: String) -> Row {

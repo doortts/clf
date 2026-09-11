@@ -1,11 +1,22 @@
 import Foundation
 
+/// 어느 앱의 계정인가.
+///
+/// Codex 계정은 Claude 계정과 같은 카드, 같은 막대에 오른다. 갈리는 것은
+/// 창 띄우기, 작업 이전, 자동 재개처럼 Claude 세션 형식 위에 선 자리들이라
+/// 그쪽이 이 값으로 거른다. docs/design/18-codex-usage.md
+public enum Provider: String, Sendable, Codable, Equatable {
+    case claude
+    case codex
+}
+
 /// 계정 하나의 현재 상태. UI 가 그대로 그린다.
 public struct OrgUsage: Sendable, Equatable, Identifiable {
     public let uuid: String
     public let name: String
     public let isActive: Bool
     public let plan: String?
+    public let provider: Provider
     public let limits: [LimitKind: UsageLimit]
     /// Enterprise 는 시간 창 대신 월 예산이 온다.
     public let spend: SpendUsage?
@@ -24,13 +35,22 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
         limits.values.min { $0.percentRemaining < $1.percentRemaining }
     }
 
+    /// 그릴 줄. Claude 는 셋을 고정으로 두고 없는 줄을 `?` 로 남긴다. Codex 는
+    /// 플랜이 창 구성을 정하므로 **있는 줄만** 그린다. `prolite` 의 5시간
+    /// 줄은 못 읽은 것이 아니라 없는 것이다. docs/design/18-codex-usage.md 4-1절
+    public var rowKinds: [LimitKind] {
+        provider == .codex ? LimitKind.allCases.filter { limits[$0] != nil } : LimitKind.allCases
+    }
+
     public init(uuid: String, name: String, isActive: Bool, plan: String?,
+                provider: Provider = .claude,
                 limits: [LimitKind: UsageLimit], spend: SpendUsage? = nil,
                 error: String? = nil, isStale: Bool = false) {
         self.uuid = uuid
         self.name = name
         self.isActive = isActive
         self.plan = plan
+        self.provider = provider
         self.limits = limits
         self.spend = spend
         self.error = error

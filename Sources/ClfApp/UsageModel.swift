@@ -35,6 +35,9 @@ final class UsageModel: ObservableObject {
     @Published private(set) var purgePlan: PurgePlan?
 
     private let reader: DesktopReader
+    /// Codex 계정 하나. 파일이 없으면 빈 결과라 Claude 만 쓰는 사람에게는
+    /// 아무 일도 안 일어난다. docs/design/18-codex-usage.md
+    private let codexReader: CodexReader
     private let file: DesktopPreferencesFile?
     private var pacer = RefreshPacer()
     private var gate = ReadGate()
@@ -73,8 +76,9 @@ final class UsageModel: ObservableObject {
     /// docs/design/17-repo-split.html
     let updates = UpdateModel()
 
-    init(reader: DesktopReader = DesktopReader()) {
+    init(reader: DesktopReader = DesktopReader(), codexReader: CodexReader = CodexReader()) {
         self.reader = reader
+        self.codexReader = codexReader
         let notifier = Notifier()
         self.notifier = notifier
         // 알림 보내는 문만 넘긴다. 자동 재개가 `Notifier` 를 알면 그쪽이 AppKit
@@ -160,9 +164,11 @@ final class UsageModel: ObservableObject {
 
     /// 어느 계정에 창이 떠 있는지. 로컬 프로세스만 보므로 공짜다.
     func slot(_ org: OrgUsage) -> InstanceSlot {
-        InstanceSlot.of(slug: AltInstance.slug(org.name),
-                        isPrimary: org.uuid == activeUUID,
-                        running: running, opening: opening)
+        // Codex 앱은 계정별 인스턴스가 아니다. 배지도 단추도 이 갈래를 안 탄다
+        guard org.provider == .claude else { return .none }
+        return InstanceSlot.of(slug: AltInstance.slug(org.name),
+                               isPrimary: org.uuid == activeUUID,
+                               running: running, opening: opening)
     }
 
     /// 그 계정 전용 인스턴스를 띄운다.
@@ -170,7 +176,8 @@ final class UsageModel: ObservableObject {
     /// 창이 실제로 뜰 때까지 `여는 중` 으로 둔다. 표시가 없으면 사용자가 또
     /// 누르고 인스턴스가 둘이 된다.
     func launch(_ org: OrgUsage) {
-        guard slot(org).isActionable, let slug = AltInstance.slug(org.name) else { return }
+        guard org.provider == .claude, slot(org).isActionable,
+              let slug = AltInstance.slug(org.name) else { return }
         opening.insert(slug)
         instanceNotice = nil
         let launcher = self.launcher
@@ -218,7 +225,7 @@ final class UsageModel: ObservableObject {
     /// 때 세션 디렉토리를 다시 읽기 때문이다.
     private func mirrorBackAll() async {
         let launcher = self.launcher
-        let targets = known.compactMap { org -> (String, String)? in
+        let targets = claudeKnown.compactMap { org -> (String, String)? in
             guard let slug = AltInstance.slug(org.name), instances[slug] != nil else { return nil }
             return (org.uuid, org.name)
         }
@@ -269,7 +276,7 @@ final class UsageModel: ObservableObject {
     private func sharedStores() -> [String: [SessionStore]] {
         let primary = DesktopReader.defaultSupportDirectory
         guard let person = SessionStore.person(in: primary) else { return [:] }
-        return Dictionary(known.map { org in
+        return Dictionary(claudeKnown.map { org in
             (org.uuid, SessionHandoff.stores(account: org.uuid, name: org.name,
                                              primary: primary, person: person))
         }, uniquingKeysWith: { a, _ in a })
@@ -294,6 +301,11 @@ final class UsageModel: ObservableObject {
     /// 기본 계정은 우리가 띄운 창이 아니라 pid 를 모른다. 우리 pid 를 빼고
     /// 남는 프로세스로 찾는다.
     func focus(_ org: OrgUsage) {
+        if org.provider == .codex {
+            guard let url = Self.codexAppURL else { return }
+            NSWorkspace.shared.openApplication(at: url, configuration: .init())
+            return
+        }
         if org.uuid == activeUUID {
             if !AppFocus.bringPrimaryToFront(excluding: Set(instances.values)) {
                 instanceNotice = "\(org.name) 의 기본 창을 못 찾았다"
@@ -303,6 +315,20 @@ final class UsageModel: ObservableObject {
         guard let slug = AltInstance.slug(org.name), let pid = instances[slug] else { return }
         AppFocus.bringToFront(pid: pid)
     }
+
+    /// 앞으로 꺼낼 수 있나. Codex 는 앱이 깔려 있을 때만이고, Claude 는 창이
+    /// 있을 때다. 카드는 이 답이 거짓이면 단추를 그리지 않는다.
+    func canFocus(_ org: OrgUsage) -> Bool {
+        org.provider == .codex ? Self.codexAppURL != nil : slot(org) != .none
+    }
+
+    /// Codex 데스크톱 앱. 번들 id 로 찾는다. 없으면 nil.
+    private static var codexAppURL: URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.openai.codex")
+    }
+
+    /// 인스턴스, 세션 이전, 공유가 보는 목록. Codex 는 그쪽 세상에 없다.
+    private var claudeKnown: [OrgUsage] { known.filter { $0.provider == .claude } }
 
     /// 무엇이 지워질지 먼저 센다. 아무것도 건드리지 않는다.
     func previewPurge() {
@@ -425,7 +451,7 @@ final class UsageModel: ObservableObject {
     /// 이 계정 카드에 배경을 깐다.
     var focusedUUID: String? {
         FocusMark.focusedUUID(frontPid: frontPid, frontExecutable: frontExecutable,
-                              instances: instances, orgs: known,
+                              instances: instances, orgs: claudeKnown,
                               activeUUID: activeUUID)
     }
 
@@ -454,7 +480,7 @@ final class UsageModel: ObservableObject {
 
     /// 우리가 띄운 별도 창이 붙어 있는 계정.
     private var windowedUUIDs: Set<String> {
-        Set(known.filter { org in
+        Set(claudeKnown.filter { org in
             AltInstance.slug(org.name).map { instances[$0] != nil } ?? false
         }.map(\.uuid))
     }
@@ -514,32 +540,53 @@ final class UsageModel: ObservableObject {
         }
         refreshing = true
         defer { refreshing = false }
-        do {
-            let snapshot = try await reader.read(names: cachedNames)
-            pacer.observe(snapshot)
-            gate.record(at: now, throttled: snapshot.throttled, offline: snapshot.offline)
-            waitText = gate.complaint(at: now)
 
-            // 못 읽은 계정에는 지난번 값을 물려준다. 한 번 실패했다고 화면을
-            // 비우면 사용자가 알고 있던 것까지 잃는다
-            known = mergeKeepingLastGood(fresh: snapshot.knownOrgs, previous: known)
-            if !snapshot.names.isEmpty { cachedNames = snapshot.names }
-            orgs = prefs.apply(to: known)
-            rebuildBar()
-            // 끊긴 읽기도 읽은 것으로 찍으면 발밑의 시각만 새것이 되고 숫자는
-            // 끊기기 전 값이다. 그 조합이 낡은 값을 지금 값으로 믿게 만든다
-            if !snapshot.throttled && !snapshot.offline { readAt = snapshot.readAt }
-            failure = nil
-            await notify(at: now)
-            resume.step(org: known.first { $0.uuid == resume.watchedUUID },
-                        readAt: readAt, now: now)
-            // 이미 도는 주기에 얹는다. 타이머를 새로 두지 않는다. 하루가 안
-            // 지났으면 저쪽이 곧바로 돌아온다
-            await checkUpdateIfDue(now: now)
-        } catch {
+        // 둘을 읽고 이어 붙인다. Claude 앱이 없으면 저쪽이 던지는데, 그것은
+        // Codex 만 쓰는 사람에게 오류가 아니라 사실이다. 한쪽이 없어도 다른
+        // 쪽은 그린다. docs/design/18-codex-usage.md 3-4절
+        var claude: DesktopSnapshot?
+        var claudeError: String?
+        do { claude = try await reader.read(names: cachedNames) }
+        catch { claudeError = "\(error)" }
+        let codex = await codexReader.read()
+
+        guard claude != nil || !codex.orgs.isEmpty else {
             gate.record(at: now, throttled: false)
-            failure = "\(error)"
+            failure = claudeError
+            return
         }
+        let snapshot = DesktopSnapshot(
+            orgs: (claude?.orgs ?? []) + codex.orgs,
+            unreadable: claude?.unreadable ?? [],
+            unreadableByUUID: claude?.unreadableByUUID ?? [:],
+            throttled: claude?.throttled == true || codex.throttled,
+            offline: claude?.offline == true || codex.offline,
+            names: claude?.names ?? [:],
+            readAt: now)
+        pacer.observe(snapshot)
+        gate.record(at: now, throttled: snapshot.throttled, offline: snapshot.offline)
+        waitText = gate.complaint(at: now)
+
+        // 못 읽은 계정에는 지난번 값을 물려준다. 한 번 실패했다고 화면을
+        // 비우면 사용자가 알고 있던 것까지 잃는다. Claude 읽기 자체가 던졌으면
+        // 지난 Claude 카드를 낡은 표시로 남긴다
+        let fresh = claude.map(\.knownOrgs)
+            ?? markStale(claudeKnown, error: claudeError ?? "Claude 앱을 못 읽었다")
+        known = mergeKeepingLastGood(fresh: fresh + codex.orgs, previous: known)
+        if !snapshot.names.isEmpty { cachedNames = snapshot.names }
+        orgs = prefs.apply(to: known)
+        rebuildBar()
+        // 끊긴 읽기도 읽은 것으로 찍으면 발밑의 시각만 새것이 되고 숫자는
+        // 끊기기 전 값이다. 그 조합이 낡은 값을 지금 값으로 믿게 만든다
+        if !snapshot.throttled && !snapshot.offline { readAt = snapshot.readAt }
+        // Claude 앱이 깔려 있는데 못 읽은 것은 말한다. 안 깔린 것은 말하지 않는다
+        failure = reader.isInstalled ? claudeError : nil
+        await notify(at: now)
+        resume.step(org: known.first { $0.uuid == resume.watchedUUID },
+                    readAt: readAt, now: now)
+        // 이미 도는 주기에 얹는다. 타이머를 새로 두지 않는다. 하루가 안
+        // 지났으면 저쪽이 곧바로 돌아온다
+        await checkUpdateIfDue(now: now)
     }
 
     // MARK: 설정
@@ -627,8 +674,12 @@ final class UsageModel: ObservableObject {
     private func notify(at now: Date) async {
         let visible = prefs.apply(to: known)
         let live = visible.flatMap { org in
+            // 같은 공급자만. "T52 로 옮기세요" 는 Claude 세션 얘기라 Codex 가
+            // 막혔을 때 나오면 틀린 말이다. 18 문서 4-5절
             UsageAlerts.build(for: org,
-                              others: visible.filter { $0.uuid != org.uuid },
+                              others: visible.filter {
+                                  $0.uuid != org.uuid && $0.provider == org.provider
+                              },
                               now: now)
         }
         // 알림을 끈 상태에서도 기억은 해 둔다. 켤 때 그동안의 변화가 쏟아지면
