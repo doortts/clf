@@ -1,6 +1,6 @@
 # clf
 
-Claude Code 데스크톱 앱 사용자용 메뉴바 도구
+Claude Code / Codex 사용량 표시 메뉴바
 
 ![메뉴바](docs/images/menubar.png)
 
