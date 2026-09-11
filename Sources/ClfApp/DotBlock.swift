@@ -55,6 +55,9 @@ enum Metrics {
     /// docs/design/bar-compact-mockup.html C안
     /// 코드와 숫자 열, 숫자 열과 게이지 사이.
     static let barGap: CGFloat = 2
+    /// 코드 자리에 앉는 앱 아이콘 한 변. 아이콘 캔버스에 여백이 있어 이 크기가
+    /// 12pt 글자와 비슷하게 보인다
+    static let barIconSize: CGFloat = 16
     /// 라벨과 숫자 사이. **이것만 조이지 않는다.** 열 폭이 글자에 딱 맞아서
     /// 여기까지 줄이면 `3h95%` 처럼 붙어 읽힌다. 예전에는 열에 남던 빈자리가
     /// 이 간격을 대신하고 있었다.

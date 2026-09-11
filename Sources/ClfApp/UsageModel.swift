@@ -22,6 +22,8 @@ final class UsageModel: ObservableObject {
     @Published private(set) var loginItem = LoginItemState.off
     /// 별도 창이 떠 있는 계정과 그 인스턴스의 pid.
     @Published private(set) var instances: [String: Int32] = [:]
+    /// Codex 앱이 떠 있나. "창이 열려있는 계정만" 이 Codex 를 올릴지 정한다.
+    @Published private(set) var codexRunning = false
     var running: Set<String> { Set(instances.keys) }
     /// 계정 uuid -> 이름. 겹침 목록이 세션의 계정을 이름으로 말할 때 쓴다.
     var accountNames: [String: String] {
@@ -471,11 +473,26 @@ final class UsageModel: ObservableObject {
     /// 인스턴스가 죽으면 밑줄이 남아 거짓말을 한다.
     private func setInstances(_ live: [String: Int32]) {
         let before = focusedUUID
-        let hadWindows = windowedUUIDs
+        let hadWindows = barWindowUUIDs
         instances = live
+        codexRunning = Self.codexIsRunning
         // 창이 뜨거나 닫히면 '창이 열려있는 계정만' 의 답이 바뀐다
-        if windowedUUIDs != hadWindows { rebuildBar() }
+        if barWindowUUIDs != hadWindows { rebuildBar() }
         else if focusedUUID != before { redrawBar() }
+    }
+
+    /// Codex 앱 프로세스가 있나. 번들 id 로 본다. 로컬이라 공짜다.
+    private static var codexIsRunning: Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: "com.openai.codex").isEmpty
+    }
+
+    /// 막대의 "창이 열려있는 계정만" 이 보는 집합. Claude 는 계정별 인스턴스
+    /// 창이고, Codex 는 앱이 떠 있으면 그 계정이 열린 것으로 친다.
+    /// `windowedUUIDs` 는 세션 동기화가 보는 Claude 전용 집합이라 따로 둔다
+    private var barWindowUUIDs: Set<String> {
+        var up = windowedUUIDs
+        if codexRunning { up.formUnion(known.filter { $0.provider == .codex }.map(\.uuid)) }
+        return up
     }
 
     /// 우리가 띄운 별도 창이 붙어 있는 계정.
@@ -487,7 +504,7 @@ final class UsageModel: ObservableObject {
 
     /// 막대에 올릴 계정을 다시 고르고 다시 그린다.
     private func rebuildBar() {
-        barOrgs = prefs.barOrgs(from: known, withWindow: windowedUUIDs)
+        barOrgs = prefs.barOrgs(from: known, withWindow: barWindowUUIDs)
         redrawBar()
     }
 

@@ -28,6 +28,9 @@ enum BarGlyph {
 /// 정확한 값을 못 읽는다.
 struct BarOrgView: View {
     let code: String
+    /// 코드 자리에 앱 아이콘을 그린다. Codex 계정이 하나면 `Co` 보다 아이콘이
+    /// 먼저 읽힌다. 둘 이상이면 구별이 안 되므로 코드로 돌아간다
+    var icon: NSImage? = nil
     let org: OrgUsage
     let detail: BarDetail
     let direction: GaugeDirection
@@ -100,7 +103,15 @@ struct BarOrgView: View {
         HStack(spacing: Metrics.barGap) {
             // 색을 박지 않는다. `BarImage.menuBarIsDark` 가 실제 메뉴바 밝기를
             // 보므로 이 뷰의 colorScheme 이 그 밝기를 뜻한다
-            Text(code).font(.system(size: 12, weight: .semibold))
+            Group {
+                if let icon {
+                    // 앱 아이콘은 캔버스 안에 여백이 있어 16pt 가 글자 12pt 와 비슷하다
+                    Image(nsImage: icon).resizable()
+                        .frame(width: Metrics.barIconSize, height: Metrics.barIconSize)
+                } else {
+                    Text(code).font(.system(size: 12, weight: .semibold))
+                }
+            }
                 .overlay(alignment: .bottom) {
                     if focused {
                         // 코드 폭만. 등급색과 안 겹치는 파랑이라 상태가
@@ -172,12 +183,15 @@ struct BarLabelView: View {
 
     var body: some View {
         let codes = BarText.codes(for: orgs.map(\.name))
+        // Codex 계정이 하나일 때만. 둘이면 아이콘이 같아 코드가 필요하다
+        let codexIcon = orgs.filter { $0.provider == .codex }.count == 1 ? BarImage.codexIcon : nil
         HStack(spacing: Metrics.barOrgGap) {
             if orgs.isEmpty {
                 Text(BarText.placeholder).font(.system(size: 12, weight: .semibold))
             } else {
                 ForEach(orgs) { org in
-                    BarOrgView(code: codes[org.name] ?? BarText.unknown, org: org,
+                    BarOrgView(code: codes[org.name] ?? BarText.unknown,
+                               icon: org.provider == .codex ? codexIcon : nil, org: org,
                                detail: detail, direction: direction,
                                resetLabel: resetLabel, now: now,
                                focused: org.uuid == focusedUUID, dark: dark)
@@ -217,6 +231,16 @@ enum BarImage {
         let appearance = statusBarWindow?.effectiveAppearance ?? NSApp.effectiveAppearance
         return appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
+
+    /// Codex 앱 아이콘. 설치된 앱 번들에서 시스템이 준다. 우리가 그리지 않는다.
+    /// 앱이 없으면 nil 이고 그때는 코드 `Co` 로 돌아간다.
+    static let codexIcon: NSImage? = {
+        guard let url = NSWorkspace.shared
+            .urlForApplication(withBundleIdentifier: "com.openai.codex") else { return nil }
+        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        icon.size = NSSize(width: Metrics.barIconSize, height: Metrics.barIconSize)
+        return icon
+    }()
 
     /// 상태 항목이 사는 창. 공개 타입이 아니라 이름으로 찾는다.
     static var statusBarWindow: NSWindow? {

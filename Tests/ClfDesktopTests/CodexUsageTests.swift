@@ -213,3 +213,21 @@ final class CodexUsageTests: XCTestCase {
         XCTAssertEqual(reassignActive(to: nil, in: [good]).first?.provider, .codex)
     }
 }
+
+/// "창이 열려있는 계정만" 에 Codex 가 오르는 조건. 앱이 떠 있으면 그 uuid 가
+/// `withWindow` 에 들어온다. docs/design/18-codex-usage.md 4-2절
+final class CodexBarWindowTests: XCTestCase {
+    let weekly: [LimitKind: UsageLimit] = [
+        .weeklyAll: UsageLimit(percentUsed: 9, resetsAt: nil, severity: "")]
+
+    func test_codexJoinsBarWhenAppIsRunning() {
+        let codex = OrgUsage(uuid: "c", name: "Codex", isActive: false, plan: "prolite",
+                             provider: .codex, limits: weekly)
+        let claude = OrgUsage(uuid: "a", name: "T40", isActive: true, plan: "team", limits: weekly)
+        var prefs = DesktopPreferences()
+        prefs.barContent = .windowed
+        XCTAssertEqual(prefs.barOrgs(from: [codex, claude], withWindow: []).map(\.uuid), ["a"])
+        XCTAssertEqual(prefs.barOrgs(from: [codex, claude], withWindow: ["c"]).map(\.uuid),
+                       ["a", "c"])
+    }
+}
