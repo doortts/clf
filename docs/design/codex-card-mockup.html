@@ -1,0 +1,261 @@
+<meta charset="utf-8">
+<title>Codex 카드 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  h2 { font-size:13px; margin:28px 0 8px; color:#98989d; font-weight:500; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:860px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .colhead { font-size:11px; color:#98989d; margin-bottom:6px; width:340px; }
+  .colhead b { color:#f2f2f7; }
+  .pop { width:340px; background:#2c2c2e; border-radius:12px; padding:14px;
+         box-shadow:0 8px 30px rgba(0,0,0,0.5); box-sizing:border-box; }
+  .title { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .title b { font-size:13px; }
+  .title span { font-size:10px; color:#7c7c80; }
+
+  .card { padding:8px 0; }
+  .cardhead { display:flex; align-items:center; gap:8px; }
+  .name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden;
+          text-overflow:ellipsis; }
+  .spacer { flex:1 1 8px; min-width:8px; }
+
+  .badge { font-size:10px; font-weight:600; padding:0 6px; height:16px; border-radius:5px;
+           white-space:nowrap; display:inline-flex; align-items:center; gap:4px; flex:none; }
+  .badge.blue { color:#6fa8ff; background:rgba(10,132,255,0.22); }
+  .badge.gray { color:#b0b0b5; background:rgba(152,152,157,0.20); }
+  .ydot { width:6px; height:6px; border-radius:50%; background:#ffd60a; flex:none; }
+
+  .chip { font-size:12px; font-weight:500; height:20px; padding:0 12px; border-radius:6px;
+          display:inline-flex; align-items:center; white-space:nowrap; flex:none;
+          color:#6fa8ff; background:rgba(10,132,255,0.12);
+          border:1px solid rgba(10,132,255,0.45); box-sizing:border-box; }
+  .chip.filled { color:#fff; background:#0a84ff; border-color:transparent; }
+
+  .grow { display:flex; align-items:center; gap:7px; margin-top:8px; }
+  .glabel { font-size:11px; color:#98989d; width:58px; flex:none; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; background:#30d158; }
+  .pill.mint { background:#5ac8b0; }
+  .pill.gray { background:#8e8e93; }
+  .pill.red { background:#ff453a; }
+  .pill.yellow { background:#ffd60a; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700; color:#000;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .pill.gray .num, .pill.red .num { color:#fff; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:#232325; }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px;
+          min-width:11px; background:inherit; }
+  .pill.green .fill { background:#30d158; }
+  .pill.mint .fill { background:#5ac8b0; }
+  .pill.gray .fill { background:#8e8e93; }
+  .pill.red .fill { background:#ff453a; }
+  .pill.yellow .fill { background:#ffd60a; }
+  .reset { font-size:10px; color:#7c7c80; margin:4px 0 0 65px; }
+  .div { height:1px; background:rgba(255,255,255,0.12); margin:4px 0; }
+  .muted { color:#98989d; font-size:11px; margin-top:6px; }
+
+  /* 메뉴바 */
+  .menubar { display:inline-flex; align-items:center; gap:14px; height:24px; padding:0 10px;
+             background:#111; border-radius:6px; margin-top:6px; }
+  .bar { display:flex; align-items:center; gap:5px; }
+  .code { font-size:12px; font-weight:600; }
+  .nums { display:flex; flex-direction:column; font-size:10px; font-weight:500;
+          font-variant-numeric:tabular-nums; line-height:11px; }
+  .nums span { display:flex; gap:3px; justify-content:flex-end; }
+  .nums .tag { color:#98989d; }
+  .dots { display:flex; flex-direction:column; gap:1px; }
+  .dline { height:4px; border-radius:1px; border:1px solid; box-sizing:border-box; width:60px;
+           position:relative; }
+  .dline i { position:absolute; left:0; top:0; bottom:0; }
+  .g { border-color:#30d158; } .g i { background:#30d158; }
+  .m { border-color:#5ac8b0; } .m i { background:#5ac8b0; }
+  .r { border-color:#ff453a; } .r i { background:#ff453a; }
+  .y { border-color:#ffd60a; } .y i { background:#ffd60a; }
+  .green-t { color:#30d158; } .red-t { color:#ff453a; } .yellow-t { color:#ffd60a; }
+
+  /* 설정 목록 */
+  .setrow { display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 0; }
+  .setrow .box { width:12px; height:12px; border-radius:3px; background:#0a84ff; flex:none; }
+  .setrow .arrows { margin-left:auto; color:#98989d; font-size:11px; }
+
+  table { border-collapse:collapse; margin-top:12px; font-size:12px; }
+  th, td { text-align:left; padding:4px 14px 4px 0; border-bottom:1px solid rgba(255,255,255,0.1);
+           vertical-align:top; }
+  th { color:#98989d; font-weight:500; }
+  .note { margin-top:24px; color:#98989d; max-width:860px; }
+  .note b { color:#f2f2f7; }
+  .note li { margin-bottom:8px; }
+</style>
+
+<h1>Codex 계정 카드 - Claude 카드와 같은 카드, 있는 줄만</h1>
+<p class="lede">
+  docs/design/18-codex-usage.md 4절. Codex 계정은 <code>OrgCard</code> 를 그대로 쓴다.
+  다른 곳은 셋이다. 줄 수가 플랜을 따르고, 이름 옆 배지가 플랜 하나뿐이고, 오른쪽 단추가
+  Codex 앱을 앞으로 꺼낸다. 없는 줄을 <code>?</code> 로 그리지 않는다.
+</p>
+
+<div class="cols">
+  <div>
+    <div class="colhead"><b>A. plus 플랜</b> - 5시간과 주간 두 줄. Claude 팀 카드와 나란히</div>
+    <div class="pop">
+      <div class="title"><b>clf</b><span>18:52 읽음</span></div>
+
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_40</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">49%</span><div class="track"></div><div class="fill" style="width:48%"></div></div></div>
+        <div class="reset">29분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간 전체</span>
+          <div class="pill green"><span class="num">15%</span><div class="track"></div><div class="fill" style="width:15%"></div></div></div>
+        <div class="reset">5일 5시간 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간 Fable</span>
+          <div class="pill mint"><span class="num">1%</span><div class="track"></div><div class="fill" style="width:1%"></div></div></div>
+        <div class="reset">5일 5시간 뒤 리셋</div>
+      </div>
+      <div class="div"></div>
+
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">Codex</span>
+          <span class="badge blue">plus</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">49%</span><div class="track"></div><div class="fill" style="width:49%"></div></div></div>
+        <div class="reset">2시간 40분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill red"><span class="num">93%</span><div class="track"></div><div class="fill" style="width:93%"></div></div></div>
+        <div class="reset">4일 8시간 뒤 리셋</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead"><b>B. prolite 플랜</b> - 주간 한 줄. 5시간 줄은 없는 것이라 그리지 않는다</div>
+    <div class="pop">
+      <div class="title"><b>clf</b><span>18:52 읽음</span></div>
+
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_40</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">49%</span><div class="track"></div><div class="fill" style="width:48%"></div></div></div>
+        <div class="reset">29분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간 전체</span>
+          <div class="pill green"><span class="num">15%</span><div class="track"></div><div class="fill" style="width:15%"></div></div></div>
+        <div class="reset">5일 5시간 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간 Fable</span>
+          <div class="pill mint"><span class="num">1%</span><div class="track"></div><div class="fill" style="width:1%"></div></div></div>
+        <div class="reset">5일 5시간 뒤 리셋</div>
+      </div>
+      <div class="div"></div>
+
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">Codex</span>
+          <span class="badge blue">prolite</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill green"><span class="num">9%</span><div class="track"></div><div class="fill" style="width:9%"></div></div></div>
+        <div class="reset">6일 18시간 뒤 리셋</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead"><b>C. 토큰 만료</b> - Claude 와 같은 문장. 우리가 갱신하지 않는다</div>
+    <div class="pop">
+      <div class="title"><b>clf</b><span>18:52 읽음</span></div>
+
+      <div class="card" style="opacity:0.62">
+        <div class="cardhead">
+          <span class="name">Codex</span>
+          <span class="badge blue">plus</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">49%</span><div class="track"></div><div class="fill" style="width:49%"></div></div></div>
+        <div class="reset">2시간 40분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill red"><span class="num">93%</span><div class="track"></div><div class="fill" style="width:93%"></div></div></div>
+        <div class="reset">4일 8시간 뒤 리셋</div>
+        <div class="muted">갱신 못 함. 토큰 만료. Codex 에서 한 번 쓰면 갱신된다</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>메뉴바 - 기본 모드, 막대 범위 "설정에서 고른 계정"</h2>
+<div class="menubar">
+  <div class="bar">
+    <span class="code" style="border-bottom:1.5px solid #0a84ff">T40</span>
+    <div class="nums">
+      <span><em class="tag">29m</em><b class="green-t">49%</b></span>
+      <span><em class="tag">5d</em><b class="green-t">15%</b></span>
+    </div>
+    <div class="dots">
+      <div class="dline g"><i style="width:50%"></i></div>
+      <div class="dline g"><i style="width:15%"></i></div>
+      <div class="dline m"><i style="width:5%"></i></div>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="code">Co</span>
+    <div class="nums">
+      <span><em class="tag">2h</em><b class="green-t">49%</b></span>
+      <span><em class="tag">4d</em><b class="red-t">93%</b></span>
+    </div>
+    <div class="dots">
+      <div class="dline g"><i style="width:50%"></i></div>
+      <div class="dline r"><i style="width:95%"></i></div>
+    </div>
+  </div>
+</div>
+<p class="muted">plus 는 두 줄 둘. prolite 는 <code>Co  6d 9%</code> 한 줄과 게이지 한 줄이다. Enterprise 예산 줄과 같은 길이.</p>
+
+<h2>설정 - 메뉴바에 표시할 계정</h2>
+<div class="pop" style="width:300px">
+  <div class="setrow"><span class="box"></span>NAVER_TEAM_40<span class="arrows">^ v</span></div>
+  <div class="setrow"><span class="box"></span>NAVER_TEAM_52<span class="arrows">^ v</span></div>
+  <div class="setrow"><span class="box"></span>Codex<span class="arrows">^ v</span></div>
+  <p class="muted" style="margin:8px 0 0">Codex 전용 토글은 없다. auth.json 이 있으면 목록에 오르고, 싫으면 여기서 끈다.</p>
+</div>
+
+<table>
+  <tr><th>자리</th><th>Claude</th><th>Codex</th></tr>
+  <tr><td>줄 수</td><td>셋 고정. 없는 줄은 <code>?</code></td><td>있는 줄만. 플랜이 정한다</td></tr>
+  <tr><td>이름 옆 배지</td><td>플랜, <code>기본</code>, 노란 점</td><td>플랜만</td></tr>
+  <tr><td>오른쪽 단추</td><td><code>새 창</code> / <code>앞으로 꺼내기</code> (계정별 인스턴스)</td><td><code>앞으로 꺼내기</code> (Codex 앱). 앱이 없으면 단추 없음</td></tr>
+  <tr><td>주간 라벨</td><td><code>주간 전체</code></td><td><code>주간</code>. 전체가 아닌 것이 없다</td></tr>
+  <tr><td>사용률 0 인 창</td><td><code>창 안 열림</code></td><td>같다. 서버의 reset_at 은 지금 + 창 길이라 버린다</td></tr>
+  <tr><td>포커스 카드 배경, 밑줄</td><td>앞 창의 계정</td><td>없다. 계정별 창이 아니다</td></tr>
+</table>
+
+<div class="note">
+  <ul>
+    <li><b>같은 카드를 쓰는 이유.</b> 등급색, 게이지, 리셋 문구, 낡은 값 흐리기, 알림 판정이 전부
+      <code>OrgUsage</code> 위에 있다. Codex 줄이 그 모델에 들어가면 나머지는 저절로 따라온다.</li>
+    <li><b>없는 줄을 비우는 이유.</b> Claude 의 <code>?</code> 는 "못 읽었다" 다. prolite 의 5시간 줄은
+      못 읽은 것이 아니라 없는 것이다. 못 읽은 것처럼 그리면 사용자가 고장을 찾는다.</li>
+    <li><b>공급자 배지를 안 두는 이유.</b> 이름이 <code>Codex</code> 다. 이름이 이미 하는 말을 배지로 또
+      하면 폭 312 에서 계정 이름이 먼저 잘린다.</li>
+  </ul>
+</div>
