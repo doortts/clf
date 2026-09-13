@@ -341,21 +341,13 @@ final class SessionDuplicateWorkNoteTests: XCTestCase {
 /// doctor 는 원인을 찾는 자리고 이쪽은 사용자가 마주치는 자리다. 팝오버로만
 /// 일하는 사용자는 doctor 를 볼 일이 없다.
 final class SharedRecordWarningTests: XCTestCase {
-    private func summary(transcript: Bool = true, folder: Bool = true,
-                         shared: Bool = false) -> SessionSummary {
+    private func summary(transcript: Bool = true, shared: Bool = false) -> SessionSummary {
         .init(fileName: "local_x.json", cliSessionID: "c1", title: "t", folder: "repo",
-              lastActivityAt: nil, hasTranscript: transcript, folderExists: folder,
-              sharedRecord: shared)
+              lastActivityAt: nil, hasTranscript: transcript, sharedRecord: shared)
     }
 
     func test_saysWhenTwoAccountsPointAtIt() {
         XCTAssertEqual(summary(shared: true).warning, SessionSummary.sharedByAccounts)
-    }
-
-    /// 겹침이 폴더 없음보다 앞이다. 옮기기가 실제로 막힐 수 있는 쪽이다.
-    func test_sharedBeatsMissingFolder() {
-        XCTAssertEqual(summary(folder: false, shared: true).warning,
-                       SessionSummary.sharedByAccounts)
     }
 
     /// 기록이 아예 없는 것은 여전히 제일 큰 문제다.

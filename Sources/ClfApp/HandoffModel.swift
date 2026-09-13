@@ -138,6 +138,9 @@ final class HandoffModel: ObservableObject {
     /// 원본 계정이 가진 세션. 제목은 트랜스크립트 양끝에서 읽는다.
     func reload() {
         picked = []
+        // 작업 폴더가 사라진 레코드는 목록을 만들기 전에 지운다. 공유 장부에서도
+        // 같이 빠지므로 장부는 그 뒤에 읽는다
+        StaleSessions.sweep(stores: SessionDuplicate.stores(inside: primary))
         sharedBy = (try? SharedSessions())?.all().mapValues(\.accounts) ?? [:]
         guard let account = account(source), let stores = stores(for: account) else {
             sessions = []

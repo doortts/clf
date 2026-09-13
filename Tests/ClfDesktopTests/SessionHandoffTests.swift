@@ -498,6 +498,9 @@ final class SessionWarningTests: XCTestCase {
     private func only(_ exists: @escaping (String) -> Bool) -> SessionSummary {
         store.summaries(projects: projects, folderExists: exists)[0]
     }
+    private func rows(_ exists: @escaping (String) -> Bool) -> [SessionSummary] {
+        store.summaries(projects: projects, folderExists: exists)
+    }
 
     func test_nothingToSayWhenBothAreThere() throws {
         try put(cwd: "/repo")
@@ -507,11 +510,11 @@ final class SessionWarningTests: XCTestCase {
         XCTAssertEqual(s.folder, "repo")
     }
 
-    /// worktree 를 지우면 폴더가 없어진다. 옮겨도 그 자리에서 일할 수 없다.
-    func test_marksAMissingFolder() throws {
+    /// worktree 를 지우면 폴더가 없어진다. 갈 자리가 없으니 목록에 안 올린다.
+    func test_hidesAMissingFolder() throws {
         try put(cwd: "/repo/wt")
         try putTranscript()
-        XCTAssertEqual(only { _ in false }.warning, SessionSummary.noFolder)
+        XCTAssertTrue(rows { _ in false }.isEmpty)
     }
 
     /// 확인은 레코드에 적힌 경로로 한다. 짐작하지 않는다.
@@ -523,14 +526,14 @@ final class SessionWarningTests: XCTestCase {
         XCTAssertEqual(asked, ["/repo/wt"])
     }
 
-    /// 대화가 아예 없는 쪽이 더 큰 문제다. 둘 다면 그쪽을 말한다.
-    func test_missingTranscriptWins() throws {
+    /// 기록이 없는 것은 경고로 남는다. 옮길지는 사용자가 정한다.
+    func test_marksAMissingTranscript() throws {
         try put(cwd: "/repo/wt")
-        XCTAssertEqual(only { _ in false }.warning, SessionSummary.noTranscript)
+        XCTAssertEqual(only { _ in true }.warning, SessionSummary.noTranscript)
     }
 
-    /// 경로를 모르면 없다고 말하지 않는다. 지어낸 경고는 진짜 경고를 묻는다.
-    func test_unknownPathIsNotAWarning() throws {
+    /// 경로를 모르면 없다고 말하지 않는다. 지어낸 판정으로 줄을 지우면 안 된다.
+    func test_unknownPathStaysInTheList() throws {
         try put(cwd: "")
         try putTranscript()
         XCTAssertNil(only { _ in false }.warning)

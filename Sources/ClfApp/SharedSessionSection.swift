@@ -35,6 +35,9 @@ final class SharedSessionModel: ObservableObject {
     func refresh() {
         readAt = Date()
         let stores = SessionDuplicate.stores(inside: primary)
+        // 작업 폴더가 사라진 레코드를 먼저 치운다. 갈 자리가 없는 대화를
+        // 겹침으로 셀 이유가 없다
+        StaleSessions.sweep(stores: stores)
         // 방금 넘긴 대화는 참는다. 넘기기가 만든 겹침은 사용자가 아는 일이다.
         // 옮긴 장부의 대화도 참는다. 그 겹침은 청소부가 정리할 시체다
         var muted = (try? HandoffGrace())?.muted(now: readAt) ?? []

@@ -90,23 +90,19 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     public let lastActivityAt: Date?
     /// 트랜스크립트가 없으면 옮겨도 빈 세션이 뜬다.
     public let hasTranscript: Bool
-    /// 작업 폴더가 아직 있는지. worktree 를 지우면 없어진다.
-    public let folderExists: Bool
     /// 이 대화를 두 계정 이상이 가리키고 있는지. 11절 규칙을 어긴 상태다.
     public let sharedRecord: Bool
 
     public var id: String { fileName }
 
     public init(fileName: String, cliSessionID: String, title: String, folder: String,
-                lastActivityAt: Date?, hasTranscript: Bool, folderExists: Bool = true,
-                sharedRecord: Bool = false) {
+                lastActivityAt: Date?, hasTranscript: Bool, sharedRecord: Bool = false) {
         self.fileName = fileName
         self.cliSessionID = cliSessionID
         self.title = title
         self.folder = folder
         self.lastActivityAt = lastActivityAt
         self.hasTranscript = hasTranscript
-        self.folderExists = folderExists
         self.sharedRecord = sharedRecord
     }
 
@@ -114,7 +110,6 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     public var display: String { title.isEmpty ? folder : title }
 
     public static let noTranscript = "기록이 없어 옮겨도 빈 세션이 됩니다"
-    public static let noFolder = "작업 폴더가 없어 그 자리에서 일할 수 없습니다"
     public static let sharedByAccounts = "두 계정에서 동시에 열려 있는 세션"
 
     /// 넘기기 전에 알아야 할 것. 없으면 `nil`.
@@ -122,11 +117,12 @@ public struct SessionSummary: Sendable, Equatable, Identifiable {
     /// **막는 값이 아니라 보여주는 값이다.** 넘기기는 사용자가 명시적으로 하는
     /// 일이라 판단은 사용자 몫이고, 우리는 재료만 준다. 둘 다 걸리면 대화가
     /// 아예 없는 쪽을 말한다. 그게 더 큰 문제다.
+    ///
+    /// 작업 폴더가 없는 것은 여기 없다. 경고로 적는 대신 목록에서 빼고
+    /// `StaleSessions` 가 레코드를 지운다.
     public var warning: String? {
         if !hasTranscript { return Self.noTranscript }
-        // 겹침이 폴더 없음보다 앞이다. 겹친 쪽으로 넘기면 이름이 부딪혀 막힌다
         if sharedRecord { return Self.sharedByAccounts }
-        if !folderExists { return Self.noFolder }
         return nil
     }
 
@@ -162,6 +158,9 @@ extension SessionStore {
             // 시간마다 도는 예약 루틴 세션은 목록에 안 올린다. 사람이 하던 일을
             // 옮기려고 보는 자리다. 제목을 읽기 전에 걸러 트랜스크립트를 덜 읽는다
             if let transcript, CliSessions.isRoutine(transcript) { return nil }
+            // 작업 폴더가 사라진 대화도 안 올린다. 열어도 갈 자리가 없다.
+            // 경로를 모르면 없다고 하지 않는다. 지어낸 판정으로 줄을 지우면 안 된다
+            guard cwd.isEmpty || folderExists(cwd) else { return nil }
             return SessionSummary(
                 fileName: name,
                 cliSessionID: cli,
@@ -171,8 +170,6 @@ extension SessionStore {
                     Date(timeIntervalSince1970: $0 / 1000)
                 },
                 hasTranscript: transcript != nil,
-                // 경로를 모르면 없다고 하지 않는다. 지어낸 경고는 진짜 경고를 묻는다
-                folderExists: cwd.isEmpty || folderExists(cwd),
                 sharedRecord: sharedTranscripts.contains(cli))
         }
         .sorted { ($0.lastActivityAt ?? .distantPast) > ($1.lastActivityAt ?? .distantPast) }
