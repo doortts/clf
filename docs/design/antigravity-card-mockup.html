@@ -1,0 +1,267 @@
+<meta charset="utf-8">
+<title>Antigravity 카드 시안</title>
+<style>
+  body { margin:0; padding:32px; font:13px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+         background:#1c1c1e; color:#f2f2f7; }
+  h1 { font-size:16px; margin:0 0 6px; }
+  h2 { font-size:13px; margin:30px 0 8px; color:#98989d; font-weight:500; }
+  p.lede { color:#98989d; margin:0 0 22px; max-width:900px; }
+  .cols { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .colhead { font-size:11px; color:#98989d; margin-bottom:6px; width:340px; }
+  .colhead b { color:#f2f2f7; }
+  .pop { width:340px; background:#2c2c2e; border-radius:12px; padding:14px;
+         box-shadow:0 8px 30px rgba(0,0,0,0.5); box-sizing:border-box; }
+  .title { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .title b { font-size:13px; }
+  .title span { font-size:10px; color:#7c7c80; }
+
+  .card { padding:8px 0; }
+  .cardhead { display:flex; align-items:center; gap:8px; }
+  .name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden;
+          text-overflow:ellipsis; }
+  .spacer { flex:1 1 8px; min-width:8px; }
+
+  .badge { font-size:10px; font-weight:600; padding:0 6px; height:16px; border-radius:5px;
+           white-space:nowrap; display:inline-flex; align-items:center; flex:none; }
+  .badge.blue { color:#6fa8ff; background:rgba(10,132,255,0.22); }
+  .badge.gray { color:#b0b0b5; background:rgba(152,152,157,0.20); }
+
+  .chip { font-size:12px; font-weight:500; height:20px; padding:0 12px; border-radius:6px;
+          display:inline-flex; align-items:center; white-space:nowrap; flex:none;
+          color:#6fa8ff; background:rgba(10,132,255,0.12);
+          border:1px solid rgba(10,132,255,0.45); box-sizing:border-box; }
+  .chip.filled { color:#fff; background:#0a84ff; border-color:transparent; }
+
+  /* 묶음 머리글. 캡션 크기에 보조색이라 게이지보다 뒤로 물러난다 */
+  .grouphead { font-size:10px; color:#98989d; font-weight:600; margin:10px 0 2px;
+               letter-spacing:0.02em; }
+  .grouphead:first-of-type { margin-top:8px; }
+
+  .grow { display:flex; align-items:center; gap:7px; margin-top:8px; }
+  .glabel { font-size:11px; color:#98989d; width:58px; flex:none; }
+  .pill { position:relative; flex:1; height:18px; border-radius:9px; display:flex;
+          align-items:center; }
+  .pill.green  { background:#30d158; } .pill.green  .fill { background:#30d158; }
+  .pill.mint   { background:#5ac8b0; } .pill.mint   .fill { background:#5ac8b0; }
+  .pill.gray   { background:#8e8e93; } .pill.gray   .fill { background:#8e8e93; }
+  .pill.red    { background:#ff453a; } .pill.red    .fill { background:#ff453a; }
+  .pill.yellow { background:#ffd60a; } .pill.yellow .fill { background:#ffd60a; }
+  .num { width:44px; text-align:center; font-size:12px; font-weight:700; color:#000;
+         font-variant-numeric:tabular-nums; z-index:2; }
+  .pill.gray .num, .pill.red .num { color:#fff; }
+  .track { position:absolute; left:44px; right:2.5px; top:2.5px; bottom:2.5px;
+           border-radius:6.5px; background:#232325; }
+  .fill { position:absolute; left:45.5px; top:4px; height:11px; border-radius:5.5px;
+          min-width:11px; }
+  .reset { font-size:10px; color:#7c7c80; margin:4px 0 0 65px; }
+  .div { height:1px; background:rgba(255,255,255,0.12); margin:4px 0; }
+  .muted { color:#98989d; font-size:11px; margin-top:8px; }
+
+  /* 메뉴바 */
+  .menubar { display:inline-flex; align-items:center; gap:14px; height:24px; padding:0 10px;
+             background:#111; border-radius:6px; margin-top:6px; }
+  .bar { display:flex; align-items:center; gap:5px; }
+  .code { font-size:12px; font-weight:600; }
+  .nums { display:flex; flex-direction:column; font-size:10px; font-weight:500;
+          font-variant-numeric:tabular-nums; line-height:11px; }
+  .nums span { display:flex; gap:3px; justify-content:flex-end; }
+  .nums em { color:#98989d; font-style:normal; }
+  .dots { display:flex; flex-direction:column; gap:2px; }
+  .dline { height:4px; border-radius:1px; border:0.5px solid; box-sizing:border-box;
+           width:60px; position:relative; }
+  .dline i { position:absolute; left:0; top:0; bottom:0; }
+  .g { border-color:#30d158; } .g i { background:#30d158; }
+  .m { border-color:#5ac8b0; } .m i { background:#5ac8b0; }
+  .r { border-color:#ff453a; } .r i { background:#ff453a; }
+  .y { border-color:#ffd60a; } .y i { background:#ffd60a; }
+  .green-t { color:#30d158; } .red-t { color:#ff453a; } .yellow-t { color:#ffd60a; }
+
+  table { border-collapse:collapse; margin-top:12px; font-size:12px; }
+  th, td { text-align:left; padding:4px 14px 4px 0; border-bottom:1px solid rgba(255,255,255,0.1);
+           vertical-align:top; }
+  th { color:#98989d; font-weight:500; }
+  code { font-family:"SF Mono",Menlo,monospace; font-size:11px; color:#d0d0d5; }
+  .note { margin-top:24px; color:#98989d; max-width:900px; }
+  .note b { color:#f2f2f7; }
+  .note li { margin-bottom:8px; }
+</style>
+
+<h1>Antigravity 카드 - 묶음 머리글 아래 네 줄</h1>
+<p class="lede">
+  docs/design/19-antigravity-usage.md 4절. 모델 묶음이 둘이고 묶음마다 5시간과 주간이
+  있어서 줄이 넷이다. 라벨에 묶음을 적으면 58점 칸을 두 배로 넘기므로 묶음마다 머리글
+  한 줄을 얹는다. 라벨은 <code>5시간</code>, <code>주간</code> 으로 짧게 남는다.
+</p>
+
+<div class="cols">
+  <div>
+    <div class="colhead"><b>A. 앱이 떠 있을 때</b> - Claude 카드 아래 같은 모양으로 선다</div>
+    <div class="pop">
+      <div class="title"><b>clf</b><span>16:55 읽음</span></div>
+
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">NAVER_TEAM_40</span>
+          <span class="badge blue">team</span>
+          <span class="badge gray">기본</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">49%</span><div class="track"></div><div class="fill" style="width:48%"></div></div></div>
+        <div class="reset">29분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간 전체</span>
+          <div class="pill green"><span class="num">15%</span><div class="track"></div><div class="fill" style="width:15%"></div></div></div>
+        <div class="reset">5일 5시간 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간 Fable</span>
+          <div class="pill mint"><span class="num">1%</span><div class="track"></div><div class="fill" style="width:1%"></div></div></div>
+        <div class="reset">5일 5시간 뒤 리셋</div>
+      </div>
+      <div class="div"></div>
+
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">Antigravity</span>
+          <span class="badge blue">Pro</span>
+          <span class="spacer"></span>
+          <span class="chip">앞으로 꺼내기</span>
+        </div>
+
+        <div class="grouphead">Gemini</div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">38%</span><div class="track"></div><div class="fill" style="width:38%"></div></div></div>
+        <div class="reset">3시간 12분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill green"><span class="num">15%</span><div class="track"></div><div class="fill" style="width:15%"></div></div></div>
+        <div class="reset">6일 뒤 리셋</div>
+
+        <div class="grouphead">Claude/GPT</div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill yellow"><span class="num">71%</span><div class="track"></div><div class="fill" style="width:71%"></div></div></div>
+        <div class="reset">3시간 12분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill green"><span class="num">22%</span><div class="track"></div><div class="fill" style="width:22%"></div></div></div>
+        <div class="reset">6일 뒤 리셋</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead"><b>B. 앱이 꺼져 있을 때</b> - 지난 값에 이유를 적고, 단추가 되살리는 길이다</div>
+    <div class="pop">
+      <div class="title"><b>clf</b><span>16:55 읽음</span></div>
+
+      <div class="card" style="opacity:0.62">
+        <div class="cardhead">
+          <span class="name">Antigravity</span>
+          <span class="badge blue">Pro</span>
+          <span class="spacer"></span>
+          <span class="chip filled">켜기</span>
+        </div>
+
+        <div class="grouphead">Gemini</div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill green"><span class="num">38%</span><div class="track"></div><div class="fill" style="width:38%"></div></div></div>
+        <div class="reset">3시간 12분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill green"><span class="num">15%</span><div class="track"></div><div class="fill" style="width:15%"></div></div></div>
+        <div class="reset">6일 뒤 리셋</div>
+
+        <div class="grouphead">Claude/GPT</div>
+        <div class="grow"><span class="glabel">5시간</span>
+          <div class="pill yellow"><span class="num">71%</span><div class="track"></div><div class="fill" style="width:71%"></div></div></div>
+        <div class="reset">3시간 12분 뒤 리셋</div>
+        <div class="grow"><span class="glabel">주간</span>
+          <div class="pill green"><span class="num">22%</span><div class="track"></div><div class="fill" style="width:22%"></div></div></div>
+        <div class="reset">6일 뒤 리셋</div>
+
+        <div class="muted">갱신 못 함. Antigravity 가 꺼져 있다. 켜면 다시 읽는다</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="colhead"><b>C. 한 번도 못 읽었을 때</b> - 앱은 깔려 있는데 켠 적이 없다</div>
+    <div class="pop">
+      <div class="title"><b>clf</b><span>16:55 읽음</span></div>
+      <div class="card">
+        <div class="cardhead">
+          <span class="name">Antigravity</span>
+          <span class="spacer"></span>
+          <span class="chip filled">켜기</span>
+        </div>
+        <div class="muted">사용량을 알려면 Antigravity 를 한 번 켜야 합니다</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>메뉴바 - 기본 모드. 게이지 네 줄이 숫자 두 줄과 높이가 같다</h2>
+<div class="menubar">
+  <div class="bar">
+    <span class="code" style="border-bottom:1.5px solid #0a84ff">T40</span>
+    <div class="nums">
+      <span><em>29m</em><b class="green-t">49%</b></span>
+      <span><em>5d</em><b class="green-t">15%</b></span>
+    </div>
+    <div class="dots">
+      <div class="dline g"><i style="width:50%"></i></div>
+      <div class="dline g"><i style="width:15%"></i></div>
+      <div class="dline m"><i style="width:5%"></i></div>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="code">An</span>
+    <div class="nums">
+      <span><em>3h</em><b class="yellow-t">71%</b></span>
+      <span><em>6d</em><b class="green-t">22%</b></span>
+    </div>
+    <div class="dots">
+      <div class="dline g"><i style="width:38%"></i></div>
+      <div class="dline g"><i style="width:15%"></i></div>
+      <div class="dline y"><i style="width:71%"></i></div>
+      <div class="dline g"><i style="width:22%"></i></div>
+    </div>
+  </div>
+</div>
+<p class="muted" style="max-width:900px">
+  숫자 두 줄은 <b>묶음을 가로질러 가장 빡빡한 5시간 하나와 가장 빡빡한 주간 하나</b>다.
+  여기서는 Claude/GPT 쪽이 양쪽 다 빡빡해서 그 값이 올라갔다. 묶음 하나를 골라 적으면
+  다른 묶음이 막혀도 막대가 모른다. 게이지는 네 줄 모두 그리므로 어느 묶음이 막혔는지는
+  줄 차례로 읽는다 (위 둘이 Gemini, 아래 둘이 Claude/GPT).
+  계정이 하나면 <code>An</code> 대신 Antigravity 앱 아이콘이 온다.
+</p>
+
+<h2>치수</h2>
+<table>
+  <tr><th>열</th><th>계산</th><th>높이</th></tr>
+  <tr><td>게이지 네 줄</td><td><code>(3 + 0.5 * 2) * 4 + 2 * 3</code></td><td>22점</td></tr>
+  <tr><td>숫자 두 줄</td><td><code>11 * 2</code></td><td>22점</td></tr>
+  <tr><td>메뉴바</td><td></td><td>24점</td></tr>
+</table>
+
+<h2>앞의 둘과 무엇이 다른가</h2>
+<table>
+  <tr><th>자리</th><th>Claude</th><th>Codex</th><th>Antigravity</th></tr>
+  <tr><td>줄</td><td>셋 고정</td><td>있는 줄만 (하나 또는 둘)</td><td>넷. 묶음 머리글 둘이 붙는다</td></tr>
+  <tr><td>묶음 머리글</td><td>없다</td><td>없다</td><td><b>있다.</b> 줄이 어느 묶음 것인지 말한다</td></tr>
+  <tr><td>앱이 꺼져 있으면</td><td>그대로 읽힌다</td><td>그대로 읽힌다</td><td>못 읽는다. 지난 값에 이유를 적는다</td></tr>
+  <tr><td>막대의 낡은 값</td><td>올린다. 곧 스스로 고쳐진다</td><td>올린다</td><td><b>안 올린다.</b> 사람이 앱을 켜기 전엔 안 고쳐진다</td></tr>
+  <tr><td>오른쪽 단추</td><td><code>새 창</code> / <code>앞으로 꺼내기</code></td><td><code>앞으로 꺼내기</code></td><td><code>앞으로 꺼내기</code>, 꺼져 있으면 <code>켜기</code></td></tr>
+</table>
+
+<div class="note">
+  <ul>
+    <li><b>머리글을 둔 이유.</b> 넷을 한 열로 세우면 어느 줄이 어느 묶음인지 알 수 없다.
+      라벨에 묶음을 적으면 (<code>Claude/GPT 5시간</code>) 58점 칸을 두 배로 넘기고,
+      칸을 넓히면 게이지가 그만큼 줄어든다. 머리글은 텍스트 한 줄이고 라벨 칸은 그대로다.</li>
+    <li><b>머리글 문구를 우리가 정하는 이유.</b> 응답의 <code>Claude and GPT models</code> 는
+      카드 폭에 길고, 이 카드에서 <code>Claude</code> 만 크게 읽히면 바로 위의 Claude 계정
+      카드와 헷갈린다. <code>Claude/GPT</code> 로 짧게 적는다.</li>
+    <li><b>낡은 값을 막대에서 빼는 이유.</b> Claude 의 낡은 값은 회선이 돌아오면 몇 분 안에
+      참이 된다. Antigravity 의 낡은 값은 사람이 앱을 켜기 전에는 며칠이고 그대로다.
+      갱신될 수 없는 숫자를 "지금" 을 말하는 자리에 두면 막대 전체를 못 믿게 된다.</li>
+    <li><b>켜기 단추가 안내인 이유.</b> 이 카드에서 값을 되살리는 길이 그것 하나뿐이다.
+      문구로 "앱을 켜세요" 라고 적고 단추를 안 주면 사용자가 Dock 으로 나가야 한다.</li>
+  </ul>
+</div>
