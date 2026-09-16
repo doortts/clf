@@ -577,3 +577,39 @@ final class AntigravitySecondPassTests: XCTestCase {
         XCTAssertEqual(Shell.run("/usr/bin/true", []), "")
     }
 }
+
+/// 3차 적대적 리뷰가 잡아낸 자리들.
+final class AntigravityThirdPassTests: XCTestCase {
+
+    /// **출력을 닫고 남아 있는 자식에게도 시한이 들어야 한다.** 거두는 일을
+    /// 잠금 안에서 하면 시한 타이머가 그 잠금에 걸려 자식이 죽을 때까지 못
+    /// 움직인다. 시한이 이름만 남고 실제로는 아무것도 안 막는다.
+    func test_timeoutFiresEvenWhenChildClosedItsOutput() {
+        let started = Date()
+        let result = Shell.run("/bin/sh", ["-c", "exec 1>&-; sleep 6"], timeout: 1)
+        let elapsed = Date().timeIntervalSince(started)
+        XCTAssertNil(result, "시한에 걸린 답은 잘린 값이라 쓰면 안 된다")
+        XCTAssertLessThan(elapsed, 4, "시한이 자식 수명까지 끌려가면 안 된다")
+    }
+
+    /// 보통 명령은 시한과 무관하게 그대로 돈다.
+    func test_normalCommandIsUntouched() {
+        XCTAssertEqual(Shell.run("/bin/echo", ["hi"]), "hi\n")
+    }
+
+    /// 칸 하나짜리 공급자도 다른 계정 안내는 받아야 한다. 제목에 `전부` 를
+    /// 안 쓰는 것과, 갈 곳을 알려주는 것은 다른 이야기다.
+    func test_singleWindowStillGetsTheSpareAccountNote() {
+        let dead = UsageLimit(percentUsed: 100, resetsAt: nil, severity: "")
+        let org = OrgUsage(uuid: "c", name: "Codex", isActive: false, plan: "prolite",
+                           provider: .codex, limits: [.weeklyAll: dead])
+        let spare = OrgUsage(uuid: "c2", name: "Codex2", isActive: false, plan: "pro",
+                             provider: .codex,
+                             limits: [.weeklyAll: UsageLimit(percentUsed: 22, resetsAt: nil,
+                                                             severity: "")])
+        let alert = UsageAlerts.build(for: org, others: [spare]).first
+        XCTAssertEqual(alert?.title, "Codex 주간 한도 소진", "칸이 하나면 전부라고 안 한다")
+        XCTAssertTrue(alert?.body.contains("Codex2 은 78% 남았습니다.") ?? false,
+                      "갈 곳은 알려줘야 한다")
+    }
+}

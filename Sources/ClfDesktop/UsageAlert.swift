@@ -104,11 +104,16 @@ public enum UsageAlerts {
         if let binding = latest(of: exhausted, in: org) {
             // 여러 창이 소진이면 **가장 늦게 풀리는 창**이 실제로 막고 있는 창이다.
             // 5시간과 주간이 같이 소진이면 5시간 리셋은 알려줄 값이 없다
-            // **칸이 하나뿐이면 `전부` 라고 말하지 않는다.** `rowKinds` 는 그
+            let all = exhausted.count == kinds.count
+            // **칸이 하나뿐이면 제목에 `전부` 를 안 쓴다.** `rowKinds` 는 그
             // 공급자에 있는 칸이 아니라 이번에 읽힌 칸이라, 주간 줄이 사라진
             // 읽기에서 5시간 한 칸이 전부 행세를 한다. 주간이 80% 남아 있어도
-            // 전부 소진이라고 말하게 된다
-            let all = exhausted.count == kinds.count && kinds.count > 1
+            // 전부 소진이라고 말하게 된다.
+            //
+            // 덧말은 `all` 을 그대로 본다. 제목에 `전부` 를 쓸지와, 갈 곳을
+            // 알려줄지는 다른 이야기다. 칸이 하나뿐인 계정이 그 하나를 다 썼으면
+            // 여유 있는 계정 이름은 여전히 그 사람에게 필요한 말이다
+            let claimAll = all && kinds.count > 1
             let resetsAt = org.limits[binding]?.resetsAt
             var body = BarText.resetLine(resetsAt, from: now, locale: locale, timeZone: timeZone)
             if let extra = note(all: all, binding: binding, exhausted: exhausted,
@@ -119,8 +124,8 @@ public enum UsageAlerts {
             out.append(UsageAlert(
                 key: key(org, binding.rawValue, .exhausted),
                 level: .exhausted,
-                title: all ? "\(org.name) 한도 전부 소진"
-                           : "\(org.name) \(binding.alertLabel) 소진",
+                title: claimAll ? "\(org.name) 한도 전부 소진"
+                                : "\(org.name) \(binding.alertLabel) 소진",
                 body: body))
         }
 

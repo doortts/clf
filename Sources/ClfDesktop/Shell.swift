@@ -36,8 +36,6 @@ enum Shell {
         DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout,
                                                        execute: killer)
         let data = output.fileHandleForReading.readDataToEndOfFile()
-        // 거두는 일을 문 안에서 한다. 밖에서 거두면 pid 가 풀린 뒤 문을 닫기
-        // 전에 타이머가 떠서, 재사용된 pid 로 남의 프로세스에 신호를 보낸다
         gate.reap(process)
         killer.cancel()
         guard !gate.timedOut else { return nil }
@@ -58,10 +56,17 @@ private final class ExitGate: @unchecked Sendable {
         return killed
     }
 
+    /// **기다리는 일을 문 밖에서 한다.** 문을 쥔 채 기다리면 시한 타이머가 그
+    /// 문에 걸려 자식이 죽을 때까지 못 움직인다. 시한이 이름만 남는다. 출력을
+    /// 닫고 남아 있는 자식에서 실측으로 1초짜리 시한이 6초까지 끌려갔다.
+    ///
+    /// 남는 위험은 좁다. 자식이 거둬져 pid 가 풀린 뒤 이 문을 닫기 전에 타이머가
+    /// 뜨면 재사용된 pid 로 신호가 간다. 창이 마이크로초이고 그 순간에 시한이
+    /// 만료돼야 한다. 문을 쥐고 기다리는 대가가 초 단위라 이쪽을 택했다.
     func reap(_ process: Process) {
+        process.waitUntilExit()
         lock.lock()
         finished = true
-        process.waitUntilExit()
         lock.unlock()
     }
 

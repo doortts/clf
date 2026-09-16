@@ -158,6 +158,7 @@ ClfDesktop/AntigravityReader.swift   읽고 OrgUsage 로 만든다
 | 읽지 않는 stderr 파이프를 자식에게 안 준다 | `lsof` 가 경고를 64KB 넘게 뱉는 순간 자식이 write 에서 막히고 우리가 영원히 기다린다 |
 | 실패와 빈 출력을 가른다 (`String?`) | 잘린 결과가 옳은 결과 행세를 해서 `앱이 꺼져 있다` 나 `창이 하나도 없다` 로 읽힌다 |
 | 시한을 걸고 TERM 다음 KILL 로 올린다 | TERM 을 무시하는 자식이 영원히 산다 |
+| 자식을 기다리는 일은 잠금 밖에서 한다 | 시한 타이머가 그 잠금에 걸려 자식이 죽을 때까지 못 움직인다. 시한이 이름만 남는다 |
 
 `UsageModel.refresh` 는 `refreshing` 을 세워 두고 `defer` 로 내린다. 이 함수가
 안 돌아오면 그 `defer` 가 영영 안 돌고 **Claude 도 Codex 도 다시는 안 읽힌다.**
