@@ -5,6 +5,8 @@ Claude 와 Codex 카드 옆에 Google Antigravity 카드를 둔다. 5시간 창�
 
 **할 수 있다. 다만 Antigravity 앱이 떠 있는 동안만이다.** 2026-09-16 에 이
 기계에서 확인했다. 앱 버전 2.12.2, 번들 `com.google.antigravity`. 근거는 1절.
+같은 날 구현했다. `AntigravityUsage.swift`, `AntigravityReader.swift` 와
+`AntigravityUsageTests`.
 
 앞의 둘과 갈리는 대목이 이것 하나다. Claude 와 Codex 는 디스크의 토큰으로
 서버에 직접 물어서 앱이 꺼져 있어도 읽힌다. Antigravity 는 토큰이 디스크에
@@ -143,8 +145,7 @@ Antigravity 안에서 Claude 나 GPT 모델을 골라 쓸 때만 닳는 별도 �
 ### 3-1. 접속 정보를 프로세스에서 읽는다
 
 ```
-ClfDesktop/AntigravityProbe.swift    ps 와 lsof 에서 포트와 토큰을 캐낸다
-ClfDesktop/AntigravityUsage.swift    응답 해석 (순수 함수)
+ClfDesktop/AntigravityUsage.swift    응답 해석과 접속 정보 캐내기 (순수 함수), 네트워크 경계
 ClfDesktop/AntigravityReader.swift   읽고 OrgUsage 로 만든다
 ```
 
@@ -152,13 +153,16 @@ ClfDesktop/AntigravityReader.swift   읽고 OrgUsage 로 만든다
 훑는다. 같은 방식이다.
 
 ```swift
+/// 부를 주소. 포트는 시도할 차례대로 담는다. 큰 쪽이 평문 HTTP 다
 public struct AntigravityEndpoint: Sendable, Equatable {
-    public let port: Int
+    public let ports: [Int]
     public let token: String
 }
 
-/// ps 한 줄에서 접속 정보를 캐낸다. 순수 함수라 테스트가 잠근다.
-public func parseAntigravityEndpoint(psOutput: String, lsof: String) -> AntigravityEndpoint?
+/// 캐내는 일은 순수 함수 둘로 갈라 테스트가 잠근다. 프로세스를 실제로
+/// 돌리는 자리는 `LiveAntigravityProbe` 하나다
+public func parseAntigravityProcess(psOutput: String) -> AntigravityProcess?
+public func parseLoopbackPorts(lsof: String) -> [Int]
 ```
 
 **`ps` 에 `-E` 를 주지 않는다.** 저쪽 함수는 환경변수까지 받으려고 `-E` 를
@@ -222,24 +226,28 @@ clf 가 고장 난 것으로만 보인다.
 
 ```swift
 public struct AntigravityReader: Sendable {
-    public var isInstalled: Bool    // /Applications/Antigravity.app 이 있나
-    public func read() async -> AntigravityResult
+    public var isInstalled: Bool    // Antigravity.app 이 있나
+    public func read() async -> ProviderResult
 }
 ```
 
 `CodexReader` 와 같은 모양이다. 던지지 않고, 앱이 없으면 빈 결과다.
+`ProviderResult` 는 그때 `CodexResult` 에서 이름만 바꾼 것이다. 계정 하나에
+오류 갈래 둘이라는 모양이 둘 다 같아서 하나로 쓴다.
 
 | 필드 | 값 |
 |---|---|
-| `uuid` | `~/.gemini/antigravity/installation_id`. 계정 식별자가 아니지만 **이 기계에서 안 바뀌는 값**이면 된다. `hidden` 과 `order` 가 이것으로 걸린다 |
+| `uuid` | 상수 `antigravity`. 기계에 프로필이 하나라 그것으로 족하다 |
 | `name` | `Antigravity` |
 | `plan` | `GetUserStatus` 의 `planName` (`Pro`). 못 읽으면 nil |
 | `isActive` | `false`. 활성 개념이 없다 |
 | `provider` | `.antigravity` |
 
-`installation_id` 는 앱이 꺼져 있어도 읽힌다. 그래서 **앱이 꺼진 상태에서도
-카드 자리와 설정 줄이 유지된다.** 앱이 뜨고 질 때마다 uuid 가 바뀌면 그때마다
-숨김 설정이 풀리고 카드가 새것처럼 나타난다.
+uuid 를 상수로 두는 이유. 이 값은 `hidden` 과 `order` 설정이 걸리는 열쇠다.
+앱이 꺼져 있어도, 한 번도 안 켰어도 같은 값이라야 **숨김과 순서가 안 풀린다.**
+`installation_id` 파일을 읽는 길도 있지만 앱을 한 번도 안 켠 기계에는 그 파일이
+없고, 없는 동안 카드가 사라진다. Antigravity 는 기계에 프로필이 하나라 상수로
+족하다.
 
 ### 3-5. 앱이 꺼져 있을 때
 
