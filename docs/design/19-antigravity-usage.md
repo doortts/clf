@@ -10,6 +10,8 @@ Claude 와 Codex 카드 옆에 Google Antigravity 카드를 둔다. 5시간 창�
 서버에 직접 물어서 앱이 꺼져 있어도 읽힌다. Antigravity 는 토큰이 디스크에
 없고, 읽을 창구가 앱이 띄우는 로컬 서버뿐이다.
 
+**카드는 두 줄이다.** 서버는 네 칸을 주지만 둘만 쓴다. 왜 그런지는 3-2절.
+
 ---
 
 ## 1. 가능 여부: 확인한 것과 못 한 것
@@ -61,6 +63,9 @@ content-type: application/json
 **추론 요청이 아니다.** 사용량을 소모하지 않는다. 게다가 서버가 값을 들고
 있어서 첫 호출이 17밀리초, 그다음은 1밀리초 아래다.
 
+플랜은 다른 RPC 에 있다. `GetUserStatus` 가 `planName: "Pro"` 와
+`teamsTier: "TEAMS_TIER_PRO"` 를 준다.
+
 ### 1-3. 응답은 두 묶음에 네 칸이다
 
 ```json
@@ -78,21 +83,18 @@ content-type: application/json
      "buckets": [
        {"bucketId": "3p-weekly", "window": "weekly", ...},
        {"bucketId": "3p-5h", "window": "5h", ...}]}
-  ],
-  "description": "Within each group, models share a weekly limit and a 5-hour limit. ..."
+  ]
 }}
 ```
 
-**모델 묶음이 둘이고 묶음마다 창이 둘이라 칸이 넷이다.** Claude 는 셋,
-Codex 는 하나 또는 둘이었다. 여기가 화면에서 가장 크게 갈린다 (4절).
+**모델 묶음이 둘이고 묶음마다 창이 둘이라 칸이 넷이다.** 둘째 묶음은
+Antigravity 안에서 Claude 나 GPT 모델을 골라 쓸 때만 닳는 별도 주머니다.
+사용자의 Claude 구독과도, Codex 구독과도 무관하다. 우리는 첫째 묶음만
+그린다 (3-2절).
 
-그리고 **서버가 주는 값이 잔여다.** `remainingFraction` 은 0 에서 1 사이
-소수이고 1 이 가득 남은 것이다. Claude 와 Codex 는 사용률을 주고 우리가
-잔여를 파생시켰는데 여기는 방향이 반대다. `percentUsed` 를 우리가 파생시킨다.
-
-플랜은 다른 RPC 에 있다. `GetUserStatus` 가 `planName: "Pro"`,
-`teamsTier: "TEAMS_TIER_PRO"`, 그리고 크레딧(`availablePromptCredits`,
-`availableFlowCredits`, `monthlyPromptCredits`)을 준다.
+**서버가 주는 값이 잔여다.** `remainingFraction` 은 0 에서 1 사이 소수이고
+1 이 가득 남은 것이다. Claude 와 Codex 는 사용률을 주고 우리가 잔여를
+파생시켰는데 여기는 방향이 반대다. `percentUsed` 를 우리가 파생시킨다.
 
 ### 1-4. 안 쓴 창은 리셋 시각이 흐른다
 
@@ -115,7 +117,7 @@ Codex 는 하나 또는 둘이었다. 여기가 화면에서 가장 크게 갈�
 | `language_server` 가 클라우드에서 언제 다시 받나 | 응답이 1밀리초에 오는 것으로 보아 들고 있는 값이다. 갱신 시점은 모른다 | 우리 갱신 주기(5분)로 계속 묻는다. 로컬이라 공짜다. 값이 늦으면 그건 앱이 늦은 것이고 앱 화면도 같이 늦다 |
 | 429 나 과호출 정책 | 로컬 서버라 해당 없어 보인다. 클라우드로 새어 나가는지는 모른다 | Claude, Codex 와 같은 `ReadGate` 뒤에 둔다. 갈래가 같아야 한 자리에서 다룬다 |
 | 잔여가 실제로 줄어드는 모습 | 관측 못 했다. 읽는 동안 네 칸이 전부 1 이었다 | 값의 뜻은 필드 이름과 방향이 분명하다. 줄어드는 모습은 쓰면서 확인한다 |
-| 플랜마다 묶음 구성이 같은가 | `Pro` 하나만 봤다 | 묶음과 창을 **응답이 준 대로** 읽는다. 묶음이 셋이 되어도 죽지 않게 한다 (3-2절) |
+| 플랜마다 묶음 구성이 같은가 | `Pro` 하나만 봤다 | 버킷 이름으로 고르고, 못 찾으면 첫째 묶음으로 떨어진다 (3-2절) |
 | Enterprise 나 무료 플랜 | 관측 없음 | 위와 같다. `groups` 가 비면 보여줄 것이 없는 계정이다 |
 
 ---
@@ -129,7 +131,8 @@ Codex 는 하나 또는 둘이었다. 여기가 화면에서 가장 크게 갈�
 | 토큰 | `config.json` 암호문 | `auth.json` 평문 | 디스크에 없다 |
 | 접속 정보 | 고정 주소 | 고정 주소 | **앱을 띄울 때마다 바뀌는 포트와 토큰** |
 | 서버가 주는 값 | 사용률 | 사용률 | **잔여** |
-| 창 | 셋 | 하나 또는 둘 | **넷 (묶음 둘 곱하기 창 둘)** |
+| 응답의 칸 | 셋 | 하나 또는 둘 | 넷 |
+| 그리는 줄 | 셋 | 하나 또는 둘 | **둘.** 나머지 둘은 안 쓴다 |
 | 계정 수 | 여럿 | 하나 | 하나 |
 | 창 띄우기, 작업 이전, 자동 재개 | 한다 | 안 한다 | 안 한다 |
 
@@ -140,7 +143,7 @@ Codex 는 하나 또는 둘이었다. 여기가 화면에서 가장 크게 갈�
 ### 3-1. 접속 정보를 프로세스에서 읽는다
 
 ```
-ClfDesktop/AntigravityProbe.swift    ps 에서 포트와 토큰을 캐낸다
+ClfDesktop/AntigravityProbe.swift    ps 와 lsof 에서 포트와 토큰을 캐낸다
 ClfDesktop/AntigravityUsage.swift    응답 해석 (순수 함수)
 ClfDesktop/AntigravityReader.swift   읽고 OrgUsage 로 만든다
 ```
@@ -165,59 +168,55 @@ public func parseAntigravityEndpoint(psOutput: String, lsof: String) -> Antigrav
 포트는 `lsof -nP -p <pid>` 의 `LISTEN` 줄에서 읽는다. 둘이 나오면 **큰 쪽**이
 평문 HTTP 다. 실측이 그랬고, 작은 쪽으로 평문 요청을 보내면 서버가
 `Client sent an HTTP request to an HTTPS server` 로 답해서 어느 쪽인지 알 수
-있다. 그 답을 보고 다른 포트로 한 번 더 가는 대신 큰 쪽부터 시도하고,
-틀리면 남은 포트로 넘어간다. 두 포트뿐이라 이것으로 끝난다.
+있다. 큰 쪽부터 시도하고 틀리면 남은 포트로 넘어간다. 두 포트뿐이라 이것으로
+끝난다.
 
 HTTPS 쪽은 자체 서명 인증서라 검증을 꺼야 하는데, 검증을 끄는 코드를 두느니
 평문 포트를 쓴다. 어차피 루프백이고 CSRF 토큰이 문을 지킨다.
 
-### 3-2. 네 칸을 기존 모델에 앉힌다
+### 3-2. Gemini 묶음만 읽는다
 
-`LimitKind` 에 케이스 하나를 더한다.
+응답의 네 칸 중 둘만 쓴다.
 
-```swift
-public enum LimitKind: String, Sendable, CaseIterable {
-    case session                          // 5시간
-    case sessionScoped = "session_scoped" // 새로 는 것. 모델 묶음 하나의 5시간
-    case weeklyAll = "weekly_all"
-    case weeklyScoped = "weekly_scoped"
-}
-```
+| 버킷 | 쓰나 | `LimitKind` |
+|---|---|---|
+| `gemini-5h` | 쓴다 | `.session` |
+| `gemini-weekly` | 쓴다 | `.weeklyAll` |
+| `3p-5h` | 안 쓴다 | |
+| `3p-weekly` | 안 쓴다 | |
 
-`scoped` 는 이 저장소에서 이미 "모델 일부에만 걸리는 창" 을 뜻한다
-(Claude 의 `weekly_scoped` 가 Fable 창이다). Antigravity 의 둘째 묶음이 바로
-그 뜻이라 말이 그대로 맞는다.
+**둘째 묶음은 Antigravity 안에서 Claude 나 GPT 모델을 골라 쓸 때만 닳는다.**
+Antigravity 를 쓰는 이유가 Gemini 인 사람에게 그 두 줄은 영원히 100% 인
+자리만 먹는다. 그리고 그 줄에 `Claude` 라고 적히면 바로 위의 진짜 Claude
+계정 카드와 헷갈린다. 다른 주머니를 같은 이름으로 부르는 셈이다.
 
-| 버킷 | `LimitKind` |
+이 하나로 설계가 통째로 가벼워진다.
+
+| 안 써도 되는 것 | 왜 |
 |---|---|
-| `gemini-5h` | `.session` |
-| `gemini-weekly` | `.weeklyAll` |
-| `3p-5h` | `.sessionScoped` |
-| `3p-weekly` | `.weeklyScoped` |
+| `LimitKind` 새 케이스 | 넷째 칸이 필요 없다. 셋 그대로다 |
+| `LimitKind.allCases` 를 쓰는 자리 손보기 | 케이스가 안 늘어 기존 코드가 그대로 맞는다 |
+| 카드의 묶음 머리글 | 줄이 둘뿐이라 어느 묶음인지 헷갈릴 일이 없다 |
+| 막대 게이지 네 줄의 높이 계산 | 두 줄이라 Codex 와 같다 |
 
-**묶음 이름이 아니라 차례로 가른다.** 응답이 준 첫째 묶음이 기본 칸을 쓰고
-둘째 묶음이 `scoped` 칸을 쓴다. `Gemini` 라는 문자열로 가르면 구글이 묶음
-이름을 바꾸는 날 카드가 빈다. 묶음이 셋 이상이면 셋째부터는 버린다. 담을
-칸이 없고, 없는 것을 지어내느니 안 그리는 것이 낫다.
+**둘째 묶음이 필요해지면** 그때 `LimitKind` 에 케이스를 더하고 카드에 머리글을
+얹는다. 그 설계는 이 문서의 git 기록에 남아 있다. 지금 넣지 않는 이유는
+"언젠가 쓸지도" 뿐이고, 그 값을 실제로 보고 싶다는 사람이 아직 없다.
+
+### 3-3. 어느 묶음이 Gemini 인가
+
+버킷 이름으로 고른다. `bucketId` 가 `gemini-` 로 시작하는 버킷을 가진 묶음이다.
+
+`displayName` 으로 고르지 않는다. 사람에게 보이라고 있는 문구라 구글이 언제든
+바꾼다. `bucketId` 는 프로토콜 쪽 이름이라 덜 흔들린다.
+
+**못 찾으면 첫째 묶음으로 떨어진다.** 구글이 버킷 이름을 바꾸면 카드가 비는
+대신 첫째 묶음이 뜬다. 네이티브 묶음이 먼저 오는 것이 지금 관측이고, 틀려도
+빈 카드보다는 낫다. 값이 보이면 사용자가 이상한 것을 알아채지만, 빈 카드는
+clf 가 고장 난 것으로만 보인다.
 
 창은 `window` 필드(`5h`, `weekly`)로 가른다. 모르는 값이 오면 그 버킷을
 건너뛴다.
-
-### 3-3. 케이스가 늘면 같이 고쳐야 하는 자리
-
-`LimitKind.allCases` 가 셋이라고 전제한 코드가 있다. 넷이 되면 **Claude 가
-조용히 틀린다.**
-
-| 자리 | 지금 | 고칠 것 |
-|---|---|---|
-| `UsageAlerts.windowAlerts` 의 `all` 판정 | `exhausted.count == LimitKind.allCases.count` | `org.rowKinds.count` 와 견준다. 안 고치면 Claude 는 셋이 다 막혀도 `한도 전부 소진` 이 영영 안 뜬다 |
-| `UsageAlerts.windowAlerts` 의 순회 | `LimitKind.allCases` | `org.rowKinds`. 없는 칸을 돌 이유가 없다 |
-| `clfctl` 의 표 | `LimitKind.allCases` | `org.rowKinds` |
-| `OrgCard`, `SegmentBlock`, `BarOrgView` | 이미 `org.rowKinds` 다 | 그대로 |
-
-`rowKinds` 는 [18 문서](18-codex-usage.md) 4-1절에서 Codex 때문에 들어온
-것인데, 마침 이 일에 그대로 쓰인다. Claude 는 지금처럼 넷 중 셋만 돌게
-`provider` 로 가른다.
 
 ### 3-4. 읽는 쪽
 
@@ -272,50 +271,37 @@ extension OrgUsage {
 
 시안: [antigravity-card-mockup.html](antigravity-card-mockup.html)
 
-### 4-1. 카드에 묶음 머리글을 둔다
+### 4-1. Codex 카드와 같은 모양이다
 
-네 줄을 한 열로 세우면 어느 줄이 어느 묶음인지 알 수 없다. 라벨에 묶음을
-적으면 (`Claude/GPT 5시간`) 58점짜리 라벨 칸을 두 배로 넘긴다.
-
-그래서 묶음마다 머리글 한 줄을 얹는다. 라벨은 `5시간`, `주간` 그대로 짧게
-남고 칸 폭도 그대로다.
+`OrgCard` 를 그대로 쓴다. 줄이 둘이라 `rowKinds` 가 이미 하는 일이다
+([18 문서](18-codex-usage.md) 4-1절). 새 레이아웃이 없다.
 
 ```
-Antigravity            [Pro]              앞으로 꺼내기
+Antigravity   [Pro] [Gemini]            앞으로 꺼내기
 
-  Gemini
-    5시간    [====        ]  38%
-             3시간 12분 뒤 리셋
-    주간     [==          ]  15%
-             6일 뒤 리셋
-  Claude/GPT
-    5시간    [========    ]  71%
-             3시간 12분 뒤 리셋
-    주간     [===         ]  22%
-             6일 뒤 리셋
+  5시간    [====        ]  38%
+           3시간 12분 뒤 리셋
+  주간     [==          ]  15%
+           6일 뒤 리셋
 ```
 
-머리글은 캡션 크기에 보조색이다. 게이지보다 뒤로 물러나야 숫자가 먼저 읽힌다.
+이름 옆 회색 `Gemini` 배지 하나가 **이 숫자가 어느 주머니의 것인지** 말한다.
+Antigravity 에 주머니가 둘인데 하나만 그리므로 그 사실을 숨기지 않는다.
+배지 하나면 되는 말이라 머리글 줄을 따로 두지 않는다. 회색인 것은 파랑을
+플랜 배지가 이미 쓰고 있고 빨강과 노랑과 초록은 등급이 쓰기 때문이다.
 
-머리글 문구는 응답의 `displayName` 을 그대로 쓰지 않는다. `Claude and GPT
-models` 는 카드 폭에 길고, 이 카드에서 `Claude` 는 옆의 Claude 계정 카드와
-헷갈린다. 우리가 짧게 적는다.
+주간 라벨은 `주간` 이다. Codex 와 같은 이유로 `주간 전체` 라고 쓰지 않는다.
+전체가 아닌 것이 이 카드에는 없다.
 
-| 응답 | 카드 |
-|---|---|
-| `Gemini Models` | `Gemini` |
-| `Claude and GPT models` | `Claude/GPT` |
+### 4-2. 막대
 
-모르는 묶음 이름이 오면 `displayName` 에서 `Models` 를 떼고 그대로 쓴다.
+Codex 의 `plus` 플랜과 똑같다. 숫자 두 줄에 게이지 두 줄이다.
 
-### 4-2. 막대는 숫자 두 줄에 게이지 네 줄
-
-게이지 네 줄은 `(3 + 0.5 곱하기 2) 곱하기 4 + 2 곱하기 3 = 22점`이다. 숫자
-두 줄이 11점씩 22점이라 **두 열의 높이가 정확히 같다.** 메뉴바 24점에 들어간다.
-
-숫자 두 줄에는 **묶음을 가로질러 가장 빡빡한 5시간 하나와 가장 빡빡한 주간
-하나**를 적는다. 묶음 하나를 골라 적으면 다른 묶음이 막혀도 막대가 모른다.
-줄의 뜻(`위가 5시간, 아래가 주간`)은 그대로라 눈이 따라간다.
+```
+T40  91%  ::::::::::::::::::    An  38%  ::::::::
+     84%  ::::::::::::::            15%  :::
+          ::::::::::::::::::
+```
 
 계정 코드는 `An` 이다. 계정이 하나면 Codex 처럼 앱 아이콘으로 바꾼다
 ([18 문서](18-codex-usage.md) 4-2절과 같은 규칙이고 번들만 다르다).
@@ -338,14 +324,11 @@ Claude 활성 -> Claude 이름순 -> Codex -> Antigravity
 
 ### 4-5. 알림
 
-`UsageAlerts` 가 그대로 돈다. 고칠 것은 3-3절의 `allCases` 자리뿐이다.
+`UsageAlerts` 가 그대로 돈다. 고칠 자리가 없다.
 
 `others` 는 이미 같은 공급자만 넘긴다 ([18 문서](18-codex-usage.md) 4-5절).
 Antigravity 계정은 하나라 넘어갈 곳이 없고, 그러면 `spare` 가 nil 이라 덧붙는
 문장이 안 붙는다. 그대로 맞는 동작이다.
-
-`.sessionScoped` 하나만 소진일 때의 덧말은 `.weeklyScoped` 와 같다.
-`다른 모델은 쓸 수 있습니다.` 묶음이 둘이라는 사실이 그대로 그 말이다.
 
 ### 4-6. 손대지 않는 자리
 
@@ -359,17 +342,13 @@ Antigravity 계정은 하나라 넘어갈 곳이 없고, 그러면 `spare` 가 n
 ## 5. clfctl
 
 ```
-  Antigravity  (Pro)
-    Gemini
+  Antigravity  (Pro, Gemini)
     5시간      [########............] 잔여  62%   3시간 12분 뒤 리셋
     주간       [###.................] 잔여  85%   6일 뒤 리셋
-    Claude/GPT
-    5시간      [###.................] 잔여  29%   3시간 12분 뒤 리셋
-    주간       [####................] 잔여  78%   6일 뒤 리셋
 ```
 
-JSON 에는 `provider: "antigravity"` 와 네 칸이 들어간다. 묶음은 칸 이름
-(`session`, `session_scoped`, `weekly_all`, `weekly_scoped`)이 이미 말한다.
+JSON 에는 `provider: "antigravity"` 가 붙는다. 칸 이름은 `session` 과
+`weekly_all` 로 앞의 둘과 같다.
 
 앱이 꺼져 있으면 그 줄을 적는다. 값을 못 읽는 것과 앱이 꺼진 것은 다르고,
 사용자가 할 일이 다르다.
@@ -385,8 +364,8 @@ JSON 에는 `provider: "antigravity"` 와 네 칸이 들어간다. 묶음은 칸
 
 | 뺀 것 | 왜 | 언제 넣나 |
 |---|---|---|
-| 크레딧 (`availablePromptCredits`, `availableFlowCredits`) | 시간 창과 단위가 다르다. Enterprise 예산 줄과 같은 자리인데, 이 계정에서 500 과 100 이 무슨 뜻인지 관측으로 확인하지 못했다 | 값이 줄어드는 것을 보고 뜻이 분명해지면. `SpendUsage` 자리가 비어 있다 |
-| 묶음 셋 이상 | 관측 없음. 담을 칸이 없다 | 실제로 오면. 그때는 `LimitKind` 를 늘리는 대신 칸 이름을 자유 문자열로 바꿀 때다 |
+| Claude/GPT 묶음 (`3p-5h`, `3p-weekly`) | Antigravity 안에서 그 모델을 골라 쓸 때만 닳는 별도 주머니다. Gemini 를 쓰는 사람에게는 영원히 100% 인 두 줄이고, `Claude` 라는 글자가 진짜 Claude 카드와 헷갈린다 | 그 주머니가 실제로 닳는 사람이 나오면. `LimitKind` 에 케이스를 더하고 카드에 묶음 머리글을 얹는다 |
+| 크레딧 (`availablePromptCredits`, `availableFlowCredits`) | 시간 창과 단위가 다르다. 500 과 100 이 무슨 뜻인지 관측으로 확인하지 못했다 | 값이 줄어드는 것을 보고 뜻이 분명해지면. `SpendUsage` 자리가 비어 있다 |
 | 앱을 우리가 띄워서 읽기 | `language_server` 는 앱이 관리하는 무거운 프로세스다. 사용량을 보려고 남의 앱 프로세스를 띄우는 것은 이 저장소가 지켜온 선(읽기만 한다)을 넘는다 | 하지 않는다 |
 | HTTPS 포트 | 자체 서명이라 검증을 꺼야 한다. 루프백 평문으로 충분하다 | 평문 포트가 사라지면 |
 | 토큰 갱신, 로그인 | Claude, Codex 와 같은 자세 | 하지 않는다 |
@@ -400,17 +379,16 @@ JSON 에는 `provider: "antigravity"` 와 네 칸이 들어간다. 묶음은 칸
 
 | 테스트 | 잡는 것 |
 |---|---|
-| `parseAntigravityUsage` Pro 응답 | 네 버킷이 네 칸에 앉는다. 차례로 갈린다 |
+| `parseAntigravityUsage` Pro 응답 | Gemini 두 칸만 남는다. `3p` 는 안 들어온다 |
 | 잔여를 사용률로 | `remainingFraction 0.38` 이 `percentUsed 62` 가 된다. 반올림 경계 |
 | `remainingFraction == 1` | `resetsAt` 이 nil 이다. 흐르는 시각을 안 믿는다 |
-| 묶음 하나뿐인 응답 | `scoped` 칸이 비고 죽지 않는다 |
-| 묶음 셋인 응답 | 셋째를 버리고 죽지 않는다 |
+| 묶음 차례가 뒤집힌 응답 | `3p` 가 먼저 와도 `gemini-` 버킷을 고른다 |
+| `gemini-` 버킷이 없는 응답 | 첫째 묶음으로 떨어지고 빈 카드가 안 된다 |
 | 모르는 `window` 값 | 그 버킷만 건너뛴다 |
 | `groups` 가 빈 응답 | 보여줄 것이 없는 계정이다 |
 | `parseAntigravityEndpoint` | ps 한 줄에서 토큰을, lsof 에서 포트 둘을 캐낸다. 큰 쪽이 먼저다 |
 | 프로세스가 없는 ps | nil 이다. 앱이 꺼진 것이다 |
 | `isFrozen` | 낡은 Antigravity 는 참, 낡은 Claude 는 거짓 |
 | `barOrgs` | 낡은 Antigravity 가 막대에서 빠진다. 팝오버 목록에는 남는다 |
-| 알림 `all` 판정 | 칸이 넷이 되어도 Claude 는 셋으로 판정한다 |
 | 기본 차례 | Claude -> Codex -> Antigravity |
 | `BarText.codes` | `Antigravity` 가 `An` 이다 |

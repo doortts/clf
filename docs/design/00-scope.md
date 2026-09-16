@@ -114,7 +114,7 @@
 | [16 자동 재개](16-auto-resume.md) | 데스크톱 | 최신 | 리셋을 기다려 CLI 로 세션을 이어 돌리기 |
 | [17 저장소 둘](17-repo-split.html) | 데스크톱 | 최신 | 받는 곳(공개)과 말하는 곳(사내)을 가른다 (HTML) |
 | [18 Codex 사용량](18-codex-usage.md) | 데스크톱 | 최신 | Codex 계정을 같은 카드, 같은 막대에. auth.json 과 Usage API |
-| [19 Antigravity 사용량](19-antigravity-usage.md) | 데스크톱 | 설계 | Antigravity 계정을 같은 카드에. 앱이 띄우는 로컬 RPC 로 읽는다. 코드는 아직 없다 |
+| [19 Antigravity 사용량](19-antigravity-usage.md) | 데스크톱 | 설계 | Antigravity 의 Gemini 잔여를 같은 카드에. 앱이 띄우는 로컬 RPC 로 읽는다. 코드는 아직 없다 |
 | [진행 현황](status.html) | 데스크톱 | 보관 | 검증 사다리. 09-13 시점에 멈춘 그림 (HTML) |
 
 시안 HTML(`*-mockup.html`)은 지도에 넣지 않는다. 그때 화면을 정하려고 그린
