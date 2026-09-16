@@ -14,6 +14,10 @@ final class UsageModel: ObservableObject {
     @Published private(set) var barImage: NSImage?
     @Published private(set) var failure: String?
     @Published private(set) var readAt: Date?
+    /// 앱을 켠 뒤 읽기를 한 번이라도 끝냈나. **값을 읽었는지와 다르다.**
+    /// 화면은 `읽는 중` 을 이걸로 정한다. 읽은 시각으로 정하면, 볼 값이 하나도
+    /// 없는 조합에서 정상으로 돌고 있는데 영영 `읽는 중` 이 남는다
+    @Published private(set) var everRead = false
     @Published private(set) var refreshing = false
     /// 지금 눌러도 안 읽는 이유. 눌러도 아무 일이 없으면 고장 난 것으로 보인다.
     @Published private(set) var waitText: String?
@@ -621,6 +625,7 @@ final class UsageModel: ObservableObject {
         if !snapshot.throttled && !snapshot.offline && readAnything {
             readAt = snapshot.readAt
         }
+        everRead = true
         // Claude 앱이 깔려 있는데 못 읽은 것은 말한다. 안 깔린 것은 말하지 않는다
         failure = reader.isInstalled ? claudeError : nil
         await notify(at: now)

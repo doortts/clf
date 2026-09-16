@@ -482,3 +482,98 @@ final class AntigravityEdgeTests: XCTestCase {
         XCTAssertEqual(UsageAlerts.build(for: org).first?.title, "T40 5시간 한도 소진")
     }
 }
+
+/// 2차 적대적 리뷰가 잡아낸 자리들.
+final class AntigravitySecondPassTests: XCTestCase {
+
+    private func limits(_ body: String) throws -> [LimitKind: UsageLimit] {
+        try parseAntigravityUsage(Data("""
+        {"response": {"groups": [{"displayName": "Gemini Models", "buckets": [\(body)]}]}}
+        """.utf8))
+    }
+
+    /// **키가 없을 때만 0 이다.** 키가 있는데 못 읽는 값이면 건너뛴다. 못 읽은
+    /// 값을 소진으로 읽으면 80% 남은 계정에 소리까지 붙은 소진 알림이 나간다.
+    /// 줄이 사라지는 것은 사용자가 알아채지만 거짓 소진은 알아챌 방법이 없다.
+    func test_unreadableFractionIsSkippedNotZero() throws {
+        for value in ["\"0.8\"", "null", "{}"] {
+            let parsed = try limits("""
+            {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": \(value)}
+            """)
+            XCTAssertTrue(parsed.isEmpty, "못 읽는 값 \(value) 를 소진으로 읽으면 안 된다")
+        }
+    }
+
+    /// 키가 아예 없는 것은 다르다. protobuf JSON 이 기본값을 안 실은 것이다.
+    func test_absentFractionIsFullyUsed() throws {
+        XCTAssertEqual(try limits("""
+        {"bucketId": "gemini-5h", "window": "5h"}
+        """)[.session]?.percentUsed, 100)
+    }
+
+    /// 칸 하나만 읽힌 것은 `전부` 를 말할 근거가 못 된다. 주간 버킷의 창
+    /// 종류가 바뀌어 줄이 사라지면 5시간 한 칸이 전부가 되어 버린다.
+    func test_singleParsedWindowDoesNotClaimEverything() {
+        let dead = UsageLimit(percentUsed: 100, resetsAt: nil, severity: "")
+        let org = OrgUsage(uuid: "a", name: "Antigravity", isActive: false, plan: "Pro",
+                           provider: .antigravity, limits: [.session: dead])
+        XCTAssertEqual(UsageAlerts.build(for: org).first?.title, "Antigravity 5시간 한도 소진")
+    }
+
+    /// 경로에 ` -` 가 든 앱은 **일부러** 못 알아본다. `ps` 가 argv 를 공백
+    /// 하나로 이어 붙여서 `/apps -old/...` 와 `/bin/sh -c ...` 가 글자로 같은
+    /// 모양이 된다. 둘 중 하나만 고를 수 있고, 아무 줄이나 서버로 믿는 쪽보다
+    /// 못 알아보는 쪽이 낫다.
+    func test_pathContainingDashSegmentIsGivenUp() {
+        XCTAssertTrue(parseAntigravityProcesses(psOutput: """
+         2608 /Users/me/apps -old/Antigravity.app/Contents/Resources/bin/language_server --csrf_token abc
+        """).isEmpty)
+    }
+
+    /// 인자 사이 공백이 둘이어도 알아본다.
+    func test_doubleSpacedArguments() {
+        XCTAssertEqual(parseAntigravityProcesses(psOutput: """
+         2608 /Applications/Antigravity.app/Contents/Resources/bin/language_server  --csrf_token   abc
+        """).first?.token, "abc")
+    }
+
+    /// 토큰이 HTTP 헤더 값이 된다. 눈에 안 보이는 글자가 붙으면 안 된다.
+    func test_tokenIsTrimmed() {
+        XCTAssertEqual(parseAntigravityProcesses(psOutput:
+            " 2608 /Applications/Antigravity.app/Contents/Resources/bin/language_server --csrf_token abc\r"
+        ).first?.token, "abc")
+    }
+
+    /// 묶음이 3p 하나뿐이면 그릴 것이 없다. 다른 주머니 숫자에 `Gemini` 배지를
+    /// 달아 내보내느니 빈 카드가 낫다.
+    func test_onlyThirdPartyGroupYieldsNothing() throws {
+        XCTAssertTrue(try parseAntigravityUsage(Data("""
+        {"response": {"groups": [{"displayName": "Claude and GPT models", "buckets": [
+          {"bucketId": "3p-5h", "window": "5h", "remainingFraction": 0.2}]}]}}
+        """.utf8)).isEmpty)
+    }
+
+    /// 3p 판별이 첫 버킷 하나에만 걸려 있으면 차례가 뒤집힐 때 샌다.
+    func test_thirdPartyDetectedFromAnyBucket() throws {
+        XCTAssertTrue(try parseAntigravityUsage(Data("""
+        {"response": {"groups": [{"displayName": "Partner", "buckets": [
+          {"bucketId": "misc", "window": "monthly", "remainingFraction": 0.5},
+          {"bucketId": "3p-5h", "window": "5h", "remainingFraction": 0.2}]}]}}
+        """.utf8)).isEmpty)
+    }
+
+    /// NaN 이 `Int` 변환에 닿으면 프로세스가 죽는다. 지금은 못 닿지만 이
+    /// 함수에 다음 호출자가 생기는 순간 지뢰다.
+    func test_usedPercentSurvivesNaN() {
+        XCTAssertEqual(usedPercent(remaining: .nan), 100)
+        XCTAssertEqual(usedPercent(remaining: .infinity), 0)
+        XCTAssertEqual(usedPercent(remaining: -.infinity), 100)
+    }
+
+    /// 명령이 실패한 것과 출력이 원래 없는 것은 다르다. 같은 빈 문자열로
+    /// 뭉뚱그리면 잘린 결과가 옳은 결과 행세를 한다.
+    func test_shellTellsFailureFromEmptyOutput() {
+        XCTAssertNil(Shell.run("/nope/nope", []))
+        XCTAssertEqual(Shell.run("/usr/bin/true", []), "")
+    }
+}

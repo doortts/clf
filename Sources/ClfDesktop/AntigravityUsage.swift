@@ -40,12 +40,19 @@ public func parseAntigravityUsage(_ data: Data) throws -> [LimitKind: UsageLimit
     guard let groups = response["groups"] as? [[String: Any]], !groups.isEmpty else { return [:] }
 
     var out: [LimitKind: UsageLimit] = [:]
-    for bucket in buckets(of: geminiGroup(in: groups)) {
+    for bucket in buckets(of: geminiGroup(in: groups) ?? [:]) {
         guard let kind = limitKind(window: bucket["window"] as? String) else { continue }
-        // **필드가 없으면 0 이다.** protobuf JSON 은 기본값을 안 싣는다. 다 쓴
+        // **키가 없을 때만 0 이다.** protobuf JSON 은 기본값을 안 싣는다. 다 쓴
         // 창은 `remainingFraction` 이 통째로 빠진 채로 온다. 그 버킷을 건너뛰면
-        // 한도를 다 쓴 바로 그 순간에 카드가 옛 숫자를 내밀고 알림이 침묵한다
-        let remaining = double(bucket["remainingFraction"]) ?? 0
+        // 한도를 다 쓴 바로 그 순간에 카드가 옛 숫자를 내밀고 알림이 침묵한다.
+        //
+        // 키가 있는데 못 읽는 값이면 건너뛴다. 그것까지 0 으로 읽으면 80% 남은
+        // 계정에 소진 알림이 나간다. 사라진 줄은 사용자가 알아채지만 거짓
+        // 소진은 알아챌 방법이 없다
+        let raw = bucket["remainingFraction"]
+        let parsed = double(raw)
+        if raw != nil, parsed == nil { continue }
+        let remaining = parsed ?? 0
         // 잔여가 가득이면 리셋 시각이 `지금 + 창 길이` 라 읽을 때마다 흐른다.
         // 타이머가 안 걸린 창이므로 없는 것으로 둔다. 18 문서 1-2절과 같은 함정.
         // **판정은 반올림 전 값으로 한다.** 정수로 보면 0.4% 쓴 창이 안 열린
@@ -69,7 +76,8 @@ public func parseAntigravityUsage(_ data: Data) throws -> [LimitKind: UsageLimit
 func usedPercent(remaining: Double) -> Int {
     let used = 1 - remaining
     if used <= 0 { return 0 }
-    if used >= 1 { return 100 }
+    // 부등호를 뒤집어 NaN 도 여기서 걸린다. `Int(nan)` 은 프로세스를 죽인다
+    if !(used < 1) { return 100 }
     return min(99, max(1, Int((used * 100).rounded())))
 }
 
@@ -81,20 +89,17 @@ func usedPercent(remaining: Double) -> Int {
 /// 못 찾으면 첫째 묶음으로 떨어진다. 이름이 바뀌었을 때 카드가 비는 대신
 /// 값이 뜬다. 값이 보이면 사용자가 이상한 것을 알아채지만, 빈 카드는 clf 가
 /// 고장 난 것으로만 보인다.
-private func geminiGroup(in groups: [[String: Any]]) -> [String: Any] {
-    if let named = groups.first(where: { group in
-        buckets(of: group).contains {
-            ($0["bucketId"] as? String)?.hasPrefix("gemini-") == true
-        }
-    }) { return named }
+private func geminiGroup(in groups: [[String: Any]]) -> [String: Any]? {
+    if let named = groups.first(where: { hasBucket($0, prefix: "gemini-") }) { return named }
     // 떨어질 때도 3p 주머니는 고르지 않는다. 다른 주머니 숫자에 `Gemini` 배지를
-    // 달아 내보내면 그냥 거짓말이다
-    return groups.first { !bucketID(group: $0).hasPrefix("3p-") } ?? groups[0]
+    // 달아 내보내면 그냥 거짓말이다. 남는 묶음이 없으면 빈 카드가 낫다
+    return groups.first { !hasBucket($0, prefix: "3p-") }
 }
 
-/// 그 묶음의 첫 버킷 이름. 묶음을 가르는 데는 하나면 충분하다.
-private func bucketID(group: [String: Any]) -> String {
-    buckets(of: group).compactMap { $0["bucketId"] as? String }.first ?? ""
+/// 그 묶음에 이런 이름의 버킷이 있나. **버킷 전체를 본다.** 첫 버킷만 보면
+/// 차례가 뒤집히거나 앞에 다른 이름이 끼는 날 3p 묶음을 못 알아본다.
+private func hasBucket(_ group: [String: Any], prefix: String) -> Bool {
+    buckets(of: group).contains { ($0["bucketId"] as? String)?.hasPrefix(prefix) == true }
 }
 
 private func buckets(of group: [String: Any]) -> [[String: Any]] {
@@ -182,8 +187,16 @@ private func parseServerLine(_ line: Substring) -> AntigravityProcess? {
     let digits = rest.prefix { $0.isNumber }
     guard let pid = Int32(digits) else { return nil }
     let command = rest.dropFirst(digits.count).drop { $0 == " " }
-    // 실행 파일은 첫 ` -` 앞까지다. 경로에 공백이 있어도 안 끊긴다
-    let executable = command.range(of: " -").map { command[..<$0.lowerBound] } ?? command[...]
+    // 실행 파일은 첫 ` -` 앞까지다. 경로에 공백이 있어도 안 끊기고, 인자 사이
+    // 공백이 둘이어도 꼬리를 털어서 맞춘다.
+    //
+    // **경로에 ` -` 가 든 앱은 못 알아본다.** `ps` 는 argv 를 공백 하나로 이어
+    // 붙이므로 `/apps -old/...` 와 `/bin/sh -c ...` 가 글자로는 같은 모양이다.
+    // 둘 중 하나만 고를 수 있어서 안전한 쪽을 골랐다. 못 알아보면 카드가
+    // `꺼져 있다` 로 남지만, 반대로 하면 명령줄에 경로가 스쳐 간 아무 줄이나
+    // 서버로 믿고 엉뚱한 토큰으로 두드린다
+    let head = command.range(of: " -").map { command[..<$0.lowerBound] } ?? command[...]
+    let executable = head.reversed().drop { $0 == " " }.reversed().map(String.init).joined()
     guard executable.hasSuffix("Antigravity.app/Contents/Resources/bin/language_server"),
           let token = csrfToken(in: command.split(separator: " ",
                                                   omittingEmptySubsequences: true))
@@ -199,14 +212,19 @@ private func csrfToken(in fields: [Substring]) -> String? {
     for (index, field) in fields.enumerated() {
         if field == "--csrf_token", index + 1 < fields.count,
            !fields[index + 1].hasPrefix("-") {
-            return String(fields[index + 1])
+            return trimmed(fields[index + 1])
         }
         if field.hasPrefix("--csrf_token=") {
-            let value = field.dropFirst("--csrf_token=".count)
-            if !value.isEmpty { return String(value) }
+            return trimmed(field.dropFirst("--csrf_token=".count))
         }
     }
     return nil
+}
+
+/// 이 값이 HTTP 헤더 값이 된다. 눈에 안 보이는 글자가 붙으면 안 된다.
+private func trimmed(_ value: Substring) -> String? {
+    let text = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return text.isEmpty ? nil : text
 }
 
 /// `lsof -nP -p <pid>` 출력에서 루프백 LISTEN 포트를 **큰 것부터** 돌려준다.
@@ -239,14 +257,20 @@ public struct LiveAntigravityProbe: AntigravityProbing {
     public func endpoint() -> AntigravityEndpoint? {
         // `-E` 를 주지 않는다. 필요한 값이 전부 명령줄 인자라 온 기계의
         // 프로세스 환경변수를 우리 메모리로 들일 이유가 없다
-        let servers = parseAntigravityProcesses(
-            psOutput: Shell.run("/bin/ps", ["-A", "-o", "pid=,command="]))
-        // 포트가 잡히는 후보까지 내려간다. 고아 프로세스는 LISTEN 이 없다
-        for server in servers {
-            // `-w` 로 경고를 끈다. 죽은 마운트가 있으면 경고가 마운트마다 한 줄씩
-            // 나오는데, 그걸 아무도 안 읽으면 자식이 write 에서 막힌다
-            let ports = parseLoopbackPorts(
-                lsof: Shell.run("/usr/sbin/lsof", ["-nP", "-w", "-p", String(server.pid)]))
+        // `ps` 는 이 기계에서 0.15초다. 시한을 넉넉히 줘서 느린 날 잘린 목록을
+        // 옳은 목록으로 착각하지 않는다
+        guard let listing = Shell.run("/bin/ps", ["-A", "-o", "pid=,command="], timeout: 30)
+        else { return nil }
+        // 포트가 잡히는 후보까지 내려간다. 고아 프로세스는 LISTEN 이 없다.
+        // 고아가 쌓여도 읽기 한 번이 길어지지 않게 셋에서 끊는다
+        for server in parseAntigravityProcesses(psOutput: listing).prefix(3) {
+            // `-w` 는 경고를 끄고 `-S` 는 lsof 가 커널에서 막힐 때 스스로
+            // 포기하게 한다. **`-S` 가 진짜 방어다.** lsof 는 블록을 깨려고
+            // 자식을 띄우는데, 그 자식이 우리 출력 파이프를 물려받은 채 멈추면
+            // 부모를 죽여도 파이프가 안 닫혀 우리 쪽 시한이 소용없다
+            let ports = Shell.run("/usr/sbin/lsof",
+                                  ["-nP", "-w", "-S", "3", "-p", String(server.pid)])
+                .map(parseLoopbackPorts) ?? []
             if !ports.isEmpty {
                 return AntigravityEndpoint(ports: ports, token: server.token)
             }

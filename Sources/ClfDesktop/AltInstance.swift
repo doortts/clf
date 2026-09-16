@@ -107,8 +107,12 @@ public enum AltInstance {
 
     private static func psOutput() -> String {
         // -A 가 없으면 지금 터미널 세션의 프로세스만 나온다. 실제로 그래서 못 잡았다.
-        // 읽지 않는 stderr 파이프와 시한 없는 대기는 `Shell` 이 막는다
-        Shell.run("/bin/ps", ["-A", "-E", "-o", "pid=,command="])
+        // 읽지 않는 stderr 파이프와 시한 없는 대기는 `Shell` 이 막는다.
+        //
+        // 시한을 넉넉히 준다. 이 기계에서 0.15초짜리인데, 잘린 목록이 오면
+        // "창이 하나도 없다" 로 읽혀 카드가 `새 창 띄우기` 를 내밀고 누르면
+        // 같은 디렉토리로 인스턴스가 둘이 뜬다
+        Shell.run("/bin/ps", ["-A", "-E", "-o", "pid=,command="], timeout: 30) ?? ""
     }
 
     /// `ps` 출력에서 우리가 띄운 인스턴스의 계정을 골라낸다.

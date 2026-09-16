@@ -916,7 +916,7 @@ struct PopoverView: View {
             }
 
             if model.orgs.isEmpty {
-                Text(model.readAt == nil ? "읽는 중" : "볼 계정을 하나도 안 켰다")
+                Text(model.everRead ? "볼 계정을 하나도 안 켰다" : "읽는 중")
                     .subheadStyle().foregroundStyle(.secondary)
                     .padding(.vertical, 12)
             } else {
