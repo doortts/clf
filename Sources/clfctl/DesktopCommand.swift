@@ -42,8 +42,9 @@ struct Desktop: AsyncParsableCommand {
             // Claude 는 활성 여부만 적는다. 플랜은 `clfctl desktop orgs` 의 표에
             // 이미 있고, 여기 붙이면 이 명령의 기존 출력이 바뀐다.
             // 플랜도 주머니도 모르면 괄호를 안 연다. 빈 괄호는 뭔가 빠진 것처럼 보인다
+            // 플랜을 못 읽었으면 그 사실을 적는다. 조용히 빼면 왜 안 뜨는지 모른다
             let notes = org.provider == .claude
-                ? [] : [org.plan, org.provider.poolLabel].compactMap { $0 }
+                ? [] : [org.plan ?? "플랜 모름", org.provider.poolLabel].compactMap { $0 }
             let tail = org.isActive ? "  (지금 앱에서 쓰는 계정)"
                 : notes.isEmpty ? "" : "  (" + notes.joined(separator: ", ") + ")"
             print("\(mark) \(org.name)" + tail)

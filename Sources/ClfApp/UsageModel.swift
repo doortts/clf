@@ -613,8 +613,14 @@ final class UsageModel: ObservableObject {
         orgs = prefs.apply(to: known)
         rebuildBar()
         // 끊긴 읽기도 읽은 것으로 찍으면 발밑의 시각만 새것이 되고 숫자는
-        // 끊기기 전 값이다. 그 조합이 낡은 값을 지금 값으로 믿게 만든다
-        if !snapshot.throttled && !snapshot.offline { readAt = snapshot.readAt }
+        // 끊기기 전 값이다. 그 조합이 낡은 값을 지금 값으로 믿게 만든다.
+        //
+        // 한 줄도 못 읽은 경우가 같다. Antigravity 는 앱이 꺼져 있어도 카드
+        // 하나를 내주므로, 그것만 있는 읽기를 성공으로 찍으면 시각만 새것이 된다
+        let readAnything = snapshot.orgs.contains { $0.hasUsage }
+        if !snapshot.throttled && !snapshot.offline && readAnything {
+            readAt = snapshot.readAt
+        }
         // Claude 앱이 깔려 있는데 못 읽은 것은 말한다. 안 깔린 것은 말하지 않는다
         failure = reader.isInstalled ? claudeError : nil
         await notify(at: now)

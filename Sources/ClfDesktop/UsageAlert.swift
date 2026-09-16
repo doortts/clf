@@ -94,14 +94,17 @@ public enum UsageAlerts {
     private static func windowAlerts(_ org: OrgUsage, others: [OrgUsage], now: Date,
                                      locale: Locale, timeZone: TimeZone) -> [UsageAlert] {
         var out: [UsageAlert] = []
-        let exhausted = LimitKind.allCases.filter { kind in
+        // **칸 수는 공급자가 정한다.** 셋으로 전제하면 칸이 둘뿐인 Codex 와
+        // Antigravity 는 다 막혀도 `전부 소진` 을 영원히 못 듣는다
+        let kinds = org.rowKinds
+        let exhausted = kinds.filter { kind in
             org.limits[kind].map { $0.percentRemaining <= 0 } ?? false
         }
 
         if let binding = latest(of: exhausted, in: org) {
             // 여러 창이 소진이면 **가장 늦게 풀리는 창**이 실제로 막고 있는 창이다.
             // 5시간과 주간이 같이 소진이면 5시간 리셋은 알려줄 값이 없다
-            let all = exhausted.count == LimitKind.allCases.count
+            let all = exhausted.count == kinds.count
             let resetsAt = org.limits[binding]?.resetsAt
             var body = BarText.resetLine(resetsAt, from: now, locale: locale, timeZone: timeZone)
             if let extra = note(all: all, binding: binding, exhausted: exhausted,
@@ -118,7 +121,7 @@ public enum UsageAlerts {
         }
 
         // 예고는 창마다 따로 보낸다. 소진된 창은 위에서 이미 말했다
-        for kind in LimitKind.allCases {
+        for kind in kinds {
             guard let limit = org.limits[kind],
                   limit.percentRemaining > 0,
                   limit.percentRemaining <= warnBelow else { continue }

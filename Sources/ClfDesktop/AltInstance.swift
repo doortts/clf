@@ -106,18 +106,9 @@ public enum AltInstance {
     }
 
     private static func psOutput() -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        // -A 가 없으면 지금 터미널 세션의 프로세스만 나온다. 실제로 그래서 못 잡았다
-        // -A 가 없으면 지금 터미널 세션의 프로세스만 나온다. 실제로 그래서 못 잡았다
-        process.arguments = ["-A", "-E", "-o", "pid=,command="]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        guard (try? process.run()) != nil else { return "" }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return String(decoding: data, as: UTF8.self)
+        // -A 가 없으면 지금 터미널 세션의 프로세스만 나온다. 실제로 그래서 못 잡았다.
+        // 읽지 않는 stderr 파이프와 시한 없는 대기는 `Shell` 이 막는다
+        Shell.run("/bin/ps", ["-A", "-E", "-o", "pid=,command="])
     }
 
     /// `ps` 출력에서 우리가 띄운 인스턴스의 계정을 골라낸다.

@@ -135,38 +135,38 @@ final class AntigravityUsageTests: XCTestCase {
     """
 
     func test_findsProcessAndToken() throws {
-        let found = try XCTUnwrap(parseAntigravityProcess(psOutput: psOutput))
+        let found = try XCTUnwrap(parseAntigravityProcesses(psOutput: psOutput).first)
         XCTAssertEqual(found.pid, 2608)
         XCTAssertEqual(found.token, "00000000-0000-4000-8000-000000000000")
     }
 
     /// 앱이 꺼져 있으면 그 줄이 없다. 헬퍼 프로세스만 보고 붙잡으면 안 된다.
-    func test_noServerLineIsNil() {
-        XCTAssertNil(parseAntigravityProcess(psOutput: """
+    func test_noServerLineIsEmpty() {
+        XCTAssertTrue(parseAntigravityProcesses(psOutput: """
           440 /usr/libexec/secinitd
           742 /Applications/Antigravity.app/Contents/MacOS/Antigravity
-        """))
+        """).isEmpty)
     }
 
     /// CLI 도 같은 이름의 서버를 띄운다. 앱 번들 안의 것만 잡는다.
     func test_ignoresCliLanguageServer() {
-        XCTAssertNil(parseAntigravityProcess(psOutput: """
+        XCTAssertTrue(parseAntigravityProcesses(psOutput: """
          3100 /Users/me/.gemini/antigravity-cli/bin/language_server --standalone --csrf_token abc
-        """))
+        """).isEmpty)
     }
 
     func test_tokenWithEqualsSign() throws {
-        let found = try XCTUnwrap(parseAntigravityProcess(psOutput: """
+        let found = try XCTUnwrap(parseAntigravityProcesses(psOutput: """
          2608 /Applications/Antigravity.app/Contents/Resources/bin/language_server --csrf_token=abc-123 --standalone
-        """))
+        """).first)
         XCTAssertEqual(found.token, "abc-123")
     }
 
     /// 토큰 없이 도는 서버는 부를 수 없다. 반쯤 아는 상태로 넘기지 않는다.
-    func test_serverWithoutTokenIsNil() {
-        XCTAssertNil(parseAntigravityProcess(psOutput: """
+    func test_serverWithoutTokenIsSkipped() {
+        XCTAssertTrue(parseAntigravityProcesses(psOutput: """
          2608 /Applications/Antigravity.app/Contents/Resources/bin/language_server --standalone
-        """))
+        """).isEmpty)
     }
 
     /// `lsof -nP -p <pid>` 에서 루프백 LISTEN 포트만. 큰 쪽이 평문 HTTP 라 먼저다.
@@ -338,5 +338,147 @@ final class AntigravityUsageTests: XCTestCase {
         XCTAssertEqual(prefs.apply(to: [org(.claude, stale: false),
                                         org(.antigravity, stale: false)]).map(\.provider),
                        [.antigravity, .claude])
+    }
+}
+
+/// 적대적 리뷰가 잡아낸 자리들. 전부 실제로 값이 틀어지는 경로다.
+/// docs/design/19-antigravity-usage.md
+final class AntigravityEdgeTests: XCTestCase {
+
+    private func bucket(_ body: String) throws -> UsageLimit? {
+        try parseAntigravityUsage(Data("""
+        {"response": {"groups": [{"displayName": "Gemini Models", "buckets": [\(body)]}]}}
+        """.utf8))[.session]
+    }
+
+    /// **protobuf JSON 은 기본값 필드를 안 싣는다.** 다 쓴 창은
+    /// `remainingFraction` 이 통째로 빠진 채로 온다. 버킷을 건너뛰면 한도를
+    /// 다 쓴 바로 그 순간에 카드가 옛 숫자를 내밀고 알림이 침묵한다.
+    func test_missingFractionMeansFullyUsed() throws {
+        let limit = try XCTUnwrap(bucket("""
+        {"bucketId": "gemini-5h", "window": "5h", "resetTime": "2026-09-16T13:01:03Z"}
+        """))
+        XCTAssertEqual(limit.percentUsed, 100)
+        XCTAssertEqual(limit.percentRemaining, 0)
+        XCTAssertNotNil(limit.resetsAt, "소진된 창은 리셋 시각이 있어야 한다")
+    }
+
+    /// 조금이라도 썼으면 `창 안 열림` 이 아니다. 반올림한 정수로 판정하면
+    /// 0.4% 쓴 창이 안 열린 창으로 둔갑한다.
+    func test_barelyUsedWindowIsOpen() throws {
+        let limit = try XCTUnwrap(bucket("""
+        {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": 0.996,
+         "resetTime": "2026-09-16T13:01:03Z"}
+        """))
+        XCTAssertEqual(limit.percentUsed, 1, "0 으로 내리면 창 안 열림으로 읽힌다")
+        XCTAssertNotNil(limit.resetsAt)
+    }
+
+    /// 조금이라도 남았으면 소진이 아니다. 반올림으로 100 을 만들면 아직 쓸 수
+    /// 있는 계정에 소진 알림이 나간다.
+    func test_barelyLeftIsNotExhausted() throws {
+        let limit = try XCTUnwrap(bucket("""
+        {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": 0.004}
+        """))
+        XCTAssertEqual(limit.percentUsed, 99)
+        XCTAssertGreaterThan(limit.percentRemaining, 0, "아직 쓸 수 있는데 소진이라 하면 안 된다")
+    }
+
+    /// 안 쓴 창만 리셋 시각을 버린다. 그 값이 `지금 + 창 길이` 라 흐르기 때문이다.
+    func test_onlyUntouchedWindowDropsReset() throws {
+        XCTAssertNil(try bucket("""
+        {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": 1,
+         "resetTime": "2026-09-16T13:01:03Z"}
+        """)?.resetsAt)
+    }
+
+    /// 부동소수 오차로 90% 가 89% 로 새면 안 된다.
+    func test_roundingStaysHonestAcrossTheRange() throws {
+        for (remaining, used) in [(0.9, 10), (0.85, 15), (0.5, 50), (0.38, 62), (0.1, 90)] {
+            let limit = try XCTUnwrap(bucket("""
+            {"bucketId": "gemini-5h", "window": "5h", "remainingFraction": \(remaining)}
+            """))
+            XCTAssertEqual(limit.percentUsed, used, "잔여 \(remaining)")
+        }
+    }
+
+    /// 앱이 비정상 종료하면 자식 서버가 고아로 남는다. 다음에 앱을 켜면 둘이
+    /// 보이는데, 죽은 쪽을 고르면 카드가 `꺼져 있다` 로 굳고 `켜기` 를 눌러도
+    /// 안 고쳐진다. 후보를 전부 내주고 부르는 쪽이 포트로 가린다.
+    func test_listsAllServersNewestFirst() {
+        let found = parseAntigravityProcesses(psOutput: """
+         2608 /Applications/Antigravity.app/Contents/Resources/bin/language_server --csrf_token old
+         4100 /Applications/Antigravity.app/Contents/Resources/bin/language_server --csrf_token new
+        """)
+        XCTAssertEqual(found.map { $0.pid }, [4100, 2608], "새 프로세스가 먼저다")
+        XCTAssertEqual(found.first?.token, "new")
+    }
+
+    /// 실행 파일이 그 서버인 줄만 잡는다. 명령줄에 경로가 스쳐 간 줄은 아니다.
+    func test_ignoresLinesThatOnlyMentionTheServer() {
+        XCTAssertTrue(parseAntigravityProcesses(psOutput: """
+         3200 /bin/sh -c /Applications/Antigravity.app/Contents/Resources/bin/language_server --csrf_token fake
+        """).isEmpty)
+    }
+
+    /// 경로에 공백이 있어도 깨지지 않는다.
+    func test_pathWithSpaces() {
+        let found = parseAntigravityProcesses(psOutput: """
+         2608 /Users/me/My Apps/Antigravity.app/Contents/Resources/bin/language_server --csrf_token abc
+        """)
+        XCTAssertEqual(found.first?.token, "abc")
+    }
+
+    /// 값이 빠진 `--csrf_token` 뒤의 다른 플래그를 토큰으로 삼으면 안 된다.
+    func test_flagIsNotAToken() {
+        XCTAssertTrue(parseAntigravityProcesses(psOutput: """
+         2608 /Applications/Antigravity.app/Contents/Resources/bin/language_server --csrf_token --standalone
+        """).isEmpty)
+    }
+
+    /// 서버가 와일드카드로 묶어도 루프백으로 닿는다. 못 읽으면 앱이 도는데
+    /// 꺼졌다고 적는 자리로 떨어진다.
+    func test_acceptsWildcardAndIPv6Listen() {
+        XCTAssertEqual(parseLoopbackPorts(lsof: "x 1 me 7u IPv4 0x1 0t0 TCP *:49272 (LISTEN)"),
+                       [49272])
+        XCTAssertEqual(parseLoopbackPorts(lsof: "x 1 me 7u IPv6 0x1 0t0 TCP [::1]:49271 (LISTEN)"),
+                       [49271])
+    }
+
+    func test_toleratesTrailingWhitespace() {
+        XCTAssertEqual(parseLoopbackPorts(lsof: "x 1 me 7u IPv4 0x1 0t0 TCP 127.0.0.1:49272 (LISTEN) \r"),
+                       [49272])
+    }
+
+    /// 이름이 바뀌어 첫째 묶음으로 떨어질 때도 3p 주머니는 고르지 않는다.
+    /// 다른 주머니 숫자에 `Gemini` 배지를 달아 내보내면 그냥 거짓말이다.
+    func test_fallbackStillSkipsThirdPartyGroup() throws {
+        let renamed = Data("""
+        {"response": {"groups": [
+          {"displayName": "Partner", "buckets": [
+            {"bucketId": "3p-5h", "window": "5h", "remainingFraction": 0.05}]},
+          {"displayName": "Native", "buckets": [
+            {"bucketId": "native-5h", "window": "5h", "remainingFraction": 0.6}]}]}}
+        """.utf8)
+        XCTAssertEqual(try parseAntigravityUsage(renamed)[.session]?.percentRemaining, 60)
+    }
+
+    /// 칸이 둘뿐인 공급자도 둘 다 소진이면 전부 소진이다. `LimitKind.allCases`
+    /// 를 셋으로 전제하면 Codex 와 Antigravity 는 영원히 그 말을 못 듣는다.
+    func test_allWindowsExhaustedForTwoSlotProvider() {
+        let dead = UsageLimit(percentUsed: 100, resetsAt: nil, severity: "")
+        let org = OrgUsage(uuid: "a", name: "Antigravity", isActive: false, plan: "Pro",
+                           provider: .antigravity,
+                           limits: [.session: dead, .weeklyAll: dead])
+        let alerts = UsageAlerts.build(for: org)
+        XCTAssertEqual(alerts.first?.title, "Antigravity 한도 전부 소진")
+    }
+
+    /// Claude 는 셋이 다 막혀야 전부 소진이다. 위 고침이 이쪽을 안 건드려야 한다.
+    func test_claudeStillNeedsAllThree() {
+        let dead = UsageLimit(percentUsed: 100, resetsAt: nil, severity: "")
+        let org = OrgUsage(uuid: "a", name: "T40", isActive: true, plan: "team",
+                           limits: [.session: dead, .weeklyAll: dead])
+        XCTAssertEqual(UsageAlerts.build(for: org).first?.title, "T40 5시간 한도 소진")
     }
 }

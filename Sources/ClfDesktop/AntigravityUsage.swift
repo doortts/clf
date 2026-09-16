@@ -41,20 +41,36 @@ public func parseAntigravityUsage(_ data: Data) throws -> [LimitKind: UsageLimit
 
     var out: [LimitKind: UsageLimit] = [:]
     for bucket in buckets(of: geminiGroup(in: groups)) {
-        guard let kind = limitKind(window: bucket["window"] as? String),
-              let remaining = double(bucket["remainingFraction"]) else { continue }
-        // 서버는 잔여를 준다. Claude 와 Codex 는 사용률을 준다. 방향이 반대라
-        // 여기서 뒤집어 두면 그 뒤로는 셋이 같은 값을 다룬다
-        let used = min(100, max(0, Int(((1 - remaining) * 100).rounded())))
+        guard let kind = limitKind(window: bucket["window"] as? String) else { continue }
+        // **필드가 없으면 0 이다.** protobuf JSON 은 기본값을 안 싣는다. 다 쓴
+        // 창은 `remainingFraction` 이 통째로 빠진 채로 온다. 그 버킷을 건너뛰면
+        // 한도를 다 쓴 바로 그 순간에 카드가 옛 숫자를 내밀고 알림이 침묵한다
+        let remaining = double(bucket["remainingFraction"]) ?? 0
         // 잔여가 가득이면 리셋 시각이 `지금 + 창 길이` 라 읽을 때마다 흐른다.
-        // 타이머가 안 걸린 창이므로 없는 것으로 둔다. 18 문서 1-2절과 같은 함정
-        let resets = used > 0 ? parseTimestamp(bucket["resetTime"] as? String) : nil
+        // 타이머가 안 걸린 창이므로 없는 것으로 둔다. 18 문서 1-2절과 같은 함정.
+        // **판정은 반올림 전 값으로 한다.** 정수로 보면 0.4% 쓴 창이 안 열린
+        // 창으로 둔갑한다
+        let resets = remaining < 1 ? parseTimestamp(bucket["resetTime"] as? String) : nil
+        let used = usedPercent(remaining: remaining)
         // 같은 창이 둘이면 앞자리를 둔다. 관측된 적 없는 모양이다
         if out[kind] == nil {
             out[kind] = UsageLimit(percentUsed: used, resetsAt: resets, severity: "")
         }
     }
     return out
+}
+
+/// 잔여 비율을 사용률 정수로. 서버는 잔여를 주고 Claude 와 Codex 는 사용률을
+/// 준다. 여기서 뒤집어 두면 그 뒤로는 셋이 같은 값을 다룬다.
+///
+/// **0 과 100 은 진짜 양 끝에서만 나온다.** 조금이라도 썼으면 1 이상이고
+/// 조금이라도 남았으면 99 이하다. 그냥 반올림하면 0.4% 쓴 창이 `창 안 열림`
+/// 이 되고, 0.4% 남은 창이 소진 알림을 띄운다. 둘 다 거짓말이다.
+func usedPercent(remaining: Double) -> Int {
+    let used = 1 - remaining
+    if used <= 0 { return 0 }
+    if used >= 1 { return 100 }
+    return min(99, max(1, Int((used * 100).rounded())))
 }
 
 /// Gemini 묶음. **버킷 이름으로 고른다.**
@@ -66,9 +82,19 @@ public func parseAntigravityUsage(_ data: Data) throws -> [LimitKind: UsageLimit
 /// 값이 뜬다. 값이 보이면 사용자가 이상한 것을 알아채지만, 빈 카드는 clf 가
 /// 고장 난 것으로만 보인다.
 private func geminiGroup(in groups: [[String: Any]]) -> [String: Any] {
-    groups.first { group in
-        buckets(of: group).contains { ($0["bucketId"] as? String)?.hasPrefix("gemini-") == true }
-    } ?? groups[0]
+    if let named = groups.first(where: { group in
+        buckets(of: group).contains {
+            ($0["bucketId"] as? String)?.hasPrefix("gemini-") == true
+        }
+    }) { return named }
+    // 떨어질 때도 3p 주머니는 고르지 않는다. 다른 주머니 숫자에 `Gemini` 배지를
+    // 달아 내보내면 그냥 거짓말이다
+    return groups.first { !bucketID(group: $0).hasPrefix("3p-") } ?? groups[0]
+}
+
+/// 그 묶음의 첫 버킷 이름. 묶음을 가르는 데는 하나면 충분하다.
+private func bucketID(group: [String: Any]) -> String {
+    buckets(of: group).compactMap { $0["bucketId"] as? String }.first ?? ""
 }
 
 private func buckets(of group: [String: Any]) -> [[String: Any]] {
@@ -133,34 +159,51 @@ public protocol AntigravityProbing: Sendable {
     func endpoint() -> AntigravityEndpoint?
 }
 
-/// `ps` 출력에서 Antigravity 가 띄운 서버와 그 CSRF 토큰을 캐낸다.
+/// `ps` 출력에서 Antigravity 가 띄운 서버들을 **새 것부터** 캐낸다.
 ///
-/// **앱 번들 안의 것만 잡는다.** `~/.gemini/antigravity-cli/` 의 CLI 도 같은
-/// 이름의 서버를 띄우는데 그쪽은 사용량 창구가 아니다.
+/// **목록으로 준다.** 앱이 비정상 종료하면 자식 서버가 고아로 남고, 다음에
+/// 앱을 켜면 둘이 보인다. 첫 줄만 보고 죽은 쪽을 고르면 카드가
+/// `꺼져 있다` 로 굳고 유일한 안내인 `켜기` 단추를 눌러도 안 고쳐진다.
+/// 부르는 쪽이 포트가 잡히는 후보까지 내려간다.
 ///
-/// 토큰이 없으면 nil 이다. 부를 수 없는 주소를 반쯤 아는 채로 넘기면 부르는
-/// 쪽이 그 사실을 또 확인해야 한다.
-public func parseAntigravityProcess(psOutput: String) -> AntigravityProcess? {
-    for line in psOutput.split(separator: "\n") {
-        guard line.contains("Antigravity.app/Contents/Resources/bin/language_server") else {
-            continue
-        }
-        let fields = line.split(separator: " ", omittingEmptySubsequences: true)
-        guard let pid = fields.first.flatMap({ Int32($0) }),
-              let token = csrfToken(in: fields) else { continue }
-        return AntigravityProcess(pid: pid, token: token)
-    }
-    return nil
+/// **실행 파일이 그 서버인 줄만 잡는다.** 명령줄에 경로가 스쳐 간 줄
+/// (`/bin/sh -c ... language_server ...`) 은 아니다. `~/.gemini/antigravity-cli/`
+/// 의 CLI 서버도 경로가 달라 여기서 걸러진다.
+public func parseAntigravityProcesses(psOutput: String) -> [AntigravityProcess] {
+    psOutput.split(separator: "\n")
+        .compactMap(parseServerLine)
+        // 새 프로세스가 먼저다. 고아는 앱보다 먼저 떴으므로 pid 가 작다
+        .sorted { $0.pid > $1.pid }
+}
+
+/// `  2608 /경로/language_server --csrf_token abc ...` 한 줄.
+private func parseServerLine(_ line: Substring) -> AntigravityProcess? {
+    let rest = line.drop { $0 == " " }
+    let digits = rest.prefix { $0.isNumber }
+    guard let pid = Int32(digits) else { return nil }
+    let command = rest.dropFirst(digits.count).drop { $0 == " " }
+    // 실행 파일은 첫 ` -` 앞까지다. 경로에 공백이 있어도 안 끊긴다
+    let executable = command.range(of: " -").map { command[..<$0.lowerBound] } ?? command[...]
+    guard executable.hasSuffix("Antigravity.app/Contents/Resources/bin/language_server"),
+          let token = csrfToken(in: command.split(separator: " ",
+                                                  omittingEmptySubsequences: true))
+    else { return nil }
+    return AntigravityProcess(pid: pid, token: token)
 }
 
 /// `--csrf_token <값>` 과 `--csrf_token=<값>` 둘 다 받는다.
+///
+/// 값이 빠져 다음 플래그가 붙어 오면 없는 것으로 본다. 그 플래그를 토큰으로
+/// 삼으면 서버가 401 을 내고 우리는 이유를 엉뚱한 데서 찾는다.
 private func csrfToken(in fields: [Substring]) -> String? {
     for (index, field) in fields.enumerated() {
-        if field == "--csrf_token", index + 1 < fields.count {
+        if field == "--csrf_token", index + 1 < fields.count,
+           !fields[index + 1].hasPrefix("-") {
             return String(fields[index + 1])
         }
         if field.hasPrefix("--csrf_token=") {
-            return String(field.dropFirst("--csrf_token=".count))
+            let value = field.dropFirst("--csrf_token=".count)
+            if !value.isEmpty { return String(value) }
         }
     }
     return nil
@@ -173,8 +216,14 @@ private func csrfToken(in fields: [Substring]) -> String? {
 /// 큰 쪽부터 시도하고 틀리면 남은 포트로 넘어가면 된다.
 public func parseLoopbackPorts(lsof: String) -> [Int] {
     var found: Set<Int> = []
-    for line in lsof.split(separator: "\n") where line.hasSuffix("(LISTEN)") {
-        for host in ["127.0.0.1:", "[::1]:"] {
+    for raw in lsof.split(separator: "\n") {
+        // 꼬리 공백이나 CR 하나에 빗나가면 앱이 도는데 꺼졌다고 적게 된다
+        let line = raw.drop { $0 == " " }.reversed().drop { $0.isWhitespace }
+            .reversed().map(String.init).joined()
+        guard line.hasSuffix("(LISTEN)") else { continue }
+        // 와일드카드도 받는다. 이미 pid 로 대상을 좁혔고, 서버가 듀얼스택으로
+        // 바뀌면 `*:` 로 나오는데 못 읽으면 포트가 빈 배열이 된다
+        for host in ["127.0.0.1:", "[::1]:", "*:"] {
             guard let range = line.range(of: host) else { continue }
             let digits = line[range.upperBound...].prefix { $0.isNumber }
             if let port = Int(digits) { found.insert(port) }
@@ -190,25 +239,19 @@ public struct LiveAntigravityProbe: AntigravityProbing {
     public func endpoint() -> AntigravityEndpoint? {
         // `-E` 를 주지 않는다. 필요한 값이 전부 명령줄 인자라 온 기계의
         // 프로세스 환경변수를 우리 메모리로 들일 이유가 없다
-        guard let process = parseAntigravityProcess(
-            psOutput: run("/bin/ps", ["-A", "-o", "pid=,command="])) else { return nil }
-        let ports = parseLoopbackPorts(
-            lsof: run("/usr/sbin/lsof", ["-nP", "-p", String(process.pid)]))
-        guard !ports.isEmpty else { return nil }
-        return AntigravityEndpoint(ports: ports, token: process.token)
-    }
-
-    private func run(_ path: String, _ arguments: [String]) -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = arguments
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        guard (try? process.run()) != nil else { return "" }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        return String(decoding: data, as: UTF8.self)
+        let servers = parseAntigravityProcesses(
+            psOutput: Shell.run("/bin/ps", ["-A", "-o", "pid=,command="]))
+        // 포트가 잡히는 후보까지 내려간다. 고아 프로세스는 LISTEN 이 없다
+        for server in servers {
+            // `-w` 로 경고를 끈다. 죽은 마운트가 있으면 경고가 마운트마다 한 줄씩
+            // 나오는데, 그걸 아무도 안 읽으면 자식이 write 에서 막힌다
+            let ports = parseLoopbackPorts(
+                lsof: Shell.run("/usr/sbin/lsof", ["-nP", "-w", "-p", String(server.pid)]))
+            if !ports.isEmpty {
+                return AntigravityEndpoint(ports: ports, token: server.token)
+            }
+        }
+        return nil
     }
 }
 
