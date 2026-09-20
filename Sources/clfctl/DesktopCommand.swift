@@ -6,7 +6,7 @@ import ClfDesktop
 /// docs/design/10-desktop-usage.md
 struct Desktop: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Claude 데스크톱 앱과 Codex 의 계정별 한도",
+        abstract: "Claude 데스크톱 앱과 Codex, Antigravity 의 계정별 한도",
         subcommands: [Usage.self, Orgs.self, Show.self, Hide.self, Order.self, Bar.self],
         defaultSubcommand: Usage.self)
 
@@ -39,8 +39,13 @@ struct Desktop: AsyncParsableCommand {
 
         private func render(_ org: OrgUsage) {
             let mark = org.isActive ? "*" : " "
+            // Claude 는 활성 여부만 적는다. 플랜은 `clfctl desktop orgs` 의 표에
+            // 이미 있고, 여기 붙이면 이 명령의 기존 출력이 바뀐다.
+            // 플랜도 주머니도 모르면 괄호를 안 연다. 빈 괄호는 뭔가 빠진 것처럼 보인다
+            let notes = org.provider == .claude
+                ? [] : [org.plan, org.provider.poolLabel].compactMap { $0 }
             let tail = org.isActive ? "  (지금 앱에서 쓰는 계정)"
-                : org.provider == .codex ? "  (\(org.plan ?? "플랜 모름"))" : ""
+                : notes.isEmpty ? "" : "  (" + notes.joined(separator: ", ") + ")"
             print("\(mark) \(org.name)" + tail)
             if let error = org.error {
                 print("    \(error)")
@@ -123,11 +128,12 @@ extension Desktop {
     static func readAll() async throws -> (DesktopSnapshot?, [OrgUsage]) {
         let claude = DesktopReader()
         let codex = CodexReader()
-        guard claude.isInstalled || codex.isInstalled else {
-            throw CheckFailed(description: "Claude 데스크톱 앱도 Codex 도 찾지 못했다")
+        let antigravity = AntigravityReader()
+        guard claude.isInstalled || codex.isInstalled || antigravity.isInstalled else {
+            throw CheckFailed(description: "Claude 데스크톱 앱도 Codex 도 Antigravity 도 찾지 못했다")
         }
         let snapshot = claude.isInstalled ? try await claude.read() : nil
-        return (snapshot, await codex.read().orgs)
+        return (snapshot, await codex.read().orgs + antigravity.read().orgs)
     }
 }
 

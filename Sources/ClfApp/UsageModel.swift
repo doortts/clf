@@ -22,8 +22,9 @@ final class UsageModel: ObservableObject {
     @Published private(set) var loginItem = LoginItemState.off
     /// 별도 창이 떠 있는 계정과 그 인스턴스의 pid.
     @Published private(set) var instances: [String: Int32] = [:]
-    /// Codex 앱이 떠 있나. "창이 열려있는 계정만" 이 Codex 를 올릴지 정한다.
-    @Published private(set) var codexRunning = false
+    /// 지금 떠 있는 앱의 공급자. "창이 열려있는 계정만" 이 이것을 보고
+    /// Codex 와 Antigravity 를 올릴지 정하고, 카드의 단추 문구도 이것으로 갈린다.
+    @Published private(set) var runningApps: Set<Provider> = []
     var running: Set<String> { Set(instances.keys) }
     /// 계정 uuid -> 이름. 겹침 목록이 세션의 계정을 이름으로 말할 때 쓴다.
     var accountNames: [String: String] {
@@ -40,6 +41,10 @@ final class UsageModel: ObservableObject {
     /// Codex 계정 하나. 파일이 없으면 빈 결과라 Claude 만 쓰는 사람에게는
     /// 아무 일도 안 일어난다. docs/design/18-codex-usage.md
     private let codexReader: CodexReader
+    /// Antigravity 계정 하나. **앱이 떠 있는 동안만 읽힌다.** 앱이 없으면
+    /// 빈 결과라 Antigravity 를 안 쓰는 사람에게는 아무 일도 안 일어난다.
+    /// docs/design/19-antigravity-usage.md
+    private let antigravityReader: AntigravityReader
     private let file: DesktopPreferencesFile?
     private var pacer = RefreshPacer()
     private var gate = ReadGate()
@@ -78,9 +83,12 @@ final class UsageModel: ObservableObject {
     /// docs/design/17-repo-split.html
     let updates = UpdateModel()
 
-    init(reader: DesktopReader = DesktopReader(), codexReader: CodexReader = CodexReader()) {
+    init(reader: DesktopReader = DesktopReader(),
+         codexReader: CodexReader = CodexReader(),
+         antigravityReader: AntigravityReader = AntigravityReader()) {
         self.reader = reader
         self.codexReader = codexReader
+        self.antigravityReader = antigravityReader
         let notifier = Notifier()
         self.notifier = notifier
         // 알림 보내는 문만 넘긴다. 자동 재개가 `Notifier` 를 알면 그쪽이 AppKit
@@ -303,8 +311,11 @@ final class UsageModel: ObservableObject {
     /// 기본 계정은 우리가 띄운 창이 아니라 pid 를 모른다. 우리 pid 를 빼고
     /// 남는 프로세스로 찾는다.
     func focus(_ org: OrgUsage) {
-        if org.provider == .codex {
-            guard let url = Self.codexAppURL else { return }
+        if let bundleID = org.provider.bundleID {
+            // Codex 와 Antigravity 는 계정별 창이 아니라 그냥 앱이다. 꺼져
+            // 있으면 이 단추가 앱을 띄우고, 그것이 Antigravity 카드에서는
+            // 값을 되살리는 유일한 길이다
+            guard let url = Self.appURL(bundleID) else { return }
             NSWorkspace.shared.openApplication(at: url, configuration: .init())
             return
         }
@@ -321,12 +332,13 @@ final class UsageModel: ObservableObject {
     /// 앞으로 꺼낼 수 있나. Codex 는 앱이 깔려 있을 때만이고, Claude 는 창이
     /// 있을 때다. 카드는 이 답이 거짓이면 단추를 그리지 않는다.
     func canFocus(_ org: OrgUsage) -> Bool {
-        org.provider == .codex ? Self.codexAppURL != nil : slot(org) != .none
+        guard let bundleID = org.provider.bundleID else { return slot(org) != .none }
+        return Self.appURL(bundleID) != nil
     }
 
-    /// Codex 데스크톱 앱. 번들 id 로 찾는다. 없으면 nil.
-    private static var codexAppURL: URL? {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.openai.codex")
+    /// 깔려 있는 앱의 자리. 없으면 nil 이고 카드는 단추를 안 그린다.
+    private static func appURL(_ bundleID: String) -> URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
     }
 
     /// 인스턴스, 세션 이전, 공유가 보는 목록. Codex 는 그쪽 세상에 없다.
@@ -475,25 +487,30 @@ final class UsageModel: ObservableObject {
         let before = focusedUUID
         let hadWindows = barWindowUUIDs
         instances = live
-        codexRunning = Self.codexIsRunning
+        runningApps = Set(Provider.allCases.filter { provider in
+            provider.bundleID.map(Self.isRunning) ?? false
+        })
         // 창이 뜨거나 닫히면 '창이 열려있는 계정만' 의 답이 바뀐다
         if barWindowUUIDs != hadWindows { rebuildBar() }
         else if focusedUUID != before { redrawBar() }
     }
 
     /// Codex 앱 프로세스가 있나. 번들 id 로 본다. 로컬이라 공짜다.
-    private static var codexIsRunning: Bool {
-        !NSRunningApplication.runningApplications(withBundleIdentifier: "com.openai.codex").isEmpty
+    private static func isRunning(_ bundleID: String) -> Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
     }
 
     /// 막대의 "창이 열려있는 계정만" 이 보는 집합. Claude 는 계정별 인스턴스
-    /// 창이고, Codex 는 앱이 떠 있으면 그 계정이 열린 것으로 친다.
+    /// 창이고, 나머지는 그 앱이 떠 있으면 계정이 열린 것으로 친다.
     /// `windowedUUIDs` 는 세션 동기화가 보는 Claude 전용 집합이라 따로 둔다
     private var barWindowUUIDs: Set<String> {
         var up = windowedUUIDs
-        if codexRunning { up.formUnion(known.filter { $0.provider == .codex }.map(\.uuid)) }
+        up.formUnion(known.filter { runningApps.contains($0.provider) }.map(\.uuid))
         return up
     }
+
+    /// 이 계정의 앱이 지금 떠 있나. 카드가 단추 문구를 이걸로 정한다.
+    func isAppRunning(_ org: OrgUsage) -> Bool { runningApps.contains(org.provider) }
 
     /// 우리가 띄운 별도 창이 붙어 있는 계정.
     private var windowedUUIDs: Set<String> {
@@ -566,18 +583,20 @@ final class UsageModel: ObservableObject {
         do { claude = try await reader.read(names: cachedNames) }
         catch { claudeError = "\(error)" }
         let codex = await codexReader.read()
+        let antigravity = await antigravityReader.read()
+        let extras = codex.orgs + antigravity.orgs
 
-        guard claude != nil || !codex.orgs.isEmpty else {
+        guard claude != nil || !extras.isEmpty else {
             gate.record(at: now, throttled: false)
             failure = claudeError
             return
         }
         let snapshot = DesktopSnapshot(
-            orgs: (claude?.orgs ?? []) + codex.orgs,
+            orgs: (claude?.orgs ?? []) + extras,
             unreadable: claude?.unreadable ?? [],
             unreadableByUUID: claude?.unreadableByUUID ?? [:],
-            throttled: claude?.throttled == true || codex.throttled,
-            offline: claude?.offline == true || codex.offline,
+            throttled: claude?.throttled == true || codex.throttled || antigravity.throttled,
+            offline: claude?.offline == true || codex.offline || antigravity.offline,
             names: claude?.names ?? [:],
             readAt: now)
         pacer.observe(snapshot)
@@ -589,7 +608,7 @@ final class UsageModel: ObservableObject {
         // 지난 Claude 카드를 낡은 표시로 남긴다
         let fresh = claude.map(\.knownOrgs)
             ?? markStale(claudeKnown, error: claudeError ?? "Claude 앱을 못 읽었다")
-        known = mergeKeepingLastGood(fresh: fresh + codex.orgs, previous: known)
+        known = mergeKeepingLastGood(fresh: fresh + extras, previous: known)
         if !snapshot.names.isEmpty { cachedNames = snapshot.names }
         orgs = prefs.apply(to: known)
         rebuildBar()

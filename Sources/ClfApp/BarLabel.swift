@@ -183,15 +183,17 @@ struct BarLabelView: View {
 
     var body: some View {
         let codes = BarText.codes(for: orgs.map(\.name))
-        // Codex 계정이 하나일 때만. 둘이면 아이콘이 같아 코드가 필요하다
-        let codexIcon = orgs.filter { $0.provider == .codex }.count == 1 ? BarImage.codexIcon : nil
+        // 그 공급자의 계정이 하나일 때만. 둘이면 아이콘이 같아 코드가 필요하다
+        let solo = Dictionary(grouping: orgs, by: \.provider).filter { $0.value.count == 1 }
         HStack(spacing: Metrics.barOrgGap) {
             if orgs.isEmpty {
                 Text(BarText.placeholder).font(.system(size: 12, weight: .semibold))
             } else {
                 ForEach(orgs) { org in
                     BarOrgView(code: codes[org.name] ?? BarText.unknown,
-                               icon: org.provider == .codex ? codexIcon : nil, org: org,
+                               icon: solo[org.provider] != nil
+                                   ? BarImage.appIcon(org.provider) : nil,
+                               org: org,
                                detail: detail, direction: direction,
                                resetLabel: resetLabel, now: now,
                                focused: org.uuid == focusedUUID, dark: dark)
@@ -232,15 +234,24 @@ enum BarImage {
         return appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
 
-    /// Codex 앱 아이콘. 설치된 앱 번들에서 시스템이 준다. 우리가 그리지 않는다.
-    /// 앱이 없으면 nil 이고 그때는 코드 `Co` 로 돌아간다.
-    static let codexIcon: NSImage? = {
-        guard let url = NSWorkspace.shared
-            .urlForApplication(withBundleIdentifier: "com.openai.codex") else { return nil }
+    /// 그 공급자의 앱 아이콘. 설치된 앱 번들에서 시스템이 준다. 우리가 그리지
+    /// 않는다. 앱이 없거나 Claude 처럼 번들이 하나로 안 정해지면 nil 이고,
+    /// 그때는 코드 두 글자로 돌아간다.
+    ///
+    /// 아이콘을 만드는 값이 싸지 않고 막대를 다시 구울 때마다 부르므로 기억해
+    /// 둔다. 앱을 깔거나 지우는 일은 앱이 도는 중에 드물다.
+    static func appIcon(_ provider: Provider) -> NSImage? {
+        if let cached = iconCache[provider] { return cached }
+        guard let bundleID = provider.bundleID,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        else { return nil }
         let icon = NSWorkspace.shared.icon(forFile: url.path)
         icon.size = NSSize(width: Metrics.barIconSize, height: Metrics.barIconSize)
+        iconCache[provider] = icon
         return icon
-    }()
+    }
+
+    private static var iconCache: [Provider: NSImage] = [:]
 
     /// 상태 항목이 사는 창. 공개 타입이 아니라 이름으로 찾는다.
     static var statusBarWindow: NSWindow? {

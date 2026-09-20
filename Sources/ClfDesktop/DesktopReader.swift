@@ -5,9 +5,53 @@ import Foundation
 /// Codex 계정은 Claude 계정과 같은 카드, 같은 막대에 오른다. 갈리는 것은
 /// 창 띄우기, 작업 이전, 자동 재개처럼 Claude 세션 형식 위에 선 자리들이라
 /// 그쪽이 이 값으로 거른다. docs/design/18-codex-usage.md
-public enum Provider: String, Sendable, Codable, Equatable {
+public enum Provider: String, Sendable, Codable, Equatable, CaseIterable {
     case claude
     case codex
+    case antigravity
+
+    /// 이 카드의 숫자가 어느 주머니의 것인지. 주머니가 여럿인데 하나만
+    /// 그릴 때만 있다. Antigravity 는 Claude/GPT 주머니를 따로 두는데 우리는
+    /// Gemini 만 그리므로 그 사실을 숨기지 않는다.
+    /// docs/design/19-antigravity-usage.md 4-1절
+    public var poolLabel: String? { self == .antigravity ? "Gemini" : nil }
+
+    /// 이 계정을 여는 앱. Claude 는 계정별 인스턴스라 번들 하나로 안 정해진다.
+    public var bundleID: String? {
+        switch self {
+        case .claude:      return nil
+        case .codex:       return "com.openai.codex"
+        case .antigravity: return "com.google.antigravity"
+        }
+    }
+
+    /// 순서를 안 정했을 때의 차례. 들어온 차례다. 기존 사용자의 화면이
+    /// 위에서부터 그대로 유지된다. docs/design/19-antigravity-usage.md 4-4절
+    public var rank: Int {
+        switch self {
+        case .claude:      return 0
+        case .codex:       return 1
+        case .antigravity: return 2
+        }
+    }
+}
+
+/// 공급자 하나를 읽은 결과. 계정이 하나뿐인 공급자가 쓴다.
+///
+/// Claude 는 계정이 여럿이라 `DesktopSnapshot` 이 따로 있다. 이쪽은 계정
+/// 하나에 오류 갈래 둘이 전부다.
+public struct ProviderResult: Sendable, Equatable {
+    public let orgs: [OrgUsage]
+    public let throttled: Bool
+    public let offline: Bool
+
+    public init(orgs: [OrgUsage], throttled: Bool = false, offline: Bool = false) {
+        self.orgs = orgs
+        self.throttled = throttled
+        self.offline = offline
+    }
+
+    public static let empty = ProviderResult(orgs: [])
 }
 
 /// 계정 하나의 현재 상태. UI 가 그대로 그린다.
@@ -39,8 +83,16 @@ public struct OrgUsage: Sendable, Equatable, Identifiable {
     /// 플랜이 창 구성을 정하므로 **있는 줄만** 그린다. `prolite` 의 5시간
     /// 줄은 못 읽은 것이 아니라 없는 것이다. docs/design/18-codex-usage.md 4-1절
     public var rowKinds: [LimitKind] {
-        provider == .codex ? LimitKind.allCases.filter { limits[$0] != nil } : LimitKind.allCases
+        provider == .claude ? LimitKind.allCases : LimitKind.allCases.filter { limits[$0] != nil }
     }
+
+    /// 다시 읽을 길이 지금 없는 값인가. 막대는 이런 값을 안 올린다.
+    ///
+    /// Claude 와 Codex 의 낡은 값은 회선이 돌아오면 몇 분 안에 스스로 고쳐진다.
+    /// Antigravity 는 읽을 창구가 앱뿐이라 사람이 앱을 켜기 전에는 며칠이고
+    /// 그대로다. 갱신될 수 없는 숫자를 "지금" 을 말하는 자리에 두면 막대
+    /// 전체를 못 믿게 된다. docs/design/19-antigravity-usage.md 3-5절
+    public var isFrozen: Bool { isStale && provider == .antigravity }
 
     public init(uuid: String, name: String, isActive: Bool, plan: String?,
                 provider: Provider = .claude,

@@ -22,7 +22,7 @@ public enum LimitKind: String, Sendable, CaseIterable {
     public func label(for provider: Provider) -> String {
         switch self {
         case .session:      return "5시간"
-        case .weeklyAll:    return provider == .codex ? "주간" : "주간 전체"
+        case .weeklyAll:    return provider == .claude ? "주간 전체" : "주간"
         case .weeklyScoped: return "주간 Fable"
         }
     }

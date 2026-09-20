@@ -80,6 +80,8 @@ struct OrgCard: View {
     var onFocus: (() -> Void)?
     /// 방금 앞에 있던 창의 계정. 팝오버를 여는 순간 찾을 카드라 배경을 깐다.
     var focused = false
+    /// 이 계정의 앱이 지금 떠 있나. 단추가 `앞으로 꺼내기` 와 `켜기` 로 갈린다.
+    var appRunning = false
 
     /// 포커스 카드 색. 밝은 쪽 어두운 쪽 모두 시스템 파랑이다.
     ///
@@ -96,6 +98,10 @@ struct OrgCard: View {
                 Text(org.name).bodyStyle(.semibold)
                     .lineLimit(1).truncationMode(.tail)
                 if let plan = org.plan { badge(plan, tint: .accentColor) }
+                // 주머니가 여럿인데 하나만 그리는 계정은 어느 것인지 밝힌다.
+                // 회색인 것은 파랑을 플랜 배지가 이미 쓰고 빨강, 노랑, 초록은
+                // 등급이 쓰기 때문이다. docs/design/19-antigravity-usage.md 4-1절
+                if let pool = org.provider.poolLabel { badge(pool, tint: .secondary) }
                 // 기본 인스턴스가 쓰는 계정. 예전에는 이름 앞 파란 점이었는데
                 // 점은 범례를 알아야 읽혔다. 종류 배지 옆에 글자로 적는다.
                 //
@@ -159,16 +165,20 @@ struct OrgCard: View {
     /// 옆 카드의 상태 상자와 크기도 색도 안 맞았다. 셋 다 `controlBox` 로
     /// 그려서 높이 20, 좌우 12, 모서리 6 을 공유하고 채움과 테두리로만 갈린다.
     @ViewBuilder private var slotControl: some View {
-        if org.provider == .codex {
-            // Codex 앱은 계정별 창이 아니라 그냥 앱이다. 앞으로 꺼내는 것만
-            // 한다. 앱이 없으면 onFocus 가 nil 로 오고 단추도 없다.
-            // docs/design/18-codex-usage.md 4-1절
+        if org.provider.bundleID != nil {
+            // Codex 와 Antigravity 는 계정별 창이 아니라 그냥 앱이다. 앱이
+            // 없으면 onFocus 가 nil 로 오고 단추도 없다.
+            //
+            // 꺼져 있으면 `켜기` 다. Antigravity 는 앱이 떠 있는 동안만 읽히므로
+            // 이 단추가 값을 되살리는 유일한 길이고, 그래서 단추가 곧 안내다.
+            // docs/design/19-antigravity-usage.md 4-3절
             if let onFocus {
                 Button { onFocus() } label: {
-                    controlBox("앞으로 꺼내기", color: .accentColor, filled: false)
+                    controlBox(appRunning ? "앞으로 꺼내기" : "켜기",
+                               color: .accentColor, filled: !appRunning)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Codex 앱을 앞으로")
+                .accessibilityLabel("\(org.name) 앱 \(appRunning ? "앞으로 꺼내기" : "켜기")")
             }
         } else {
             claudeControl
@@ -916,7 +926,8 @@ struct PopoverView: View {
                     OrgCard(org: org, direction: model.prefs.gaugeDirection, slot: model.slot(org),
                             onLaunch: { model.launch(org) },
                             onFocus: model.canFocus(org) ? { model.focus(org) } : nil,
-                            focused: org.uuid == model.focusedUUID)
+                            focused: org.uuid == model.focusedUUID,
+                            appRunning: model.isAppRunning(org))
                 }
             }
 

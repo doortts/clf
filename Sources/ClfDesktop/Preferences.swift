@@ -243,8 +243,8 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     func ordered(_ orgs: [OrgUsage]) -> [OrgUsage] {
         guard !order.isEmpty else {
             return orgs.sorted {
-                ($0.provider == .codex ? 1 : 0, $0.isActive ? 0 : 1, $0.name)
-                    < ($1.provider == .codex ? 1 : 0, $1.isActive ? 0 : 1, $1.name)
+                ($0.provider.rank, $0.isActive ? 0 : 1, $0.name)
+                    < ($1.provider.rank, $1.isActive ? 0 : 1, $1.name)
             }
         }
         // 순서에 있는 것부터, 없는 것은 뒤에 이름순으로. 사라진 계정 항목은 무시된다
@@ -265,7 +265,9 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
     /// 알려주는 것이 없다. 팝오버와 설정에는 그대로 남는다. 거기서는 왜 못
     /// 읽는지까지 말할 수 있다.
     public func barOrgs(from orgs: [OrgUsage], withWindow: Set<String> = []) -> [OrgUsage] {
-        let readable = orgs.filter(\.hasUsage)
+        // 다시 읽을 길이 없는 값은 막대에 안 올린다. 팝오버에는 그대로 남고
+        // 거기서는 왜 낡았는지까지 말할 수 있다
+        let readable = orgs.filter { $0.hasUsage && !$0.isFrozen }
         guard barContent == .windowed else { return apply(to: readable) }
 
         // 창을 보는 항목이므로 숨긴 목록은 안 본다. 두 항목의 기준이 다르다

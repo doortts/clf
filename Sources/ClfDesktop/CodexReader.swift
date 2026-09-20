@@ -1,20 +1,5 @@
 import Foundation
 
-/// Codex 읽기 결과. 계정이 하나라 스냅샷을 따로 만들 것이 없다.
-public struct CodexResult: Sendable, Equatable {
-    public let orgs: [OrgUsage]
-    public let throttled: Bool
-    public let offline: Bool
-
-    public init(orgs: [OrgUsage], throttled: Bool = false, offline: Bool = false) {
-        self.orgs = orgs
-        self.throttled = throttled
-        self.offline = offline
-    }
-
-    public static let empty = CodexResult(orgs: [])
-}
-
 /// `~/.codex/auth.json` 을 읽어 Codex 계정 하나를 `OrgUsage` 로 만든다.
 ///
 /// **읽기만 한다.** Claude 와 같은 자세다. 토큰 갱신은 Codex 가 한다.
@@ -45,14 +30,14 @@ public struct CodexReader: Sendable {
 
     /// 던지지 않는다. 파일이 없으면 빈 결과다. Claude 만 쓰는 사람에게
     /// Codex 가 없는 것은 오류가 아니다.
-    public func read() async -> CodexResult {
+    public func read() async -> ProviderResult {
         guard let auth = try? readAuth() else { return .empty }
         do {
             let report = try await session.usage(token: auth.token, accountID: auth.accountID)
-            return CodexResult(orgs: [org(auth, plan: report.plan, limits: report.limits)])
+            return ProviderResult(orgs: [org(auth, plan: report.plan, limits: report.limits)])
         } catch {
             let fetch = error as? UsageFetchError
-            return CodexResult(orgs: [org(auth, plan: nil, limits: [:], error: "\(error)")],
+            return ProviderResult(orgs: [org(auth, plan: nil, limits: [:], error: "\(error)")],
                                throttled: fetch?.throttled == true,
                                offline: fetch?.offline == true)
         }
