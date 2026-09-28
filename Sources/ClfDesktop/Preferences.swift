@@ -107,8 +107,8 @@ public enum ResetLabel: String, Codable, Sendable, CaseIterable {
 /// 막대에 어느 계정을 올릴지 정하는 두 갈래.
 ///
 /// 하나는 **지금 창이 떠 있는가**를 보고, 하나는 **사용자가 설정에서 골랐는가**
-/// 를 본다. 기준이 아예 다르므로 한쪽이 다른 쪽의 부분집합이 아니다. 창이
-/// 열린 계정을 설정에서 꺼 뒀어도 첫째 항목에는 나온다.
+/// 를 본다. 설정에서 끈 계정은 어느 쪽에서도 안 나온다. 첫째 항목은 켠 계정
+/// 중 창이 떠 있는 것만 고른다.
 public enum BarContent: String, Codable, Sendable, CaseIterable {
     /// 지금 창이 떠 있는 계정. 기본 창이 쓰는 계정과 우리가 띄운 별도 창들.
     case windowed
@@ -136,12 +136,11 @@ public enum BarContent: String, Codable, Sendable, CaseIterable {
 
     /// 계정 목록 밑에 붙는 한 줄.
     ///
-    /// 목록이 막대를 정하는지 아닌지가 고른 칸에 따라 다르다. `창이 열려있는
-    /// 계정만` 은 숨김 목록을 안 보므로, 제목만 보고 목록을 껐다가 막대가
-    /// 그대로라 어리둥절해지는 것을 막는다.
+    /// 끈 계정은 어느 항목에서도 막대에 안 오른다. `창이 열려있는 계정만` 은
+    /// 그 위에 창이 떠 있어야 한다는 조건이 하나 더 붙는다.
     public var listNote: String {
         switch self {
-        case .windowed: return "지금은 창을 보고 정하므로 이 목록은 팝오버와 차례에만 쓰인다"
+        case .windowed: return "끈 계정은 창이 떠 있어도 막대에 안 올린다"
         case .chosen:   return "끈 계정은 팝오버에서도 빠진다"
         }
     }
@@ -270,8 +269,8 @@ public struct DesktopPreferences: Codable, Sendable, Equatable {
         let readable = orgs.filter { $0.hasUsage && !$0.isFrozen }
         guard barContent == .windowed else { return apply(to: readable) }
 
-        // 창을 보는 항목이므로 숨긴 목록은 안 본다. 두 항목의 기준이 다르다
-        let open = ordered(readable.filter { $0.isActive || withWindow.contains($0.uuid) })
+        // 창이 떠 있어도 설정에서 끈 계정은 안 올린다. 숨김은 두 항목에 다 걸린다
+        let open = apply(to: readable.filter { $0.isActive || withWindow.contains($0.uuid) })
         guard open.isEmpty else { return open }
         // 창이 하나도 없으면 막대가 빈다. 빈 막대보다는 보이는 것 중 첫째를 쓴다
         return Array(apply(to: readable).prefix(1))

@@ -131,14 +131,13 @@ final class BarContentTests: XCTestCase {
                        ["t40", "t52"])
     }
 
-    /// 창이 열려 있으면 설정에서 껐어도 막대에 올린다. 이 항목은 설정이
-    /// 아니라 창을 보는 것이다.
-    func test_windowedIgnoresTheHiddenList() {
+    /// 설정에서 끈 계정은 창이 열려 있어도 막대에 안 올린다. 창은 켠 계정
+    /// 중에서 고르는 조건이다.
+    func test_windowedRespectsTheHiddenList() {
         var prefs = DesktopPreferences()
         prefs.barContent = .windowed
         prefs.hidden = ["t52"]
-        XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid),
-                       ["t40", "t52"])
+        XCTAssertEqual(prefs.barOrgs(from: orgs, withWindow: ["t52"]).map(\.uuid), ["t40"])
     }
 
     func test_chosenShowsEveryPickedOrg() {
